@@ -154,5 +154,5 @@ For detailed setup and configuration, check out the [complete documentation](htt
   <meta property="twitter:domain" content="block.github.io/goose" />
   <meta name="twitter:title" content="MCP Jupyter Server: Bringing Notebook Intelligence to AI Agents" />
   <meta name="twitter:description" content="A powerful MCP server that enables AI agents to interact with Jupyter notebooks while preserving kernel state and variable context" />
-  <meta name="twitter:image" content="https://block.github.io/goose/assets/images/mcp-jupyter-server.png" />
+  <meta name="twitter:image" content="https://block.github.io/goose/assets/images/data-goose-31db12eb84fe22345f4ed83d50d8d41f.png" />
 </head>
