@@ -80,7 +80,7 @@ The AI becomes a true collaborator in your modeling process:
 
 ### Real-time Debugging
 
-When errors occur, the AI has full context:
+When errors occur, the assistant has full context:
 
 > <span style={{color: '#2563eb', fontWeight: 'bold'}}>User:</span> "I'm getting a KeyError in cell 5"
 > 
