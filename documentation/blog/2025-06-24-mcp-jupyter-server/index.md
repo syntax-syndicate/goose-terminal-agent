@@ -126,7 +126,7 @@ This fluid back-and-forth, where the assistant understands and builds upon the e
 
 ## Example notebook
 
-Can see an example notebook that was handled by the MCP Jupyter Server.  The server 
+Here you can see an example notebook that was handled by the MCP Jupyter Server.  The server 
 
 **[📓 View the Complete Demo Notebook](https://github.com/block/mcp-jupyter/blob/main/demos/demo.ipynb)**
 
