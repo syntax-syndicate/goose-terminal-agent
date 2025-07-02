@@ -23,7 +23,7 @@ Traditional AI coding assistants face a fundamental limitation: they lose contex
 - **Constant data reloading**: Each interaction requires re-loading or describing your dataset
 - **Expensive iterations**: Large datasets are slow and costly to process repeatedly
 - **Context size**: The raw data may be too large to be fit in context
-- **Not designed for adhoc work**: It is harder to have the model do some steps for you, and then let you take over and then later pass control back to the model
+- **Not designed for interactive work**: It is harder to have the assistant do some steps and then transfer control back to the human or vice versa
 
 This has made it difficult to use AI to help with data science workflows, which led to the creation of the MCP Jupyter Server.
 
