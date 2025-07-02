@@ -122,7 +122,7 @@ Imagine a scenario where you are working on a new dataset:
 > 
 > <span style={{color: '#059669', fontWeight: 'bold'}}>AI:</span> "Your Random Forest achieved 0.84 precision and 0.81 recall. The confusion matrix shows some false positives in the high-value sales category. Would you like me to adjust the decision threshold or try feature engineering?"
 
-This fluid back-and-forth, where the AI understands and builds upon the existing notebook state, allows for seamless collaboration without the need for constant context re-establishment or data reloading.
+This fluid back-and-forth, where the assistant understands and builds upon the existing notebook state, allows for seamless collaboration without the need for constant context re-establishment or data reloading.
 
 ## Example notebook
 
