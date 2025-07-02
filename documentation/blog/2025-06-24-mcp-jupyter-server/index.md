@@ -33,7 +33,7 @@ The MCP Jupyter Server takes a different approach. Instead of losing context bet
 
 - **Persistent memory**: Variables and state are maintained across all interactions
 - **Efficient iterations**: No need to reload data or re-establish context
-- **Code-based data interaction**: AI explores data through execution, not given the raw data
+- **Code-based data interaction**: AI explores data through execution, not given the raw data in context
 - **True pair programming**: Seamless collaboration within the same notebook context
 
 ## Transforming ML Workflows
