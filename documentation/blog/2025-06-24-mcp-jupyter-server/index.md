@@ -29,7 +29,7 @@ This has made it difficult to use AI to help with data science workflows, which 
 
 ## A Better Approach: Persistent State
 
-The MCP Jupyter Server takes a different approach. Instead of losing context between interactions, it maintains persistent memory and lets the AI interact with your data through code execution. This creates a powerful paradigm:
+The MCP Jupyter Server takes a different approach. Instead of losing context between interactions, it maintains persistent memory and lets the AI interact with your data through Jupyter code cell execution. This creates a powerful paradigm:
 
 - **Persistent memory**: Variables and state are maintained across all interactions
 - **Efficient iterations**: No need to reload data or re-establish context
