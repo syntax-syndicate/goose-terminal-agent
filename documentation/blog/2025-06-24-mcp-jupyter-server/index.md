@@ -18,7 +18,7 @@ The [**MCP Jupyter Server**](https://github.com/block/mcp-jupyter) solves this b
 
 ## The Memory and Context Problem
 
-Traditional AI coding assistants face a fundamental limitation: they lose context between code iterations. They also are not designed for adhoc work where the expectation is the code should run from start to finish. This creates several challenges for data-heavy ML workflows:
+Traditional AI coding assistants face a fundamental limitation: they lose context between code iterations. They also are not designed for interactive work like data and model exploration, instead favoring end-to-end solutions to a prompted problem. This creates several challenges for data-heavy ML workflows:
 
 - **Constant data reloading**: Each interaction requires re-loading or describing your dataset
 - **Expensive iterations**: Large datasets are slow and costly to process repeatedly
