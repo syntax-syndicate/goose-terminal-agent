@@ -29,6 +29,48 @@ use goose_bench::runners::model_runner::ModelRunner;
 use std::io::Read;
 use std::path::PathBuf;
 
+async fn track_recipe_execution<F, Fut, T>(
+    recipe_name: &str,
+    recipe_version: &str,
+    execution_fn: F,
+) -> Result<T>
+where
+    F: FnOnce() -> Fut,
+    Fut: std::future::Future<Output = Result<T>>,
+{
+    let start_time = std::time::Instant::now();
+
+    let telemetry_execution = if let Some(manager) = goose::telemetry::global_telemetry() {
+        Some(manager.recipe_execution(recipe_name, recipe_version))
+    } else {
+        None
+    };
+
+    let result = execution_fn().await;
+
+    if let Some(execution_builder) = telemetry_execution {
+        let duration = start_time.elapsed();
+        let execution = match &result {
+            Ok(_) => execution_builder
+                .with_result(goose::telemetry::RecipeResult::Success)
+                .with_duration(duration)
+                .build(),
+            Err(e) => execution_builder
+                .with_result(goose::telemetry::RecipeResult::Error(e.to_string()))
+                .with_duration(duration)
+                .build(),
+        };
+
+        if let Some(manager) = goose::telemetry::global_telemetry() {
+            if let Err(e) = manager.track_recipe_execution(execution).await {
+                tracing::warn!("Failed to track recipe execution: {}", e);
+            }
+        }
+    }
+
+    result
+}
+
 #[derive(Parser)]
 #[command(author, version, display_name = "", about, long_about = None)]
 struct Cli {
@@ -837,6 +879,10 @@ pub async fn cli() -> Result<()> {
             provider,
             model,
         }) => {
+            // Check if this is a recipe execution for telemetry tracking
+            let is_recipe_execution = recipe.is_some();
+            let recipe_name_for_telemetry = recipe.clone().unwrap_or_default();
+
             let (input_config, recipe_info) = match (instructions, input_text, recipe) {
                 (Some(file), _, _) if file == "-" => {
                     let mut input = String::new();
@@ -887,7 +933,7 @@ pub async fn cli() -> Result<()> {
                         return Ok(());
                     }
                     let (input_config, recipe_info) =
-                        extract_recipe_info_from_cli(recipe_name, params, additional_sub_recipes)?;
+                        extract_recipe_info_from_cli(recipe_name.clone(), params, additional_sub_recipes)?;
                     (input_config, Some(recipe_info))
                 }
                 (None, None, None) => {
@@ -896,51 +942,93 @@ pub async fn cli() -> Result<()> {
                 }
             };
 
-            let mut session = build_session(SessionBuilderConfig {
-                identifier: identifier.map(extract_identifier),
-                resume,
-                no_session,
-                extensions,
-                remote_extensions,
-                streamable_http_extensions,
-                builtins,
-                extensions_override: input_config.extensions_override,
-                additional_system_prompt: input_config.additional_system_prompt,
-                settings: recipe_info
+            if is_recipe_execution {
+                let recipe_version = "1.0.0";
+
+                track_recipe_execution(&recipe_name_for_telemetry, recipe_version, || async {
+                    let mut session = build_session(SessionBuilderConfig {
+                        identifier: identifier.map(extract_identifier),
+                        resume,
+                        no_session,
+                        extensions,
+                        remote_extensions,
+                        streamable_http_extensions,builtins,
+                        extensions_override: input_config.extensions_override,
+                        additional_system_prompt: input_config.additional_system_prompt,
+                        settings: recipe_info
                     .as_ref()
-                    .and_then(|r| r.session_settings.clone()),
-                provider,
+                    .and_then(|r| r.session_settings.clone()),provider,
                 model,
-                debug,
-                max_tool_repetitions,
-                max_turns,
-                scheduled_job_id,
-                interactive, // Use the interactive flag from the Run command
-                quiet,
-                sub_recipes: recipe_info.as_ref().and_then(|r| r.sub_recipes.clone()),
-                final_output_response: recipe_info
+                        debug,
+                        max_tool_repetitions,
+                        max_turns,
+                        scheduled_job_id,
+                        interactive,
+                        quiet,
+                        sub_recipes,
+                        final_output_response,
+                    })
+                    .await;
+
+                    setup_logging(
+                        session
+                            .session_file()
+                            .as_ref()
+                            .and_then(|p| p.file_stem())
+                            .and_then(|s| s.to_str()),
+                        None,
+                    )?;
+
+                    if interactive {
+                        session.interactive(input_config.contents).await
+                    } else if let Some(contents) = input_config.contents {
+                        session.headless(contents).await
+                    } else {
+                        Err(anyhow::anyhow!("Error: no text provided for prompt in headless mode"))
+                    }
+                }).await?;
+            } else {
+                let mut session = build_session(SessionBuilderConfig {
+                    identifier: identifier.map(extract_identifier),
+                    resume,
+                    no_session,
+                    extensions,
+                    remote_extensions,
+                    builtins,
+                    extensions_override: input_config.extensions_override,
+                    additional_system_prompt: input_config.additional_system_prompt,
+                    settings: session_settings,
+                    debug,
+                    max_tool_repetitions,
+                    max_turns,
+                    scheduled_job_id,
+                    interactive,
+                    quiet,
+                    sub_recipes: recipe_info.as_ref().and_then(|r| r.sub_recipes.clone()),
+                    final_output_response: recipe_info
                     .as_ref()
                     .and_then(|r| r.final_output_response.clone()),
                 retry_config: recipe_info.as_ref().and_then(|r| r.retry_config.clone()),
-            })
-            .await;
+                })
+                .await;
 
-            setup_logging(
-                session
-                    .session_file()
-                    .as_ref()
-                    .and_then(|p| p.file_stem())
-                    .and_then(|s| s.to_str()),
-                None,
-            )?;
+                setup_logging(
+                    session
+                        .session_file()
+                        .as_ref()
+                        .and_then(|p| p.file_stem())
+                        .and_then(|s| s.to_str()),
+                    None,
+                )?;
 
-            if interactive {
-                let _ = session.interactive(input_config.contents).await;
-            } else if let Some(contents) = input_config.contents {
-                let _ = session.headless(contents).await;
-            } else {
-                eprintln!("Error: no text provided for prompt in headless mode");
-                std::process::exit(1);
+                if interactive {
+                    let _ = session.interactive(input_config.contents).await;
+                } else if let Some(contents) = input_config.contents {
+                    let _ = session.headless(contents).await;
+                } else {
+                    eprintln!("Error: no text provided for prompt in headless mode");
+                    std::process::exit(1);
+                }
             }
 
             return Ok(());
