@@ -3540,6 +3540,7 @@ dependencies = [
  "tokio",
  "tokio-cron-scheduler",
  "tokio-stream",
+ "tonic",
  "tokio-util",
  "tracing",
  "tracing-subscriber",
