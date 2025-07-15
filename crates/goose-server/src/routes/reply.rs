@@ -13,7 +13,7 @@ use goose::{
     agents::{AgentEvent, SessionConfig},
     message::{push_message, Message, MessageContent},
     permission::permission_confirmation::PrincipalType,
-    telemetry::{global_telemetry, RecipeResult, SessionExecution, SessionResult, SessionType},
+    telemetry::{global_telemetry, SessionExecution, SessionResult, SessionType},
 };
 use goose::{
     permission::{Permission, PermissionConfirmation},
@@ -108,7 +108,7 @@ async fn track_successful_session(
 async fn track_recipe_execution(
     recipe_name: &str,
     recipe_version: &str,
-    result: RecipeResult,
+    result: SessionResult,
     start_time: Instant,
     session_type: &str,
 ) {
@@ -269,7 +269,7 @@ async fn handler(
                             track_recipe_execution(
                                 recipe_name,
                                 recipe_version,
-                                RecipeResult::Error("No provider configured".to_string()),
+                                SessionResult::Error("No provider configured".to_string()),
                                 start_time,
                                 "streaming",
                             ).await;
@@ -501,7 +501,7 @@ async fn handler(
             track_recipe_execution(
                 recipe_name,
                 recipe_version,
-                RecipeResult::Success,
+                SessionResult::Success,
                 start_time,
                 "streaming",
             ).await;
