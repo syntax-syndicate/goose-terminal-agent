@@ -669,6 +669,13 @@ enum Command {
         #[arg(long, help = "Open browser automatically when server starts")]
         open: bool,
     },
+
+    /// Authenticate with external services
+    #[command(about = "Authenticate with external services")]
+    Auth {
+        /// Service to authenticate with
+        service: String,
+    },
 }
 
 #[derive(clap::ValueEnum, Clone, Debug)]
@@ -1022,6 +1029,25 @@ pub async fn cli() -> Result<()> {
         }
         Some(Command::Web { port, host, open }) => {
             crate::commands::web::handle_web(port, host, open).await?;
+            return Ok(());
+        }
+        Some(Command::Auth { service }) => {
+            if service == "openrouter" {
+                let mut auth_flow = goose::config::signup_openrouter::OpenRouterAuth::new()?;
+                match auth_flow.complete_flow().await {
+                    Ok(api_key) => {
+                        println!("\nAuthentication complete! Your API key is:");
+                        println!("{}", api_key);
+                    }
+                    Err(e) => {
+                        eprintln!("Authentication failed: {}", e);
+                        std::process::exit(1);
+                    }
+                }
+            } else {
+                eprintln!("Unknown service: {}. Currently only 'openrouter' is supported.", service);
+                std::process::exit(1);
+            }
             return Ok(());
         }
         None => {
