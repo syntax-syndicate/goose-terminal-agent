@@ -64,7 +64,7 @@ impl PkceAuthFlow {
 ### 4. Implementation Steps
 
 1. **Step 1: Core PKCE Logic**
-   - Generate 128-character random string for code_verifier
+   - Generate 128-character random code_verifier
    - Calculate SHA-256 hash of verifier
    - Base64url encode the hash for code_challenge
    - Build auth URL with parameters
@@ -126,7 +126,7 @@ impl PkceAuthFlow {
 
 ## Implementation Status
 
-### ✅ Completed
+### ✅ Completed Phase 1
 1. **Module Structure**: Created `src/config/signup_openrouter/` with:
    - `mod.rs` - Main PKCE flow implementation
    - `server.rs` - Axum web server for OAuth callback
@@ -154,10 +154,24 @@ impl PkceAuthFlow {
    - Ensures unique verifiers for each flow
    - Tests URL formatting
 
+### ✅ Completed Phase 2
+1. **Automated Setup**: When user runs `goose auth openrouter`:
+   - Gets API key via PKCE flow
+   - Stores key securely in keyring
+   - Sets OpenRouter as provider
+   - Configures models:
+     - Main: `moonshotai/kimi-k2`
+     - Lead: `anthropic/claude-3.5-sonnet`
+     - Editor: `anthropic/claude-3.5-sonnet`
+   - Tests configuration with a simple request
+   - Provides clear success/failure feedback
+
+2. **No User Interaction**: Fully automated configuration after authentication
+
 ### 📋 Usage
 
 ```bash
-# Authenticate with OpenRouter
+# Authenticate and configure OpenRouter
 goose auth openrouter
 
 # Output:
@@ -167,9 +181,195 @@ goose auth openrouter
 # 
 # Authentication complete! Your API key is:
 # sk-or-v1-...
+# 
+# Configuring OpenRouter...
+# ✓ API key stored securely
+# ✓ Provider set to OpenRouter
+# ✓ Model set to moonshotai/kimi-k2
+# ✓ Lead model configured (anthropic/claude-3.5-sonnet)
+# ✓ Editor model configured (anthropic/claude-3.5-sonnet)
+# 
+# Testing configuration...
+# ✓ Configuration test passed!
+# 
+# OpenRouter setup complete! You can now use Goose.
 ```
 
-### 🔄 Next Steps
-- Add key storage functionality when needed
-- Consider adding refresh token support
-- Add more robust error handling for network issues
+### 🎯 What Gets Configured
+
+After running `goose auth openrouter`, the following settings are automatically saved:
+
+1. **API Key**: `OPENROUTER_API_KEY` (stored in system keyring)
+2. **Provider**: `GOOSE_PROVIDER` = "openrouter"
+3. **Models**:
+   - `GOOSE_MODEL` = "moonshotai/kimi-k2"
+   - `GOOSE_LEAD_MODEL` = "anthropic/claude-3.5-sonnet"
+   - `GOOSE_LEAD_PROVIDER` = "openrouter"
+   - `GOOSE_EDITOR_MODEL` = "anthropic/claude-3.5-sonnet"
+   - `GOOSE_EDITOR_PROVIDER` = "openrouter"
+
+### 🔄 Future Enhancements
+- Add model switching commands
+- Support for other OAuth providers
+- Usage tracking and cost monitoring
+- Model performance comparisons
+
+---
+
+# Configuration System Analysis & OpenRouter Integration Plan
+
+## Understanding Goose's Configuration System
+
+### 1. **Configuration Storage**
+Goose uses a multi-layered configuration system:
+
+- **Config Files**: 
+  - Location: `~/.config/goose/config.yaml` (macOS/Linux)
+  - Format: YAML
+  - Used for: Non-sensitive settings (provider, model, etc.)
+  
+- **Secrets Storage**:
+  - **Keyring** (default): System keychain/credential manager
+  - **File** (fallback): `~/.config/goose/secrets.yaml` if keyring disabled
+  - Used for: API keys and sensitive data
+
+### 2. **Config Priority**
+Configuration values are loaded with this precedence:
+1. Environment variables (highest)
+2. Config file / keyring
+3. Default values (lowest)
+
+### 3. **Key APIs**
+```rust
+// Get/set regular config values
+config.get_param::<T>(key) -> Result<T>
+config.set_param(key, value) -> Result<()>
+
+// Get/set secrets
+config.get_secret::<T>(key) -> Result<T>
+config.set_secret(key, value) -> Result<()>
+
+// Generic get/set (auto-determines secret vs param)
+config.get(key, is_secret) -> Result<Value>
+config.set(key, value, is_secret) -> Result<()>
+```
+
+### 4. **Provider Configuration**
+Each provider has metadata defining:
+- Name, display name, description
+- Default model
+- Known/supported models
+- Required config keys (with secret flag)
+
+Example from OpenRouter:
+```rust
+ConfigKey::new("OPENROUTER_API_KEY", true, true, None),  // required, secret
+ConfigKey::new("OPENROUTER_HOST", false, false, Some("https://openrouter.ai")), // optional, not secret
+```
+
+## Integration Plan: OpenRouter Setup Flow
+
+### Phase 1: Enhance Auth Command ✅
+Already implemented:
+- `goose auth openrouter` - Gets API key via PKCE flow
+- Prints key to stdout
+
+### Phase 2: Automated Setup (Next Implementation)
+**Goal**: When user runs `goose auth openrouter`, automatically:
+1. Get API key via PKCE
+2. Store the key securely
+3. Set OpenRouter as provider
+4. Configure models:
+   - Main model: `moonshotai/kimi-k2`
+   - Lead model: `anthropic/claude-3.5-sonnet` (for lead/worker setup)
+   - Editor model: `anthropic/claude-3.5-sonnet` (for code editing)
+5. Test the configuration
+6. Save everything
+
+**No prompts, no interactive lists - fully automated.**
+
+### Implementation Details:
+
+```rust
+// In goose-cli auth handler:
+Some(Command::Auth { service }) => {
+    if service == "openrouter" {
+        // 1. Get API key via PKCE
+        let mut auth_flow = goose::config::signup_openrouter::OpenRouterAuth::new()?;
+        let api_key = auth_flow.complete_flow().await?;
+        
+        println!("\nAuthentication complete! Your API key is:");
+        println!("{}", api_key);
+        
+        // 2. Automatically configure everything
+        let config = Config::global();
+        
+        // Store API key securely
+        config.set_secret("OPENROUTER_API_KEY", Value::String(api_key.clone()))?;
+        println!("✓ API key stored securely");
+        
+        // Set provider
+        config.set_param("GOOSE_PROVIDER", Value::String("openrouter".to_string()))?;
+        println!("✓ Provider set to OpenRouter");
+        
+        // Set main model
+        config.set_param("GOOSE_MODEL", Value::String("moonshotai/kimi-k2".to_string()))?;
+        println!("✓ Model set to moonshotai/kimi-k2");
+        
+        // Set lead model for lead/worker pattern
+        config.set_param("GOOSE_LEAD_MODEL", Value::String("anthropic/claude-3.5-sonnet".to_string()))?;
+        config.set_param("GOOSE_LEAD_PROVIDER", Value::String("openrouter".to_string()))?;
+        println!("✓ Lead model configured");
+        
+        // Set editor model
+        config.set_param("GOOSE_EDITOR_MODEL", Value::String("anthropic/claude-3.5-sonnet".to_string()))?;
+        config.set_param("GOOSE_EDITOR_PROVIDER", Value::String("openrouter".to_string()))?;
+        println!("✓ Editor model configured");
+        
+        // Test configuration
+        println!("\nTesting configuration...");
+        let provider = create("openrouter", ModelConfig::new("moonshotai/kimi-k2".to_string()))?;
+        // Simple test request
+        let test_result = provider.complete(
+            "You are Goose, an AI assistant.",
+            &[Message::user().with_text("Say 'Configuration test successful!'")],
+            &[]
+        ).await;
+        
+        match test_result {
+            Ok(_) => {
+                println!("✓ Configuration test passed!");
+                println!("\nOpenRouter setup complete! You can now use Goose.");
+            }
+            Err(e) => {
+                eprintln!("⚠️  Configuration test failed: {}", e);
+                eprintln!("Your API key has been saved, but there may be an issue with the connection.");
+            }
+        }
+    }
+}
+```
+
+### Configuration Values Set:
+- `OPENROUTER_API_KEY`: User's API key (stored in keyring)
+- `GOOSE_PROVIDER`: "openrouter"
+- `GOOSE_MODEL`: "moonshotai/kimi-k2"
+- `GOOSE_LEAD_MODEL`: "anthropic/claude-3.5-sonnet"
+- `GOOSE_LEAD_PROVIDER`: "openrouter"
+- `GOOSE_EDITOR_MODEL`: "anthropic/claude-3.5-sonnet"
+- `GOOSE_EDITOR_PROVIDER`: "openrouter"
+
+### Benefits:
+1. **One command setup**: `goose auth openrouter` does everything
+2. **No user interaction needed**: Fully automated
+3. **Optimized model selection**: Kimi K2 for main work, Claude for lead/editing
+4. **Immediate validation**: Tests config before finishing
+
+## Next Steps
+
+1. Create reusable auth function in goose crate
+2. Add provider setup logic to auth command
+3. Update configure command to handle OpenRouter specially
+4. Add model fetching and selection
+5. Implement configuration testing
+6. Update documentation
