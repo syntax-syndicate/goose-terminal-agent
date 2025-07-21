@@ -41,28 +41,28 @@ impl DatadogProvider {
 
         // Send recipe execution counter
         if let Err(e) = datadog_exporter
-            .send_counter("goose.recipe.executions", 1, base_tags.clone())
+            .send_counter("recipe.executions", 1, base_tags.clone())
             .await
         {
-            tracing::error!("Failed to send goose.recipe.executions metric: {}", e);
+            tracing::error!("Failed to send recipe.executions metric: {}", e);
             return Err(e);
         }
-        tracing::info!("Successfully sent goose.recipe.executions metric");
+        tracing::info!("Successfully sent recipe.executions metric");
 
         if let Some(duration_ms) = execution.duration_ms {
             if let Err(e) = datadog_exporter
                 .send_histogram(
-                    "goose.recipe.duration",
+                    "recipe.duration",
                     1,
                     duration_ms as f64 / 1000.0,
                     base_tags.clone(),
                 )
                 .await
             {
-                tracing::error!("Failed to send goose.recipe.duration metric: {}", e);
+                tracing::error!("Failed to send recipe.duration metric: {}", e);
                 return Err(e);
             }
-            tracing::info!("Successfully sent goose.recipe.duration metric");
+            tracing::info!("Successfully sent recipe.duration metric");
         }
 
         if let Some(token_usage) = &execution.token_usage {

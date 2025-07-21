@@ -60,7 +60,7 @@ impl DatadogMetricsExporter {
         let timestamp = SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs() as i64;
 
         let metric = json!({
-            "metric": format!("goose.{}", metric_name),
+            "metric": metric_name,
             "points": [[timestamp, value as f64]],
             "tags": all_tags,
             "type": "count"
@@ -84,13 +84,13 @@ impl DatadogMetricsExporter {
         // Only send count and sum - Datadog calculates average automatically
         let metrics = vec![
             json!({
-                "metric": format!("goose.{}.count", metric_name),
+                "metric": format!("{}.count", metric_name),
                 "points": [[timestamp, count as f64]],
                 "tags": all_tags.clone(),
                 "type": "count"
             }),
             json!({
-                "metric": format!("goose.{}.sum", metric_name),
+                "metric": format!("{}.sum", metric_name),
                 "points": [[timestamp, sum]],
                 "tags": all_tags,
                 "type": "count"
@@ -112,7 +112,7 @@ impl DatadogMetricsExporter {
         let timestamp = SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs() as i64;
 
         let metric = json!({
-            "metric": format!("goose.{}", metric_name),
+            "metric": metric_name,
             "points": [[timestamp, value]],
             "tags": all_tags,
             "type": "gauge"
