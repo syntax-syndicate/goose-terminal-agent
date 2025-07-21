@@ -36,11 +36,10 @@ async fn start_openrouter_setup(
     {
         Ok(lock) => lock,
         Err(_) => {
-            tracing::warn!("Another OAuth flow is already in progress");
+            tracing::warn!("OAuth flow is already in progress");
             return Ok(Json(SetupResponse {
                 success: false,
-                message: "Another authentication flow is already in progress. Please wait."
-                    .to_string(),
+                message: "Authentication flow is already in progress. Please wait.".to_string(),
             }));
         }
     };
