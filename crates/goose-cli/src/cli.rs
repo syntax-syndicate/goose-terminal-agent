@@ -1,10 +1,9 @@
 use anyhow::Result;
 use clap::{Args, Parser, Subcommand};
 
-use goose::config::{Config, ExtensionConfig};
+use goose::config::{configure_openrouter, Config, ExtensionConfig};
 use goose::message::Message;
 use goose::providers::create;
-use serde_json::Value;
 
 use crate::commands::bench::agent_generator;
 use crate::commands::configure::handle_configure;
@@ -1039,50 +1038,20 @@ pub async fn cli() -> Result<()> {
                 let mut auth_flow = goose::config::signup_openrouter::OpenRouterAuth::new()?;
                 match auth_flow.complete_flow().await {
                     Ok(api_key) => {
-                        println!("\nAuthentication complete! Your API key is:");
-                        println!("{}", api_key);
+                        println!("\nAuthentication complete!");
 
                         // Automatically configure everything
                         println!("\nConfiguring OpenRouter...");
                         let config = Config::global();
 
-                        // Store API key securely
-                        config.set_secret("OPENROUTER_API_KEY", Value::String(api_key.clone()))?;
-                        println!("✓ API key stored securely");
+                        // Use the common configuration function
+                        if let Err(e) = configure_openrouter(config, api_key) {
+                            eprintln!("Failed to configure OpenRouter: {}", e);
+                            std::process::exit(1);
+                        }
 
-                        // Set provider
-                        config
-                            .set_param("GOOSE_PROVIDER", Value::String("openrouter".to_string()))?;
-                        println!("✓ Provider set to OpenRouter");
-
-                        // Set main model
-                        config.set_param(
-                            "GOOSE_MODEL",
-                            Value::String("moonshotai/kimi-k2".to_string()),
-                        )?;
-                        println!("✓ Model set to moonshotai/kimi-k2");
-
-                        // Set lead model for lead/worker pattern
-                        config.set_param(
-                            "GOOSE_LEAD_MODEL",
-                            Value::String("anthropic/claude-3.5-sonnet".to_string()),
-                        )?;
-                        config.set_param(
-                            "GOOSE_LEAD_PROVIDER",
-                            Value::String("openrouter".to_string()),
-                        )?;
-                        println!("✓ Lead model configured (anthropic/claude-3.5-sonnet)");
-
-                        // Set editor model
-                        config.set_param(
-                            "GOOSE_EDITOR_MODEL",
-                            Value::String("anthropic/claude-3.5-sonnet".to_string()),
-                        )?;
-                        config.set_param(
-                            "GOOSE_EDITOR_PROVIDER",
-                            Value::String("openrouter".to_string()),
-                        )?;
-                        println!("✓ Editor model configured (anthropic/claude-3.5-sonnet)");
+                        println!("✓ OpenRouter configuration complete");
+                        println!("✓ Models configured successfully");
 
                         // Test configuration
                         println!("\nTesting configuration...");

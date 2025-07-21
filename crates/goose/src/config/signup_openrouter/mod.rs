@@ -168,3 +168,49 @@ impl PkceAuthFlow {
 
 // Re-export for external use
 pub use self::PkceAuthFlow as OpenRouterAuth;
+
+use crate::config::Config;
+use serde_json::Value;
+
+/// Default models for OpenRouter configuration
+const OPENROUTER_DEFAULT_MODEL: &str = "moonshotai/kimi-k2";
+const OPENROUTER_LEAD_MODEL: &str = "anthropic/claude-3.5-sonnet";
+const OPENROUTER_EDITOR_MODEL: &str = "anthropic/claude-3.5-sonnet";
+
+/// Configure OpenRouter settings after successful authentication
+/// This sets up the provider, models, and other related configuration
+pub fn configure_openrouter(config: &Config, api_key: String) -> Result<()> {
+    // Store API key securely
+    config.set_secret("OPENROUTER_API_KEY", Value::String(api_key))?;
+
+    // Set provider
+    config.set_param("GOOSE_PROVIDER", Value::String("openrouter".to_string()))?;
+
+    // Set main model
+    config.set_param(
+        "GOOSE_MODEL",
+        Value::String(OPENROUTER_DEFAULT_MODEL.to_string()),
+    )?;
+
+    // Set lead model for lead/worker pattern
+    config.set_param(
+        "GOOSE_LEAD_MODEL",
+        Value::String(OPENROUTER_LEAD_MODEL.to_string()),
+    )?;
+    config.set_param(
+        "GOOSE_LEAD_PROVIDER",
+        Value::String("openrouter".to_string()),
+    )?;
+
+    // Set editor model
+    config.set_param(
+        "GOOSE_EDITOR_MODEL",
+        Value::String(OPENROUTER_EDITOR_MODEL.to_string()),
+    )?;
+    config.set_param(
+        "GOOSE_EDITOR_PROVIDER",
+        Value::String("openrouter".to_string()),
+    )?;
+
+    Ok(())
+}
