@@ -10,7 +10,11 @@ use crate::commands::info::handle_info;
 use crate::commands::mcp::run_server;
 use crate::commands::project::{handle_project_default, handle_projects_interactive};
 use crate::commands::recipe::{handle_deeplink, handle_list, handle_validate};
-use crate::commands::schedule::{handle_schedule_add, handle_schedule_cron_help, handle_schedule_list, handle_schedule_remove, handle_schedule_run_now, handle_schedule_services_status, handle_schedule_services_stop, handle_schedule_sessions};
+use crate::commands::schedule::{
+    handle_schedule_add, handle_schedule_cron_help, handle_schedule_list, handle_schedule_remove,
+    handle_schedule_run_now, handle_schedule_services_status, handle_schedule_services_stop,
+    handle_schedule_sessions,
+};
 use crate::commands::session::{handle_session_list, handle_session_remove};
 use crate::logging::setup_logging;
 use crate::recipes::extract_from_cli::extract_recipe_info_from_cli;
@@ -818,11 +822,13 @@ pub async fn cli() -> Result<()> {
             };
 
             if is_recipe_execution {
-                let recipe_version =
-                    match crate::recipes::recipe::load_recipe(&recipe_name_for_telemetry, params.clone()) {
-                        Ok(recipe) => recipe.version,
-                        Err(_) => "unknown".to_string(),
-                    };
+                let recipe_version = match crate::recipes::recipe::load_recipe(
+                    &recipe_name_for_telemetry,
+                    params.clone(),
+                ) {
+                    Ok(recipe) => recipe.version,
+                    Err(_) => "unknown".to_string(),
+                };
 
                 goose::track_telemetry! {
                     recipe: (&recipe_name_for_telemetry, &recipe_version, params) => {

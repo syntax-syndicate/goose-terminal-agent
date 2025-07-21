@@ -21,6 +21,7 @@ macro_rules! track_telemetry {
 
             match &result {
                 Ok((_, session)) => {
+                    let messages = session.message_history();
                     if let Ok(session_metadata) = session.get_metadata() {
                         execution = execution.with_session_metadata(&session_metadata);
                     }
@@ -123,6 +124,7 @@ macro_rules! track_telemetry {
                         .with_result(goose::telemetry::SessionResult::Success)
                         .with_duration(duration);
 
+                    let messages = session.message_history();
                     if let Ok(session_metadata) = session.get_metadata() {
                         builder = builder.with_session_metadata(&session_metadata);
                     }
@@ -143,7 +145,7 @@ macro_rules! track_telemetry {
                     builder = builder
                         .with_message_count(messages.len() as u64)
                         .with_turn_count(messages.len() as u64);
-                    
+
                     builder.build()
                 }
                 Err(e) => {
