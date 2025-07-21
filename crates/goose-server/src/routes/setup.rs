@@ -124,3 +124,37 @@ async fn start_openrouter_setup(
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[tokio::test]
+    async fn test_oauth_flow_mutex() {
+        // Test that the OAuth flow mutex is properly initialized and prevents concurrent flows
+        let lock1 = OAUTH_FLOW_MUTEX.try_lock();
+        assert!(lock1.is_ok(), "First lock should succeed");
+
+        // Try to acquire second lock while first is held
+        let lock2_result = tokio::time::timeout(
+            std::time::Duration::from_millis(100),
+            OAUTH_FLOW_MUTEX.lock(),
+        )
+        .await;
+
+        assert!(
+            lock2_result.is_err(),
+            "Second lock should timeout while first is held"
+        );
+
+        // Drop first lock
+        drop(lock1);
+
+        // Now second lock should succeed
+        let lock2 = OAUTH_FLOW_MUTEX.try_lock();
+        assert!(
+            lock2.is_ok(),
+            "Second lock should succeed after first is dropped"
+        );
+    }
+}

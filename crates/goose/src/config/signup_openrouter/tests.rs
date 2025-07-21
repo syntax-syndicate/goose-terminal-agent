@@ -1,6 +1,8 @@
 #[cfg(test)]
 mod tests {
     use crate::config::signup_openrouter::PkceAuthFlow;
+    use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine};
+    use sha2::{Digest, Sha256};
 
     #[test]
     fn test_pkce_flow_creation() {
@@ -30,5 +32,37 @@ mod tests {
         // Verify that different flows have different verifiers and challenges
         assert_ne!(flow1.code_verifier, flow2.code_verifier);
         assert_ne!(flow1.code_challenge, flow2.code_challenge);
+    }
+
+    #[test]
+    fn test_code_verifier_is_alphanumeric() {
+        let flow = PkceAuthFlow::new().expect("Failed to create PKCE flow");
+
+        // Verify all characters in code_verifier are alphanumeric
+        assert!(flow.code_verifier.chars().all(|c| c.is_alphanumeric()));
+    }
+
+    #[test]
+    fn test_code_challenge_matches_verifier() {
+        let flow = PkceAuthFlow::new().expect("Failed to create PKCE flow");
+
+        // Manually compute the expected challenge
+        let mut hasher = Sha256::new();
+        hasher.update(&flow.code_verifier);
+        let hash = hasher.finalize();
+        let expected_challenge = URL_SAFE_NO_PAD.encode(hash);
+
+        // Verify the challenge matches
+        assert_eq!(flow.code_challenge, expected_challenge);
+    }
+
+    #[test]
+    fn test_pkce_verifier_length_bounds() {
+        // PKCE spec requires verifier to be 43-128 characters
+        // Our implementation uses 128 characters
+        let flow = PkceAuthFlow::new().expect("Failed to create PKCE flow");
+
+        assert!(flow.code_verifier.len() >= 43);
+        assert!(flow.code_verifier.len() <= 128);
     }
 }
