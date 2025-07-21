@@ -100,10 +100,15 @@ impl PkceAuthFlow {
         let client = Client::new();
 
         let request_body = TokenRequest {
-            code,
+            code: code.clone(),
             code_verifier: self.code_verifier.clone(),
             code_challenge_method: "S256".to_string(),
         };
+
+        eprintln!("Exchanging code for API key...");
+        eprintln!("Code: {}", code);
+        eprintln!("Code verifier length: {}", self.code_verifier.len());
+        eprintln!("Code challenge: {}", self.code_challenge);
 
         let response = client
             .post(OPENROUTER_TOKEN_URL)
@@ -114,6 +119,9 @@ impl PkceAuthFlow {
         if !response.status().is_success() {
             let status = response.status();
             let error_text = response.text().await.unwrap_or_default();
+            eprintln!("Token exchange failed!");
+            eprintln!("Status: {}", status);
+            eprintln!("Error response: {}", error_text);
             return Err(anyhow!(
                 "Failed to exchange code: {} - {}",
                 status,
@@ -131,6 +139,7 @@ impl PkceAuthFlow {
         let auth_url = self.get_auth_url();
 
         println!("Opening browser for authentication...");
+        eprintln!("Auth URL: {}", auth_url);
 
         // Open browser
         if let Err(e) = webbrowser::open(&auth_url) {
@@ -143,6 +152,7 @@ impl PkceAuthFlow {
         let code = self.start_server().await?;
 
         println!("Authorization code received. Exchanging for API key...");
+        eprintln!("Received code: {}", code);
 
         // Exchange code for API key
         let api_key = self.exchange_code(code).await?;

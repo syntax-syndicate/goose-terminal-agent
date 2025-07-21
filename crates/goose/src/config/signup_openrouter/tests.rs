@@ -5,15 +5,15 @@ mod tests {
     #[test]
     fn test_pkce_flow_creation() {
         let flow = PkceAuthFlow::new().expect("Failed to create PKCE flow");
-        
+
         // Verify code_verifier is 128 characters
         assert_eq!(flow.code_verifier.len(), 128);
-        
+
         // Verify code_challenge is base64url encoded (no padding)
         assert!(!flow.code_challenge.contains('='));
         assert!(!flow.code_challenge.contains('+'));
         assert!(!flow.code_challenge.contains('/'));
-        
+
         // Verify auth URL is properly formatted
         let auth_url = flow.get_auth_url();
         assert!(auth_url.starts_with("https://openrouter.ai/auth"));
@@ -26,7 +26,7 @@ mod tests {
     fn test_different_flows_have_different_verifiers() {
         let flow1 = PkceAuthFlow::new().expect("Failed to create PKCE flow 1");
         let flow2 = PkceAuthFlow::new().expect("Failed to create PKCE flow 2");
-        
+
         // Verify that different flows have different verifiers and challenges
         assert_ne!(flow1.code_verifier, flow2.code_verifier);
         assert_ne!(flow1.code_challenge, flow2.code_challenge);

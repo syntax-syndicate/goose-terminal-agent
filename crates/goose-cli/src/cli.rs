@@ -1041,49 +1041,71 @@ pub async fn cli() -> Result<()> {
                     Ok(api_key) => {
                         println!("\nAuthentication complete! Your API key is:");
                         println!("{}", api_key);
-                        
+
                         // Automatically configure everything
                         println!("\nConfiguring OpenRouter...");
                         let config = Config::global();
-                        
+
                         // Store API key securely
                         config.set_secret("OPENROUTER_API_KEY", Value::String(api_key.clone()))?;
                         println!("✓ API key stored securely");
-                        
+
                         // Set provider
-                        config.set_param("GOOSE_PROVIDER", Value::String("openrouter".to_string()))?;
+                        config
+                            .set_param("GOOSE_PROVIDER", Value::String("openrouter".to_string()))?;
                         println!("✓ Provider set to OpenRouter");
-                        
+
                         // Set main model
-                        config.set_param("GOOSE_MODEL", Value::String("moonshotai/kimi-k2".to_string()))?;
+                        config.set_param(
+                            "GOOSE_MODEL",
+                            Value::String("moonshotai/kimi-k2".to_string()),
+                        )?;
                         println!("✓ Model set to moonshotai/kimi-k2");
-                        
+
                         // Set lead model for lead/worker pattern
-                        config.set_param("GOOSE_LEAD_MODEL", Value::String("anthropic/claude-3.5-sonnet".to_string()))?;
-                        config.set_param("GOOSE_LEAD_PROVIDER", Value::String("openrouter".to_string()))?;
+                        config.set_param(
+                            "GOOSE_LEAD_MODEL",
+                            Value::String("anthropic/claude-3.5-sonnet".to_string()),
+                        )?;
+                        config.set_param(
+                            "GOOSE_LEAD_PROVIDER",
+                            Value::String("openrouter".to_string()),
+                        )?;
                         println!("✓ Lead model configured (anthropic/claude-3.5-sonnet)");
-                        
+
                         // Set editor model
-                        config.set_param("GOOSE_EDITOR_MODEL", Value::String("anthropic/claude-3.5-sonnet".to_string()))?;
-                        config.set_param("GOOSE_EDITOR_PROVIDER", Value::String("openrouter".to_string()))?;
+                        config.set_param(
+                            "GOOSE_EDITOR_MODEL",
+                            Value::String("anthropic/claude-3.5-sonnet".to_string()),
+                        )?;
+                        config.set_param(
+                            "GOOSE_EDITOR_PROVIDER",
+                            Value::String("openrouter".to_string()),
+                        )?;
                         println!("✓ Editor model configured (anthropic/claude-3.5-sonnet)");
-                        
+
                         // Test configuration
                         println!("\nTesting configuration...");
-                        let model_config = goose::model::ModelConfig::new("moonshotai/kimi-k2".to_string());
+                        let model_config =
+                            goose::model::ModelConfig::new("moonshotai/kimi-k2".to_string());
                         match create("openrouter", model_config) {
                             Ok(provider) => {
                                 // Simple test request
-                                let test_result = provider.complete(
-                                    "You are Goose, an AI assistant.",
-                                    &[Message::user().with_text("Say 'Configuration test successful!'")],
-                                    &[]
-                                ).await;
-                                
+                                let test_result = provider
+                                    .complete(
+                                        "You are Goose, an AI assistant.",
+                                        &[Message::user()
+                                            .with_text("Say 'Configuration test successful!'")],
+                                        &[],
+                                    )
+                                    .await;
+
                                 match test_result {
                                     Ok(_) => {
                                         println!("✓ Configuration test passed!");
-                                        println!("\nOpenRouter setup complete! You can now use Goose.");
+                                        println!(
+                                            "\nOpenRouter setup complete! You can now use Goose."
+                                        );
                                     }
                                     Err(e) => {
                                         eprintln!("⚠️  Configuration test failed: {}", e);
@@ -1103,7 +1125,10 @@ pub async fn cli() -> Result<()> {
                     }
                 }
             } else {
-                eprintln!("Unknown service: {}. Currently only 'openrouter' is supported.", service);
+                eprintln!(
+                    "Unknown service: {}. Currently only 'openrouter' is supported.",
+                    service
+                );
                 std::process::exit(1);
             }
             return Ok(());
