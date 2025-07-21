@@ -1103,6 +1103,31 @@ pub async fn cli() -> Result<()> {
                                 match test_result {
                                     Ok(_) => {
                                         println!("✓ Configuration test passed!");
+
+                                        // Enable the developer extension by default (same as handle_configure)
+                                        use goose::config::{
+                                            ExtensionConfigManager, ExtensionEntry,
+                                        };
+                                        match ExtensionConfigManager::set(ExtensionEntry {
+                                            enabled: true,
+                                            config: ExtensionConfig::Builtin {
+                                                name: "developer".to_string(),
+                                                display_name: Some(
+                                                    goose::config::DEFAULT_DISPLAY_NAME.to_string(),
+                                                ),
+                                                timeout: Some(
+                                                    goose::config::DEFAULT_EXTENSION_TIMEOUT,
+                                                ),
+                                                bundled: Some(true),
+                                            },
+                                        }) {
+                                            Ok(_) => println!("✓ Developer extension enabled"),
+                                            Err(e) => eprintln!(
+                                                "⚠️  Failed to enable developer extension: {}",
+                                                e
+                                            ),
+                                        }
+
                                         println!(
                                             "\nOpenRouter setup complete! You can now use Goose."
                                         );
