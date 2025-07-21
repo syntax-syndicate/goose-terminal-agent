@@ -221,7 +221,7 @@ impl Provider for LiteLLMProvider {
         self.model.model_name.to_lowercase().contains("claude")
     }
 
-    async fn fetch_supported_models_async(&self) -> Result<Option<Vec<String>>, ProviderError> {
+    async fn fetch_supported_models(&self) -> Result<Option<Vec<String>>, ProviderError> {
         match self.fetch_models().await {
             Ok(models) => {
                 let model_names: Vec<String> = models.into_iter().map(|m| m.name).collect();

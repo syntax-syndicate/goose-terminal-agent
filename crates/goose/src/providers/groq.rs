@@ -149,7 +149,7 @@ impl Provider for GroqProvider {
     }
 
     /// Fetch supported models from Groq; returns Err on failure, Ok(None) if no models found
-    async fn fetch_supported_models_async(&self) -> Result<Option<Vec<String>>, ProviderError> {
+    async fn fetch_supported_models(&self) -> Result<Option<Vec<String>>, ProviderError> {
         // Construct the Groq models endpoint
         let base_url = url::Url::parse(&self.host)
             .map_err(|e| ProviderError::RequestFailed(format!("Invalid base URL: {}", e)))?;

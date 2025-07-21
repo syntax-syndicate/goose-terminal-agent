@@ -251,7 +251,7 @@ impl Provider for VeniceProvider {
         self.model.clone()
     }
 
-    async fn fetch_supported_models_async(&self) -> Result<Option<Vec<String>>, ProviderError> {
+    async fn fetch_supported_models(&self) -> Result<Option<Vec<String>>, ProviderError> {
         // Fetch supported models via Venice API
         let base_url = url::Url::parse(&self.host)
             .map_err(|e| ProviderError::RequestFailed(format!("Invalid base URL: {}", e)))?;

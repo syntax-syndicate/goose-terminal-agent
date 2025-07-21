@@ -192,7 +192,7 @@ impl Provider for OpenAiProvider {
     }
 
     /// Fetch supported models from OpenAI; returns Err on any failure, Ok(None) if no data
-    async fn fetch_supported_models_async(&self) -> Result<Option<Vec<String>>, ProviderError> {
+    async fn fetch_supported_models(&self) -> Result<Option<Vec<String>>, ProviderError> {
         // List available models via OpenAI API
         let base_url =
             url::Url::parse(&self.host).map_err(|e| ProviderError::RequestFailed(e.to_string()))?;

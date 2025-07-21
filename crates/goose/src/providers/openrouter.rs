@@ -273,7 +273,7 @@ impl Provider for OpenRouterProvider {
     }
 
     /// Fetch supported models from OpenRouter API (only models with tool support)
-    async fn fetch_supported_models_async(&self) -> Result<Option<Vec<String>>, ProviderError> {
+    async fn fetch_supported_models(&self) -> Result<Option<Vec<String>>, ProviderError> {
         let base_url = Url::parse(&self.host)
             .map_err(|e| ProviderError::RequestFailed(format!("Invalid base URL: {e}")))?;
         let url = base_url.join("api/v1/models").map_err(|e| {

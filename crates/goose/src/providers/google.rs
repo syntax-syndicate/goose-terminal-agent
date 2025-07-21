@@ -193,7 +193,7 @@ impl Provider for GoogleProvider {
     }
 
     /// Fetch supported models from Google Generative Language API; returns Err on failure, Ok(None) if not present
-    async fn fetch_supported_models_async(&self) -> Result<Option<Vec<String>>, ProviderError> {
+    async fn fetch_supported_models(&self) -> Result<Option<Vec<String>>, ProviderError> {
         // List models via the v1beta/models endpoint
         let url = format!("{}/v1beta/models", self.host);
         let response = self.client.get(&url).send().await?;
