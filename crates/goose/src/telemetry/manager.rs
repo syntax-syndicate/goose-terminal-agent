@@ -92,7 +92,7 @@ impl TelemetryManager {
 
         if let Some(backend) = &self.backend {
             let backend_guard = backend.lock().await;
-            let event = TelemetryEvent::RecipeExecution(execution);
+            let event = TelemetryEvent::RecipeExecution(execution.clone());
 
             if let Err(e) = backend_guard.send_event(&event).await {
                 tracing::warn!("Failed to send telemetry event: {}", e);
@@ -313,11 +313,7 @@ pub async fn shutdown_global_telemetry() -> Result<(), Box<dyn std::error::Error
 #[macro_export]
 macro_rules! track_recipe {
     ($name:expr, $version:expr) => {{
-        if let Some(manager) = $crate::telemetry::global_telemetry() {
-            manager.recipe_execution($name, $version)
-        } else {
-            $crate::telemetry::RecipeExecutionBuilder::new($name, $version)
-        }
+        $crate::telemetry::RecipeExecutionBuilder::new($name, $version)
     }};
 }
 

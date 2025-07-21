@@ -25,7 +25,7 @@ macro_rules! track_telemetry {
                         execution = execution.with_session_metadata(&session_metadata);
                     }
 
-                    let tool_usage = $crate::cli::telemetry::extract_tool_usage_from_session(session);
+                    let tool_usage = goose::telemetry::extract_tool_usage_from_messages(&messages);
                     for tool in tool_usage {
                         execution.add_tool_usage(tool);
                     }
@@ -34,8 +34,8 @@ macro_rules! track_telemetry {
                         execution = execution.with_environment(&env);
                     }
 
-                    let messages = session.message_history();
                     execution = execution
+                        .with_message_count(messages.len() as u64)
                         .with_turn_count(messages.len() as u64)
                         .with_result(goose::telemetry::SessionResult::Success)
                         .with_duration(duration);
@@ -127,7 +127,7 @@ macro_rules! track_telemetry {
                         builder = builder.with_session_metadata(&session_metadata);
                     }
 
-                    let tool_usage = $crate::cli::telemetry::extract_tool_usage_from_session(session);
+                    let tool_usage = goose::telemetry::extract_tool_usage_from_messages(&messages);
                     for tool in tool_usage {
                         builder = builder.add_tool_usage(tool);
                     }
@@ -140,9 +140,10 @@ macro_rules! track_telemetry {
                         builder = builder.with_environment(&env);
                     }
 
-                    let messages = session.message_history();
-                    builder = builder.with_turn_count(messages.len() as u64);
-
+                    builder = builder
+                        .with_message_count(messages.len() as u64)
+                        .with_turn_count(messages.len() as u64);
+                    
                     builder.build()
                 }
                 Err(e) => {

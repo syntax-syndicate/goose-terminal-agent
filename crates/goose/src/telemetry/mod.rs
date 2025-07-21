@@ -6,6 +6,7 @@ mod macros;
 mod manager;
 mod providers;
 mod user;
+mod utils;
 
 pub use {
     config::{TelemetryConfig, TelemetryProvider, UsageType},
@@ -20,4 +21,5 @@ pub use {
         TelemetryManager,
     },
     user::{detect_usage_type, UserIdentity},
+    utils::extract_tool_usage_from_messages,
 };
