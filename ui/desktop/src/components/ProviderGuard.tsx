@@ -52,7 +52,7 @@ export default function ProviderGuard({ children }: ProviderGuardProps) {
       } else {
         setOpenRouterSetupState({
           show: true,
-          title: 'Setup Failed',
+          title: 'Setup Pending',
           message: result.message,
           showProgress: false,
           showRetry: true,
