@@ -688,7 +688,8 @@ pub async fn cli() -> Result<()> {
                         quiet: false,
                         sub_recipes: None,
                         final_output_response: None,
-                    retry_config: None,})
+                        retry_config: None,
+                    })
                     .await;
 
                     let session_id = session
@@ -807,8 +808,7 @@ pub async fn cli() -> Result<()> {
                         }
                         return Ok(());
                     }
-                    let (input_config, recipe_info) =
-                        extract_recipe_info_from_cli(
+                    let (input_config, recipe_info) = extract_recipe_info_from_cli(
                         recipe_name.clone(),
                         params,
                         additional_sub_recipes,
@@ -902,9 +902,9 @@ pub async fn cli() -> Result<()> {
                     quiet,
                     sub_recipes: recipe_info.as_ref().and_then(|r| r.sub_recipes.clone()),
                     final_output_response: recipe_info
-                    .as_ref()
-                    .and_then(|r| r.final_output_response.clone()),
-                retry_config: recipe_info.as_ref().and_then(|r| r.retry_config.clone()),
+                        .as_ref()
+                        .and_then(|r| r.final_output_response.clone()),
+                    retry_config: recipe_info.as_ref().and_then(|r| r.retry_config.clone()),
                 })
                 .await;
 
