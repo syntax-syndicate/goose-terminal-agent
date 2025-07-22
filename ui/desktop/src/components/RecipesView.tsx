@@ -23,6 +23,7 @@ import { Skeleton } from './ui/skeleton';
 import { MainPanelLayout } from './Layout/MainPanelLayout';
 import { Recipe, decodeRecipe } from '../recipe';
 import { toastSuccess, toastError } from '../toasts';
+import { useEscapeKey } from '../hooks/useEscapeKey';
 
 interface RecipesViewProps {
   onLoadRecipe?: (recipe: Recipe) => void;
@@ -57,6 +58,23 @@ export default function RecipesView({ _onLoadRecipe }: RecipesViewProps = {}) {
   useEffect(() => {
     loadSavedRecipes();
   }, []);
+
+  // Handle Esc key for modals
+  useEscapeKey(showPreview, () => setShowPreview(false));
+  useEscapeKey(showImportDialog, () => {
+    setShowImportDialog(false);
+    setImportDeeplink('');
+    setImportRecipeName('');
+  });
+  useEscapeKey(showCreateDialog, () => {
+    setShowCreateDialog(false);
+    setCreateTitle('');
+    setCreateDescription('');
+    setCreateInstructions('');
+    setCreatePrompt('');
+    setCreateActivities('');
+    setCreateRecipeName('');
+  });
 
   // Minimum loading time to prevent skeleton flash
   useEffect(() => {
@@ -163,8 +181,12 @@ export default function RecipesView({ _onLoadRecipe }: RecipesViewProps = {}) {
       }
       const recipe = await decodeRecipe(recipeEncoded);
 
-      if (!recipe.title || !recipe.description || !recipe.instructions) {
-        throw new Error('Recipe is missing required fields (title, description, instructions)');
+      if (!recipe.title || !recipe.description) {
+        throw new Error('Recipe is missing required fields (title, description)');
+      }
+
+      if (!recipe.instructions && !recipe.prompt) {
+        throw new Error('Recipe must have either instructions or prompt');
       }
 
       return recipe;

@@ -28,6 +28,7 @@ use anyhow::{Context, Result};
 use completion::GooseCompleter;
 use etcetera::{choose_app_strategy, AppStrategy};
 use goose::agents::extension::{Envs, ExtensionConfig};
+use goose::agents::types::RetryConfig;
 use goose::agents::{Agent, SessionConfig};
 use goose::config::Config;
 use goose::message::{Message, MessageContent};
@@ -64,6 +65,7 @@ pub struct Session {
     scheduled_job_id: Option<String>, // ID of the scheduled job that triggered this session
     max_turns: Option<u32>,
     edit_mode: Option<EditMode>,
+    retry_config: Option<RetryConfig>,
 }
 
 // Cache structure for completion data
@@ -127,6 +129,7 @@ impl Session {
         scheduled_job_id: Option<String>,
         max_turns: Option<u32>,
         edit_mode: Option<EditMode>,
+        retry_config: Option<RetryConfig>,
     ) -> Self {
         let messages = if let Some(session_file) = &session_file {
             match session::read_messages(session_file) {
@@ -151,6 +154,7 @@ impl Session {
             scheduled_job_id,
             max_turns,
             edit_mode,
+            retry_config,
         }
     }
 
@@ -358,34 +362,7 @@ impl Session {
     }
 
     pub async fn get_prompt(&mut self, name: &str, arguments: Value) -> Result<Vec<PromptMessage>> {
-        let result = self.agent.get_prompt(name, arguments).await?;
-        // Convert mcp_core::prompt::PromptMessage to rmcp::model::PromptMessage
-        let converted_messages = result
-            .messages
-            .into_iter()
-            .map(|msg| rmcp::model::PromptMessage {
-                role: match msg.role {
-                    mcp_core::prompt::PromptMessageRole::User => {
-                        rmcp::model::PromptMessageRole::User
-                    }
-                    mcp_core::prompt::PromptMessageRole::Assistant => {
-                        rmcp::model::PromptMessageRole::Assistant
-                    }
-                },
-                content: match msg.content {
-                    mcp_core::prompt::PromptMessageContent::Text { text } => {
-                        rmcp::model::PromptMessageContent::Text { text }
-                    }
-                    mcp_core::prompt::PromptMessageContent::Image { image } => {
-                        rmcp::model::PromptMessageContent::Image { image }
-                    }
-                    mcp_core::prompt::PromptMessageContent::Resource { resource } => {
-                        rmcp::model::PromptMessageContent::Resource { resource }
-                    }
-                },
-            })
-            .collect();
-        Ok(converted_messages)
+        Ok(self.agent.get_prompt(name, arguments).await?.messages)
     }
 
     /// Process a single message and get the response
@@ -879,6 +856,7 @@ impl Session {
                 schedule_id: self.scheduled_job_id.clone(),
                 execution_mode: None,
                 max_turns: self.max_turns,
+                retry_config: self.retry_config.clone(),
             }
         });
         let mut stream = self
