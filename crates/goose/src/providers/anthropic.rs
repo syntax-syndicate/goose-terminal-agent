@@ -19,6 +19,7 @@ use super::formats::anthropic::{
 use super::utils::{emit_debug_trace, get_model, map_http_error_to_provider_error};
 use crate::message::Message;
 use crate::model::ModelConfig;
+use crate::providers::retry::ProviderRetry;
 use mcp_core::tool::Tool;
 
 pub const ANTHROPIC_DEFAULT_MODEL: &str = "claude-3-5-sonnet-latest";
@@ -192,10 +193,10 @@ impl Provider for AnthropicProvider {
             );
         }
 
-        // Make request
-        let response = self.post(headers, payload.clone()).await?;
+        let response = self
+            .with_retry(|| self.post(headers.clone(), payload.clone()))
+            .await?;
 
-        // Parse response
         let message = response_to_message(response.clone())?;
         let usage = get_usage(&response)?;
         tracing::debug!("🔍 Anthropic non-streaming parsed usage: input_tokens={:?}, output_tokens={:?}, total_tokens={:?}", 

@@ -315,6 +315,10 @@ impl Provider for DatabricksProvider {
         )
     }
 
+    fn retry_config(&self) -> RetryConfig {
+        self.retry_config.clone()
+    }
+
     fn get_model_config(&self) -> ModelConfig {
         self.model.clone()
     }
@@ -518,11 +522,5 @@ impl EmbeddingCapable for DatabricksProvider {
             .collect::<Result<Vec<Vec<f32>>>>()?;
 
         Ok(embeddings)
-    }
-}
-
-impl ProviderRetry for DatabricksProvider {
-    fn retry_config(&self) -> RetryConfig {
-        self.retry_config.clone()
     }
 }
