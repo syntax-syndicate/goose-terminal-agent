@@ -1086,6 +1086,10 @@ pub async fn cli() -> Result<()> {
                                                 display_name: Some(
                                                     goose::config::DEFAULT_DISPLAY_NAME.to_string(),
                                                 ),
+                                                description: Some(
+                                                    goose::config::DEFAULT_EXTENSION_DESCRIPTION
+                                                        .to_string(),
+                                                ),
                                                 timeout: Some(
                                                     goose::config::DEFAULT_EXTENSION_TIMEOUT,
                                                 ),

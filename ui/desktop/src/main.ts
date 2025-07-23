@@ -499,12 +499,8 @@ let appConfig = {
   GOOSE_WORKING_DIR: '',
   // If GOOSE_ALLOWLIST_WARNING env var is not set, defaults to false (strict blocking mode)
   GOOSE_ALLOWLIST_WARNING: process.env.GOOSE_ALLOWLIST_WARNING === 'true',
-  GOOSE_STARTUP: process.env.GOOSE_STARTUP || '',
   secretKey: generateSecretKey(),
 };
-
-console.log('[Main] Environment GOOSE_STARTUP:', process.env.GOOSE_STARTUP);
-console.log('[Main] appConfig GOOSE_STARTUP:', appConfig.GOOSE_STARTUP);
 
 // Track windows by ID
 let windowCounter = 0;
@@ -559,10 +555,9 @@ const createChat = async (
     updateSchedulingEngineEnvironment(settings.schedulingEngine);
 
     // Start new Goosed process for regular windows
-    // Pass through scheduling engine environment variables and GOOSE_STARTUP
+    // Pass through scheduling engine environment variables
     const envVars = {
       GOOSE_SCHEDULER_TYPE: process.env.GOOSE_SCHEDULER_TYPE,
-      GOOSE_STARTUP: process.env.GOOSE_STARTUP,
     };
     const [newPort, newWorkingDir, newGoosedProcess] = await startGoosed(app, dir, envVars);
     port = newPort;
