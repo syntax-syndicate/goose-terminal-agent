@@ -438,8 +438,8 @@ mod tests {
         ];
 
         let tools = vec![Tool::new(
-            "get_current_weather",
-            "Get the current weather in a given location",
+            "get_current_weather".to_string(),
+            "Get the current weather in a given location".to_string(),
             object!({
                 "properties": {
                     "location": {
@@ -535,8 +535,8 @@ mod tests {
         ];
 
         let tools = vec![Tool::new(
-            "get_current_weather",
-            "Get the current weather in a given location",
+            "get_current_weather".to_string(),
+            "Get the current weather in a given location".to_string(),
             object!({
                 "properties": {
                     "location": {

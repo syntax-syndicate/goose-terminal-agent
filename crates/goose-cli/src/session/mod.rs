@@ -36,6 +36,8 @@ use goose::providers::pricing::initialize_pricing_cache;
 use goose::session;
 use input::InputResult;
 use mcp_core::handler::ToolError;
+use rmcp::model::GetMeta;
+use rmcp::model::ServerNotification;
 use rmcp::model::{JsonRpcMessage, JsonRpcNotification, Notification, PromptMessage};
 
 use rand::{distributions::Alphanumeric, Rng};
@@ -1023,15 +1025,9 @@ impl Session {
                             }
                         }
                         Some(Ok(AgentEvent::McpNotification((_id, message)))) => {
-                                if let JsonRpcMessage::Notification( JsonRpcNotification {
-                                    notification: Notification {
-                                        method,
-                                        params: o,..
-                                    },..
-                                }) = message {
-                                match method.as_str() {
-                                    "notifications/message" => {
-                                        let data = o.get("data").unwrap_or(&Value::Null);
+                                match &message {
+                                    ServerNotification::LoggingMessageNotification(notification) => {
+                                        let data = &notification.params.data;
                                         let (formatted_message, subagent_id, message_notification_type) = match data {
                                             Value::String(s) => (s.clone(), None, None),
                                             Value::Object(o) => {
@@ -1083,7 +1079,7 @@ impl Session {
                                                 } else if let Some(Value::String(output)) = o.get("output") {
                                                     // Fallback for other MCP notification types
                                                     (output.to_owned(), None, None)
-                                                } else if let Some(result) = format_task_execution_notification(data) {
+                                                } else if let Some(result) = format_task_execution_notification(&data) {
                                                     result
                                                 } else {
                                                     (data.to_string(), None, None)
@@ -1125,24 +1121,21 @@ impl Session {
                                             }
                                         }
                                     },
-                                    "notifications/progress" => {
-                                        let progress = o.get("progress").and_then(|v| v.as_f64());
-                                        let token = o.get("progressToken").map(|v| v.to_string());
-                                        let message = o.get("message").and_then(|v| v.as_str());
-                                        let total = o
-                                            .get("total")
-                                            .and_then(|v| v.as_f64());
-                                        if let (Some(progress), Some(token)) = (progress, token) {
+                                    ServerNotification::ProgressNotification(notification) => {
+                                        let progress = notification.params.progress;
+                                        let text = notification.params.message.as_ref().map(|m| m.as_str());
+                                        let total = notification.params.total;
+                                        let token = message.get_meta().get_progress_token();
+                                        if let Some(token) = token {
                                             progress_bars.update(
-                                                token.as_str(),
+                                                &token.0.to_string(),
                                                 progress,
                                                 total,
-                                                message,
+                                                text,
                                             );
                                         }
                                     },
                                     _ => (),
-                                }
                             }
                         }
                         Some(Ok(AgentEvent::ModelChange { model, mode })) => {

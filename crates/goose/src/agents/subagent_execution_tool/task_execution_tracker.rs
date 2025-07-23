@@ -1,4 +1,8 @@
-use rmcp::model::{JsonRpcMessage, JsonRpcNotification, JsonRpcVersion2_0, Notification};
+use rmcp::model::{
+    JsonRpcMessage, JsonRpcNotification, JsonRpcVersion2_0, LoggingLevel,
+    LoggingMessageNotification, LoggingMessageNotificationMethod, LoggingMessageNotificationParam,
+    Notification, ServerNotification,
+};
 use rmcp::object;
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -12,7 +16,7 @@ use crate::agents::subagent_execution_tool::notification_events::{
 };
 use crate::agents::subagent_execution_tool::task_types::{Task, TaskInfo, TaskResult, TaskStatus};
 use crate::agents::subagent_execution_tool::utils::{count_by_status, get_task_name};
-use serde_json::Value;
+use serde_json::{json, Value};
 use tokio::sync::mpsc::Sender;
 
 #[derive(Debug, Clone, PartialEq)]
@@ -50,7 +54,7 @@ fn format_task_metadata(task_info: &TaskInfo) -> String {
 pub struct TaskExecutionTracker {
     tasks: Arc<RwLock<HashMap<String, TaskInfo>>>,
     last_refresh: Arc<RwLock<Instant>>,
-    notifier: mpsc::Sender<JsonRpcMessage>,
+    notifier: mpsc::Sender<ServerNotification>,
     display_mode: DisplayMode,
     cancellation_token: Option<CancellationToken>,
 }
@@ -59,7 +63,7 @@ impl TaskExecutionTracker {
     pub fn new(
         tasks: Vec<Task>,
         display_mode: DisplayMode,
-        notifier: Sender<JsonRpcMessage>,
+        notifier: Sender<ServerNotification>,
         cancellation_token: Option<CancellationToken>,
     ) -> Self {
         let task_map = tasks
@@ -95,11 +99,7 @@ impl TaskExecutionTracker {
             .is_some_and(|t| t.is_cancelled())
     }
 
-    fn log_notification_error(
-        &self,
-        error: &mpsc::error::TrySendError<JsonRpcMessage>,
-        context: &str,
-    ) {
+    fn log_notification_error<T>(&self, error: &mpsc::error::TrySendError<T>, context: &str) {
         if !self.is_cancelled() {
             tracing::warn!("Failed to send {} notification: {}", context, error);
         }
@@ -108,16 +108,17 @@ impl TaskExecutionTracker {
     fn try_send_notification(&self, event: TaskExecutionNotificationEvent, context: &str) {
         if let Err(e) = self
             .notifier
-            .try_send(JsonRpcMessage::Notification(JsonRpcNotification {
-                jsonrpc: JsonRpcVersion2_0,
-                notification: Notification {
-                    method: "notifications/message".to_string(),
-                    params: object!({
-                        "data": event.to_notification_data()
-                    }),
+            .try_send(ServerNotification::LoggingMessageNotification(
+                LoggingMessageNotification {
+                    method: LoggingMessageNotificationMethod,
+                    params: LoggingMessageNotificationParam {
+                        level: LoggingLevel::Info,
+                        logger: None,
+                        data: event.to_notification_data(),
+                    },
                     extensions: Default::default(),
                 },
-            }))
+            ))
         {
             self.log_notification_error(&e, context);
         }

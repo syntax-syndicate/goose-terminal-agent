@@ -10,8 +10,14 @@ use crate::{
 use anyhow::anyhow;
 use chrono::{DateTime, Utc};
 use mcp_core::handler::ToolError;
-use rmcp::model::Tool;
+use rmcp::model::{
+    JsonRpcMessage, JsonRpcNotification, JsonRpcVersion2_0, LoggingLevel,
+    LoggingMessageNotification, LoggingMessageNotificationMethod, LoggingMessageNotificationParam,
+    Notification, ServerNotification, Tool,
+};
+use rmcp::object;
 use serde::{Deserialize, Serialize};
+use serde_json::json;
 // use serde_json::{self};
 use std::{collections::HashMap, sync::Arc};
 use tokio::sync::{Mutex, RwLock};
@@ -103,6 +109,48 @@ impl SubAgent {
             let mut current_status = self.status.write().await;
             *current_status = status.clone();
         } // Write lock is released here!
+
+        // Send MCP notifications based on status
+        match &status {
+            SubAgentStatus::Processing => {
+                self.send_mcp_notification("status_changed", "Processing request")
+                    .await;
+            }
+            SubAgentStatus::Completed(msg) => {
+                self.send_mcp_notification("completed", &format!("Completed: {}", msg))
+                    .await;
+            }
+            SubAgentStatus::Terminated => {
+                self.send_mcp_notification("terminated", "Subagent terminated")
+                    .await;
+            }
+            _ => {}
+        }
+    }
+
+    /// Send an MCP notification about the subagent's activity
+    pub async fn send_mcp_notification(&self, notification_type: &str, message: &str) {
+        let notification =
+            ServerNotification::LoggingMessageNotification(LoggingMessageNotification {
+                method: LoggingMessageNotificationMethod,
+                params: LoggingMessageNotificationParam {
+                    level: LoggingLevel::Info,
+                    logger: Some(format!("subagent_{}", self.id)),
+                    data: json!({
+                        "subagent_id": self.id,
+                        "type": notification_type,
+                        "message": message,
+                    }),
+                },
+                extensions: Default::default(),
+            });
+
+        if let Err(e) = self.config.mcp_tx.send(notification).await {
+            error!(
+                "Failed to send MCP notification from subagent {}: {}",
+                self.id, e
+            );
+        }
     }
 
     /// Get current progress information

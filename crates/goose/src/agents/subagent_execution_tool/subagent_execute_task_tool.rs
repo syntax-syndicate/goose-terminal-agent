@@ -1,5 +1,5 @@
 use mcp_core::ToolError;
-use rmcp::model::{Content, Tool, ToolAnnotations};
+use rmcp::model::{Content, Notification, ServerNotification, Tool, ToolAnnotations};
 use serde_json::Value;
 
 use crate::agents::subagent_task_config::TaskConfig;
@@ -67,7 +67,7 @@ pub async fn run_tasks(
     tasks_manager: &TasksManager,
     cancellation_token: Option<CancellationToken>,
 ) -> ToolCallResult {
-    let (notification_tx, notification_rx) = mpsc::channel::<JsonRpcMessage>(100);
+    let (notification_tx, notification_rx) = mpsc::channel::<ServerNotification>(100);
 
     let tasks_manager_clone = tasks_manager.clone();
     let result_future = async move {
