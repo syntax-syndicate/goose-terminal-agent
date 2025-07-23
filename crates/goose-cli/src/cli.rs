@@ -1,9 +1,7 @@
 use anyhow::Result;
 use clap::{Args, Parser, Subcommand};
 
-use goose::config::{configure_openrouter, Config, ExtensionConfig};
-use goose::message::Message;
-use goose::providers::create;
+use goose::config::Config;
 
 use crate::commands::bench::agent_generator;
 use crate::commands::configure::handle_configure;
@@ -275,7 +273,7 @@ enum RecipeCommand {
 enum Command {
     /// Configure Goose settings
     #[command(about = "Configure Goose settings")]
-    Configure {},
+    Configure,
 
     /// Display Goose configuration information
     #[command(about = "Display Goose information")]
@@ -671,13 +669,6 @@ enum Command {
         #[arg(long, help = "Open browser automatically when server starts")]
         open: bool,
     },
-
-    /// Authenticate with external services
-    #[command(about = "Authenticate with external services")]
-    Auth {
-        /// Service to authenticate with
-        service: String,
-    },
 }
 
 #[derive(clap::ValueEnum, Clone, Debug)]
@@ -690,7 +681,7 @@ enum CliProviderVariant {
 #[derive(Debug)]
 pub struct InputConfig {
     pub contents: Option<String>,
-    pub extensions_override: Option<Vec<ExtensionConfig>>,
+    pub extensions_override: Option<Vec<goose::config::ExtensionConfig>>,
     pub additional_system_prompt: Option<String>,
 }
 
@@ -711,7 +702,7 @@ pub async fn cli() -> Result<()> {
     }
 
     match cli.command {
-        Some(Command::Configure {}) => {
+        Some(Command::Configure) => {
             let _ = handle_configure().await;
             return Ok(());
         }
@@ -1033,104 +1024,6 @@ pub async fn cli() -> Result<()> {
         }
         Some(Command::Web { port, host, open }) => {
             crate::commands::web::handle_web(port, host, open).await?;
-            return Ok(());
-        }
-        Some(Command::Auth { service }) => {
-            if service == "openrouter" {
-                let mut auth_flow = goose::config::signup_openrouter::OpenRouterAuth::new()?;
-                match auth_flow.complete_flow().await {
-                    Ok(api_key) => {
-                        println!("\nAuthentication complete!");
-
-                        // Automatically configure everything
-                        println!("\nConfiguring OpenRouter...");
-                        let config = Config::global();
-
-                        // Use the common configuration function
-                        if let Err(e) = configure_openrouter(config, api_key) {
-                            eprintln!("Failed to configure OpenRouter: {}", e);
-                            std::process::exit(1);
-                        }
-
-                        println!("✓ OpenRouter configuration complete");
-                        println!("✓ Models configured successfully");
-
-                        // Test configuration
-                        println!("\nTesting configuration...");
-                        let model_config =
-                            goose::model::ModelConfig::new("moonshotai/kimi-k2".to_string());
-                        match create("openrouter", model_config) {
-                            Ok(provider) => {
-                                // Simple test request
-                                let test_result = provider
-                                    .complete(
-                                        "You are Goose, an AI assistant.",
-                                        &[Message::user()
-                                            .with_text("Say 'Configuration test successful!'")],
-                                        &[],
-                                    )
-                                    .await;
-
-                                match test_result {
-                                    Ok(_) => {
-                                        println!("✓ Configuration test passed!");
-
-                                        // Enable the developer extension by default (same as handle_configure)
-                                        use goose::config::{
-                                            ExtensionConfigManager, ExtensionEntry,
-                                        };
-                                        match ExtensionConfigManager::set(ExtensionEntry {
-                                            enabled: true,
-                                            config: ExtensionConfig::Builtin {
-                                                name: "developer".to_string(),
-                                                display_name: Some(
-                                                    goose::config::DEFAULT_DISPLAY_NAME.to_string(),
-                                                ),
-                                                description: Some(
-                                                    goose::config::DEFAULT_EXTENSION_DESCRIPTION
-                                                        .to_string(),
-                                                ),
-                                                timeout: Some(
-                                                    goose::config::DEFAULT_EXTENSION_TIMEOUT,
-                                                ),
-                                                bundled: Some(true),
-                                            },
-                                        }) {
-                                            Ok(_) => println!("✓ Developer extension enabled"),
-                                            Err(e) => eprintln!(
-                                                "⚠️  Failed to enable developer extension: {}",
-                                                e
-                                            ),
-                                        }
-
-                                        println!(
-                                            "\nOpenRouter setup complete! You can now use Goose."
-                                        );
-                                    }
-                                    Err(e) => {
-                                        eprintln!("⚠️  Configuration test failed: {}", e);
-                                        eprintln!("Your settings have been saved, but there may be an issue with the connection.");
-                                    }
-                                }
-                            }
-                            Err(e) => {
-                                eprintln!("⚠️  Failed to create provider for testing: {}", e);
-                                eprintln!("Your settings have been saved. Please check your configuration.");
-                            }
-                        }
-                    }
-                    Err(e) => {
-                        eprintln!("Authentication failed: {}", e);
-                        std::process::exit(1);
-                    }
-                }
-            } else {
-                eprintln!(
-                    "Unknown service: {}. Currently only 'openrouter' is supported.",
-                    service
-                );
-                std::process::exit(1);
-            }
             return Ok(());
         }
         None => {

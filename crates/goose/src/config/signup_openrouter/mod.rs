@@ -174,8 +174,8 @@ use serde_json::Value;
 
 /// Default models for OpenRouter configuration
 const OPENROUTER_DEFAULT_MODEL: &str = "moonshotai/kimi-k2";
-const OPENROUTER_LEAD_MODEL: &str = "anthropic/claude-3.5-sonnet";
-const OPENROUTER_EDITOR_MODEL: &str = "anthropic/claude-3.5-sonnet";
+const OPENROUTER_LEAD_MODEL: &str = "anthropic/claude-sonnet-4";
+const OPENROUTER_EDITOR_MODEL: &str = "morph/morph-v2";
 
 /// Configure OpenRouter settings after successful authentication
 /// This sets up the provider, models, and other related configuration
