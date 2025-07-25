@@ -448,8 +448,8 @@ mod schedule_tool_tests {
         let tool = schedule_tool.unwrap();
         assert!(tool
             .description
-            .as_ref()
-            .unwrap()
+            .clone()
+            .unwrap_or_default()
             .contains("Manage scheduled recipe execution"));
     }
 
@@ -480,8 +480,8 @@ mod schedule_tool_tests {
         let tool = schedule_tool.unwrap();
         assert!(tool
             .description
-            .as_ref()
-            .unwrap()
+            .clone()
+            .unwrap_or_default()
             .contains("Manage scheduled recipe execution"));
 
         // Verify the tool has the expected actions in its schema

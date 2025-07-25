@@ -2339,52 +2339,33 @@ mod tests {
         assert!(text_editor_tool
             .description
             .as_ref()
-            .unwrap()
-            .contains("Replace a string in a file with a new string"));
+            .map_or(false, |desc| desc
+                .contains("Replace a string in a file with a new string")));
         assert!(text_editor_tool
             .description
             .as_ref()
-            .unwrap()
-            .contains("the `old_str` needs to exactly match one"));
+            .map_or(false, |desc| desc
+                .contains("the `old_str` needs to exactly match one")));
         assert!(text_editor_tool
             .description
             .as_ref()
-            .unwrap()
-            .contains("str_replace"));
+            .map_or(false, |desc| desc.contains("str_replace")));
 
         // Should not contain editor API description or edit_file command
         assert!(!text_editor_tool
             .description
             .as_ref()
-            .unwrap()
-            .contains("Edit the file with the new content"));
+            .map_or(false, |desc| desc
+                .contains("Edit the file with the new content")));
         assert!(!text_editor_tool
             .description
             .as_ref()
-            .unwrap()
-            .contains("edit_file"));
+            .map_or(false, |desc| desc.contains("edit_file")));
         assert!(!text_editor_tool
             .description
             .as_ref()
-            .unwrap()
-            .contains("str_replace"));
-
-        // Should not contain editor API description or edit_file command
-        assert!(!text_editor_tool
-            .description
-            .as_ref()
-            .unwrap()
-            .contains("Edit the file with the new content"));
-        assert!(!text_editor_tool
-            .description
-            .as_ref()
-            .unwrap()
-            .contains("edit_file"));
-        assert!(!text_editor_tool
-            .description
-            .as_ref()
-            .unwrap()
-            .contains("work out how to place old_str with it intelligently"));
+            .map_or(false, |desc| desc
+                .contains("work out how to place old_str with it intelligently")));
 
         temp_dir.close().unwrap();
     }
