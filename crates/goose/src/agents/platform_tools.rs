@@ -54,8 +54,7 @@ pub fn list_resources_tool() -> Tool {
             "properties": {
                 "extension_name": {"type": "string", "description": "Optional extension name"}
             }
-        }),
-    )
+        }))
     .annotate(ToolAnnotations {
         title: Some("List resources".to_string()),
         read_only_hint: Some(true),
@@ -101,8 +100,7 @@ pub fn manage_extensions_tool() -> Tool {
                 "action": {"type": "string", "description": "The action to perform", "enum": ["enable", "disable"]},
                 "extension_name": {"type": "string", "description": "The name of the extension to enable"}
             }
-        }),
-    ).annotate(ToolAnnotations {
+        })).annotate(ToolAnnotations {
         title: Some("Enable or disable an extension".to_string()),
         read_only_hint: Some(false),
         destructive_hint: Some(false),
@@ -145,8 +143,7 @@ pub fn manage_schedule_tool() -> Tool {
                 "limit": {"type": "integer", "description": "Limit for sessions list", "default": 50},
                 "session_id": {"type": "string", "description": "Session identifier for session_content action"}
             }
-        }),
-    ).annotate(ToolAnnotations {
+        })).annotate(ToolAnnotations {
         title: Some("Manage scheduled recipes".to_string()),
         read_only_hint: Some(false),
         destructive_hint: Some(true), // Can kill jobs

@@ -197,8 +197,7 @@ impl ClaudeCodeProvider {
     /// Parse the JSON response from claude CLI
     fn parse_claude_response(
         &self,
-        json_lines: &[String],
-    ) -> Result<(Message, Usage), ProviderError> {
+        json_lines: &[String]) -> Result<(Message, Usage), ProviderError> {
         let mut all_text_content = Vec::new();
         let mut usage = Usage::default();
 
@@ -280,8 +279,7 @@ impl ClaudeCodeProvider {
         let combined_text = all_text_content.join("\n\n");
         if combined_text.is_empty() {
             return Err(ProviderError::RequestFailed(
-                "No text content found in response".to_string(),
-            ));
+                "No text content found in response".to_string()));
         }
 
         let message_content = vec![MessageContent::text(combined_text)];
@@ -300,8 +298,7 @@ impl ClaudeCodeProvider {
         &self,
         system: &str,
         messages: &[Message],
-        _tools: &[Tool],
-    ) -> Result<Vec<String>, ProviderError> {
+        _tools: &[Tool]) -> Result<Vec<String>, ProviderError> {
         let messages_json = self
             .messages_to_claude_format(system, messages)
             .map_err(|e| {
@@ -409,8 +406,7 @@ impl ClaudeCodeProvider {
     /// Generate a simple session description without calling subprocess
     fn generate_simple_session_description(
         &self,
-        messages: &[Message],
-    ) -> Result<(Message, ProviderUsage), ProviderError> {
+        messages: &[Message]) -> Result<(Message, ProviderUsage), ProviderError> {
         // Extract the first user message text
         let description = messages
             .iter()
@@ -448,8 +444,7 @@ impl ClaudeCodeProvider {
 
         Ok((
             message,
-            ProviderUsage::new(self.model.model_name.clone(), usage),
-        ))
+            ProviderUsage::new(self.model.model_name.clone(), usage)))
     }
 }
 
@@ -467,9 +462,7 @@ impl Provider for ClaudeCodeProvider {
                 "CLAUDE_CODE_COMMAND",
                 false,
                 false,
-                Some("claude"),
-            )],
-        )
+                Some("claude"))])
     }
 
     fn get_model_config(&self) -> ModelConfig {
@@ -485,8 +478,7 @@ impl Provider for ClaudeCodeProvider {
         &self,
         system: &str,
         messages: &[Message],
-        tools: &[Tool],
-    ) -> Result<(Message, ProviderUsage), ProviderError> {
+        tools: &[Tool]) -> Result<(Message, ProviderUsage), ProviderError> {
         // Check if this is a session description request (short system prompt asking for 4 words or less)
         if system.contains("four words or less") || system.contains("4 words or less") {
             return self.generate_simple_session_description(messages);
@@ -513,8 +505,7 @@ impl Provider for ClaudeCodeProvider {
 
         Ok((
             message,
-            ProviderUsage::new(self.model.model_name.clone(), usage),
-        ))
+            ProviderUsage::new(self.model.model_name.clone(), usage)))
     }
 }
 

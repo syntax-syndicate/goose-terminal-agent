@@ -6,7 +6,7 @@ use std::{
 
 type PromptFuture = Pin<Box<dyn Future<Output = Result<String, PromptError>> + Send + 'static>>;
 use mcp_core::{
-    handler::{PromptError, ResourceError, ToolError},
+    handler::{PromptError, ResourceError},
     protocol::{
         CallToolResult, Implementation, InitializeResult, ListPromptsResult, ListResourcesResult,
         ListToolsResult, PromptsCapability, ReadResourceResult, ResourcesCapability,
@@ -14,8 +14,8 @@ use mcp_core::{
     },
 };
 use rmcp::model::{
-    Content, GetPromptResult, JsonRpcMessage, JsonRpcRequest, JsonRpcResponse, JsonRpcVersion2_0,
-    Prompt, PromptMessage, PromptMessageRole, RequestId, Resource, ResourceContents,
+    Content, ErrorData, ErrorCode, GetPromptResult, JsonRpcMessage, JsonRpcRequest, JsonRpcResponse, JsonRpcVersion2_0,
+    Prompt, PromptMessage, PromptMessageRole, RequestId, Resource, ResourceContents, ErrorData, ErrorCode,
 };
 use serde_json::Value;
 use tokio::sync::mpsc;
@@ -91,13 +91,11 @@ pub trait Router: Send + Sync + 'static {
         &self,
         tool_name: &str,
         arguments: Value,
-        notifier: mpsc::Sender<JsonRpcMessage>,
-    ) -> Pin<Box<dyn Future<Output = Result<Vec<Content>, ToolError>> + Send + 'static>>;
+        notifier: mpsc::Sender<JsonRpcMessage>) -> Pin<Box<dyn Future<Output = Result<Vec<Content>, ErrorData>> + Send + 'static>>;
     fn list_resources(&self) -> Vec<Resource>;
     fn read_resource(
         &self,
-        uri: &str,
-    ) -> Pin<Box<dyn Future<Output = Result<String, ResourceError>> + Send + 'static>>;
+        uri: &str) -> Pin<Box<dyn Future<Output = Result<String, ResourceError>> + Send + 'static>>;
     fn list_prompts(&self) -> Vec<Prompt>;
     fn get_prompt(&self, prompt_name: &str) -> PromptFuture;
 
@@ -114,8 +112,7 @@ pub trait Router: Send + Sync + 'static {
     fn set_result<T: serde::Serialize>(
         &self,
         response: &mut JsonRpcResponse,
-        result: T,
-    ) -> Result<(), RouterError> {
+        result: T) -> Result<(), RouterError> {
         let value = serde_json::to_value(result)
             .map_err(|e| RouterError::Internal(format!("JSON serialization error: {}", e)))?;
 
@@ -130,8 +127,7 @@ pub trait Router: Send + Sync + 'static {
 
     fn handle_initialize(
         &self,
-        req: JsonRpcRequest,
-    ) -> impl Future<Output = Result<JsonRpcResponse, RouterError>> + Send {
+        req: JsonRpcRequest) -> impl Future<Output = Result<JsonRpcResponse, RouterError>> + Send {
         async move {
             let result = InitializeResult {
                 protocol_version: "2025-03-26".to_string(),
@@ -151,8 +147,7 @@ pub trait Router: Send + Sync + 'static {
 
     fn handle_tools_list(
         &self,
-        req: JsonRpcRequest,
-    ) -> impl Future<Output = Result<JsonRpcResponse, RouterError>> + Send {
+        req: JsonRpcRequest) -> impl Future<Output = Result<JsonRpcResponse, RouterError>> + Send {
         async move {
             let tools = self.list_tools();
 
@@ -169,8 +164,7 @@ pub trait Router: Send + Sync + 'static {
     fn handle_tools_call(
         &self,
         req: JsonRpcRequest,
-        notifier: mpsc::Sender<JsonRpcMessage>,
-    ) -> impl Future<Output = Result<JsonRpcResponse, RouterError>> + Send {
+        notifier: mpsc::Sender<JsonRpcMessage>) -> impl Future<Output = Result<JsonRpcResponse, RouterError>> + Send {
         async move {
             let params = &req.request.params;
 
@@ -187,7 +181,7 @@ pub trait Router: Send + Sync + 'static {
                     is_error: None,
                 },
                 Err(err) => CallToolResult {
-                    content: vec![Content::text(err.to_string())],
+                    content: vec![Content::text(err.message.clone())],
                     is_error: Some(true),
                 },
             };
@@ -200,8 +194,7 @@ pub trait Router: Send + Sync + 'static {
 
     fn handle_resources_list(
         &self,
-        req: JsonRpcRequest,
-    ) -> impl Future<Output = Result<JsonRpcResponse, RouterError>> + Send {
+        req: JsonRpcRequest) -> impl Future<Output = Result<JsonRpcResponse, RouterError>> + Send {
         async move {
             let resources = self.list_resources();
 
@@ -217,8 +210,7 @@ pub trait Router: Send + Sync + 'static {
 
     fn handle_resources_read(
         &self,
-        req: JsonRpcRequest,
-    ) -> impl Future<Output = Result<JsonRpcResponse, RouterError>> + Send {
+        req: JsonRpcRequest) -> impl Future<Output = Result<JsonRpcResponse, RouterError>> + Send {
         async move {
             let params = &req.request.params;
 
@@ -245,8 +237,7 @@ pub trait Router: Send + Sync + 'static {
 
     fn handle_prompts_list(
         &self,
-        req: JsonRpcRequest,
-    ) -> impl Future<Output = Result<JsonRpcResponse, RouterError>> + Send {
+        req: JsonRpcRequest) -> impl Future<Output = Result<JsonRpcResponse, RouterError>> + Send {
         async move {
             let prompts = self.list_prompts();
 
@@ -260,8 +251,7 @@ pub trait Router: Send + Sync + 'static {
 
     fn handle_prompts_get(
         &self,
-        req: JsonRpcRequest,
-    ) -> impl Future<Output = Result<JsonRpcResponse, RouterError>> + Send {
+        req: JsonRpcRequest) -> impl Future<Output = Result<JsonRpcResponse, RouterError>> + Send {
         async move {
             // Validate and extract parameters
             let params = &req.request.params;
@@ -322,15 +312,13 @@ pub trait Router: Send + Sync + 'static {
                 // Check for empty or overly long keys/values
                 if key.is_empty() || key.len() > 1000 {
                     return Err(RouterError::InvalidParams(
-                        "Argument keys must be between 1-1000 characters".into(),
-                    ));
+                        "Argument keys must be between 1-1000 characters".into()));
                 }
 
                 let value_str = value.as_str().unwrap_or_default();
                 if value_str.len() > 1000 {
                     return Err(RouterError::InvalidParams(
-                        "Argument values must not exceed 1000 characters".into(),
-                    ));
+                        "Argument values must not exceed 1000 characters".into()));
                 }
 
                 // Check for potentially dangerous patterns
@@ -348,8 +336,7 @@ pub trait Router: Send + Sync + 'static {
             // Validate the prompt description length
             if description.len() > 10000 {
                 return Err(RouterError::Internal(
-                    "Prompt description exceeds maximum allowed length".into(),
-                ));
+                    "Prompt description exceeds maximum allowed length".into()));
             }
 
             // Create a mutable copy of the description to fill in arguments
@@ -364,8 +351,7 @@ pub trait Router: Send + Sync + 'static {
 
             let messages = vec![PromptMessage::new_text(
                 PromptMessageRole::User,
-                description_filled.to_string(),
-            )];
+                description_filled.to_string())];
 
             // Build the final response
             let mut response = self.create_response(req.id);
@@ -412,8 +398,7 @@ where
                 "prompts/get" => this.handle_prompts_get(req.request).await,
                 _ => {
                     return Err(
-                        RouterError::MethodNotFound(req.request.request.method.clone()).into(),
-                    );
+                        RouterError::MethodNotFound(req.request.request.method.clone()).into());
                 }
             };
 

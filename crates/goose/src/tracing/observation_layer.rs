@@ -32,8 +32,7 @@ pub fn map_level(level: &Level) -> &'static str {
 }
 
 pub fn flatten_metadata(
-    metadata: serde_json::Map<String, Value>,
-) -> serde_json::Map<String, Value> {
+    metadata: serde_json::Map<String, Value>) -> serde_json::Map<String, Value> {
     let mut flattened = serde_json::Map::new();
     for (key, value) in metadata {
         match value {
@@ -132,8 +131,7 @@ impl ObservationLayer {
                 "parentObservationId": parent_id,
                 "metadata": span_data.metadata,
                 "level": span_data.level
-            }),
-        );
+            }));
     }
 
     pub async fn handle_span_close(&self, span_id: u64) {
@@ -152,8 +150,7 @@ impl ObservationLayer {
                     "type": "SPAN",
                     "traceId": trace_id,
                     "endTime": Utc::now().to_rfc3339()
-                }),
-            );
+                }));
         }
     }
 
@@ -177,8 +174,7 @@ impl ObservationLayer {
                 "metadata": {},
                 "tags": [],
                 "public": false
-            }),
-        );
+            }));
 
         trace_id
     }
@@ -510,8 +506,7 @@ mod tests {
             "complex".to_string(),
             json!({
                 "text": "inner value"
-            }),
-        );
+            }));
 
         let flattened = flatten_metadata(metadata);
         assert_eq!(flattened["simple"], "value");

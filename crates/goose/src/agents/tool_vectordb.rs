@@ -103,8 +103,7 @@ impl ToolVectorDB {
                         Arc::new(Field::new("item", DataType::Float32, true)),
                         1536, // OpenAI embedding dimension
                     ),
-                    false,
-                ),
+                    false),
                 Field::new("extension_name", DataType::Utf8, false),
             ]));
 
@@ -127,8 +126,7 @@ impl ToolVectorDB {
                     Arc::new(schemas),
                     Arc::new(vectors),
                     Arc::new(extension_names),
-                ],
-            )
+                ])
             .context("Failed to create record batch")?;
             // Create an empty table with the schema
             // LanceDB will create the table from the RecordBatch
@@ -138,8 +136,7 @@ impl ToolVectorDB {
             // Use the RecordBatch directly
             let reader = arrow::record_batch::RecordBatchIterator::new(
                 vec![Ok(batch)].into_iter(),
-                schema.clone(),
-            );
+                schema.clone());
 
             connection
                 .create_table(&self.table_name, Box::new(reader))
@@ -202,10 +199,8 @@ impl ToolVectorDB {
                 "vector",
                 DataType::FixedSizeList(
                     Arc::new(Field::new("item", DataType::Float32, true)),
-                    1536,
-                ),
-                false,
-            ),
+                    1536),
+                false),
             Field::new("extension_name", DataType::Utf8, false),
         ]));
 
@@ -241,8 +236,7 @@ impl ToolVectorDB {
                 Arc::new(schemas_array),
                 Arc::new(vectors_array),
                 Arc::new(extension_names_array),
-            ],
-        )
+            ])
         .context("Failed to create record batch")?;
 
         let connection = self.connection.read().await;
@@ -255,8 +249,7 @@ impl ToolVectorDB {
         // Add batch to table using RecordBatchIterator
         let reader = arrow::record_batch::RecordBatchIterator::new(
             vec![Ok(batch)].into_iter(),
-            schema.clone(),
-        );
+            schema.clone());
 
         table
             .add(Box::new(reader))
@@ -271,8 +264,7 @@ impl ToolVectorDB {
         &self,
         query_vector: Vec<f32>,
         k: usize,
-        extension_name: Option<&str>,
-    ) -> Result<Vec<ToolRecord>> {
+        extension_name: Option<&str>) -> Result<Vec<ToolRecord>> {
         let connection = self.connection.read().await;
 
         let table = connection

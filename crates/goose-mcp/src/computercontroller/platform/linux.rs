@@ -92,8 +92,7 @@ impl LinuxAutomation {
             if !Command::new("which").arg(dep).output()?.status.success() {
                 return Err(std::io::Error::new(
                     std::io::ErrorKind::NotFound,
-                    format!("Required dependency '{}' not found", dep),
-                ));
+                    format!("Required dependency '{}' not found", dep)));
             }
         }
         Ok(())
@@ -186,8 +185,7 @@ def run_command(cmd):
         print(f"Error executing {cmd}: {e}", file=sys.stderr)
         return ""
 
-"#,
-        );
+"#);
 
         for cmd in commands {
             script.push_str(&format!("run_command('{}')\n", cmd));
@@ -231,8 +229,7 @@ impl SystemAutomation for LinuxAutomation {
                 Ok(String::from_utf8_lossy(&output.stdout).into_owned())
             } else {
                 Err(std::io::Error::other(
-                    String::from_utf8_lossy(&output.stderr).into_owned(),
-                ))
+                    String::from_utf8_lossy(&output.stderr).into_owned()))
             }
         } else if let Some(cmd) = commands.first() {
             // For single commands, execute directly

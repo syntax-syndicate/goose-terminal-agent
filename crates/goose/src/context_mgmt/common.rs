@@ -35,8 +35,7 @@ pub fn get_messages_token_counts(token_counter: &TokenCounter, messages: &[Messa
 /// Async version of get_messages_token_counts for better performance
 pub fn get_messages_token_counts_async(
     token_counter: &AsyncTokenCounter,
-    messages: &[Message],
-) -> Vec<usize> {
+    messages: &[Message]) -> Vec<usize> {
     // Calculate current token count of each message, use count_chat_tokens to ensure we
     // capture the full content of the message, include ToolRequests and ToolResponses
     messages
@@ -59,8 +58,7 @@ pub fn get_token_counts(
     token_counter: &TokenCounter,
     messages: &mut [Message],
     system_prompt: &str,
-    tools: &mut Vec<Tool>,
-) -> ChatTokenCounts {
+    tools: &mut Vec<Tool>) -> ChatTokenCounts {
     // Take into account the system prompt (includes goosehints), and our tools input
     let system_prompt_token_count = token_counter.count_tokens(system_prompt);
     let tools_token_count = token_counter.count_tokens_for_tools(tools.as_slice());
@@ -79,8 +77,7 @@ pub fn get_token_counts_async(
     token_counter: &AsyncTokenCounter,
     messages: &mut [Message],
     system_prompt: &str,
-    tools: &mut Vec<Tool>,
-) -> ChatTokenCounts {
+    tools: &mut Vec<Tool>) -> ChatTokenCounts {
     // Take into account the system prompt (includes goosehints), and our tools input
     let system_prompt_token_count = token_counter.count_tokens(system_prompt);
     let tools_token_count = token_counter.count_tokens_for_tools(tools.as_slice());

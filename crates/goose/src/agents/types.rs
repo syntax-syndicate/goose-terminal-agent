@@ -1,6 +1,6 @@
 use crate::session;
-use mcp_core::ToolResult;
-use rmcp::model::{Content, Tool};
+use rmcp::model::{Content, ErrorData};
+use rmcp::model::Tool;
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 use std::sync::Arc;
@@ -8,7 +8,7 @@ use tokio::sync::{mpsc, Mutex};
 use utoipa::ToSchema;
 
 /// Type alias for the tool result channel receiver
-pub type ToolResultReceiver = Arc<Mutex<mpsc::Receiver<(String, ToolResult<Vec<Content>>)>>>;
+pub type ToolResultReceiver = Arc<Mutex<mpsc::Receiver<(String, Result<Vec<Content>, ErrorData>)>>>;
 
 /// Default timeout for retry operations (5 minutes)
 pub const DEFAULT_RETRY_TIMEOUT_SECONDS: u64 = 300;
@@ -50,8 +50,7 @@ impl RetryConfig {
         if let Some(on_failure_timeout) = self.on_failure_timeout_seconds {
             if on_failure_timeout == 0 {
                 return Err(
-                    "on_failure_timeout_seconds must be greater than 0 if specified".to_string(),
-                );
+                    "on_failure_timeout_seconds must be greater than 0 if specified".to_string());
             }
         }
 

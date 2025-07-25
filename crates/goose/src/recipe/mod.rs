@@ -156,8 +156,7 @@ pub struct SubRecipe {
 }
 
 fn deserialize_value_map_as_string<'de, D>(
-    deserializer: D,
-) -> Result<Option<HashMap<String, String>>, D::Error>
+    deserializer: D) -> Result<Option<HashMap<String, String>>, D::Error>
 where
     D: Deserializer<'de>,
 {

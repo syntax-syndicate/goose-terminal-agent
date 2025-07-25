@@ -98,8 +98,7 @@ impl ToolPermissionStore {
         &mut self,
         tool_request: &ToolRequest,
         allowed: bool,
-        expiry_duration: Option<Duration>,
-    ) -> anyhow::Result<()> {
+        expiry_duration: Option<Duration>) -> anyhow::Result<()> {
         let context_hash = self.hash_tool_context(tool_request);
         let tool_call = tool_request.tool_call.as_ref().unwrap();
         let key = format!("{}:{}", tool_call.name, context_hash);
@@ -126,8 +125,7 @@ impl ToolPermissionStore {
         hasher.update(
             serde_json::to_string(&tool_request.tool_call.as_ref().unwrap().arguments)
                 .unwrap_or_default()
-                .as_bytes(),
-        );
+                .as_bytes());
         hasher.finalize().to_hex().to_string()
     }
 

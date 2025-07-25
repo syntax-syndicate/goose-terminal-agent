@@ -35,8 +35,7 @@ mod tests {
 
     fn setup_yaml_recipe_files(
         parent_content: &str,
-        child_content: &str,
-    ) -> (TempDir, RecipeFile, RecipeFile) {
+        child_content: &str) -> (TempDir, RecipeFile, RecipeFile) {
         let temp_dir = tempfile::tempdir().unwrap();
         let temp_path = temp_dir.path();
 

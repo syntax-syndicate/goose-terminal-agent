@@ -173,8 +173,7 @@ impl Config {
     /// to manage multiple configuration files.
     pub fn new_with_file_secrets<P1: AsRef<Path>, P2: AsRef<Path>>(
         config_path: P1,
-        secrets_path: P2,
-    ) -> Result<Self, ConfigError> {
+        secrets_path: P2) -> Result<Self, ConfigError> {
         Ok(Config {
             config_path: config_path.as_ref().to_path_buf(),
             secrets: SecretStorage::File {
@@ -226,8 +225,7 @@ impl Config {
     // Helper method to create and save default config with consistent logging
     fn create_and_save_default_config(
         &self,
-        default_config: HashMap<String, Value>,
-    ) -> Result<HashMap<String, Value>, ConfigError> {
+        default_config: HashMap<String, Value>) -> Result<HashMap<String, Value>, ConfigError> {
         // Try to write the default config to disk
         match self.save_values(default_config.clone()) {
             Ok(_) => {
@@ -730,16 +728,14 @@ pub fn load_init_config_from_workspace() -> Result<HashMap<String, Value>, Confi
         Err(_) => {
             return Err(ConfigError::FileError(std::io::Error::new(
                 std::io::ErrorKind::NotFound,
-                "Could not determine executable path",
-            )))
+                "Could not determine executable path")))
         }
     };
 
     let init_config_path = workspace_root.join("init-config.yaml");
     if !init_config_path.exists() {
         return Err(ConfigError::NotFound(
-            "init-config.yaml not found".to_string(),
-        ));
+            "init-config.yaml not found".to_string()));
     }
 
     let init_content = std::fs::read_to_string(&init_config_path)?;
@@ -814,8 +810,7 @@ mod tests {
             serde_json::json!({
                 "field1": "hello",
                 "field2": 42
-            }),
-        )?;
+            }))?;
 
         let value: TestStruct = config.get_param("complex_key")?;
         assert_eq!(value.field1, "hello");

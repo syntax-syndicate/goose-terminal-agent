@@ -82,8 +82,7 @@ mod tests {
                         "key2": { "type": "number", "description": "An optional parameter" }
                     },
                     "required": []
-                }),
-            );
+                }));
         }
 
         #[test]
@@ -125,8 +124,7 @@ mod tests {
                         "key2": { "type": "number", "description": "An optional parameter" }
                     },
                     "required": ["key1"]
-                }),
-            );
+                }));
         }
     }
 }

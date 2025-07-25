@@ -57,8 +57,7 @@ impl<C> common::Hub for DriveLabelsHub<C> {}
 impl<'a, C> DriveLabelsHub<C> {
     pub fn new<A: 'static + common::GetToken>(
         client: common::Client<C>,
-        auth: A,
-    ) -> DriveLabelsHub<C> {
+        auth: A) -> DriveLabelsHub<C> {
         DriveLabelsHub {
             client,
             auth: Box::new(auth),
@@ -382,8 +381,7 @@ where
                                 dlg.response_json_decode_error(&encoded, &error);
                                 return Err(common::Error::JsonDecodeError(
                                     encoded.to_string(),
-                                    error,
-                                ));
+                                    error));
                             }
                         }
                     };

@@ -15,8 +15,7 @@ const SUMMARY_PROMPT: &str = "You are good at summarizing conversations";
 async fn summarize_combined_messages(
     provider: &Arc<dyn Provider>,
     accumulated_summary: &[Message],
-    current_chunk: &[Message],
-) -> Result<Vec<Message>, anyhow::Error> {
+    current_chunk: &[Message]) -> Result<Vec<Message>, anyhow::Error> {
     // Combine the accumulated summary and current chunk into a single batch.
     let combined_messages: Vec<Message> = accumulated_summary
         .iter()
@@ -94,8 +93,7 @@ fn preprocess_messages(messages: &[Message]) -> (Vec<Message>, Vec<Message>) {
 /// such as tool responses, is not lost.
 fn reintegrate_removed_messages(
     summarized_messages: &[Message],
-    removed_messages: &[Message],
-) -> Vec<Message> {
+    removed_messages: &[Message]) -> Vec<Message> {
     let mut final_messages = summarized_messages.to_owned();
     final_messages.extend_from_slice(removed_messages);
     final_messages
@@ -111,8 +109,7 @@ pub async fn summarize_messages(
     provider: Arc<dyn Provider>,
     messages: &[Message],
     token_counter: &TokenCounter,
-    context_limit: usize,
-) -> Result<(Vec<Message>, Vec<usize>), anyhow::Error> {
+    context_limit: usize) -> Result<(Vec<Message>, Vec<usize>), anyhow::Error> {
     let chunk_size = context_limit / 3; // 33% of the context window.
     let summary_prompt_tokens = token_counter.count_tokens(SUMMARY_PROMPT);
     let mut accumulated_summary = Vec::new();
@@ -155,8 +152,7 @@ pub async fn summarize_messages(
 
     Ok((
         final_summary.clone(),
-        get_messages_token_counts(token_counter, &final_summary),
-    ))
+        get_messages_token_counts(token_counter, &final_summary)))
 }
 
 /// Async version using AsyncTokenCounter for better performance
@@ -164,8 +160,7 @@ pub async fn summarize_messages_async(
     provider: Arc<dyn Provider>,
     messages: &[Message],
     token_counter: &AsyncTokenCounter,
-    context_limit: usize,
-) -> Result<(Vec<Message>, Vec<usize>), anyhow::Error> {
+    context_limit: usize) -> Result<(Vec<Message>, Vec<usize>), anyhow::Error> {
     let chunk_size = context_limit / 3; // 33% of the context window.
     let summary_prompt_tokens = token_counter.count_tokens(SUMMARY_PROMPT);
     let mut accumulated_summary = Vec::new();
@@ -208,8 +203,7 @@ pub async fn summarize_messages_async(
 
     Ok((
         final_summary.clone(),
-        get_messages_token_counts_async(token_counter, &final_summary),
-    ))
+        get_messages_token_counts_async(token_counter, &final_summary)))
 }
 
 #[cfg(test)]
@@ -246,8 +240,7 @@ mod tests {
             &self,
             _system: &str,
             _messages: &[Message],
-            _tools: &[Tool],
-        ) -> Result<(Message, ProviderUsage), ProviderError> {
+            _tools: &[Tool]) -> Result<(Message, ProviderUsage), ProviderError> {
             Ok((
                 Message::new(
                     Role::Assistant,
@@ -256,11 +249,8 @@ mod tests {
                         RawTextContent {
                             text: "Summarized content".to_string(),
                         }
-                        .no_annotation(),
-                    )],
-                ),
-                ProviderUsage::new("mock".to_string(), Usage::default()),
-            ))
+                        .no_annotation())]),
+                ProviderUsage::new("mock".to_string(), Usage::default())))
         }
     }
 
@@ -288,8 +278,7 @@ mod tests {
         Message::new(
             Role::Assistant,
             0,
-            vec![MessageContent::tool_request(id.to_string(), Ok(tool_call))],
-        )
+            vec![MessageContent::tool_request(id.to_string(), Ok(tool_call))])
     }
 
     fn set_up_tool_response_message(id: &str, tool_response: Vec<Content>) -> Message {
@@ -298,9 +287,7 @@ mod tests {
             0,
             vec![MessageContent::tool_response(
                 id.to_string(),
-                Ok(tool_response),
-            )],
-        )
+                Ok(tool_response))])
     }
 
     #[tokio::test]
@@ -314,8 +301,7 @@ mod tests {
             Arc::clone(&provider),
             &messages,
             &token_counter,
-            context_limit,
-        )
+            context_limit)
         .await;
 
         assert!(result.is_ok(), "The function should return Ok.");
@@ -350,8 +336,7 @@ mod tests {
             Arc::clone(&provider),
             &messages,
             &token_counter,
-            context_limit,
-        )
+            context_limit)
         .await;
 
         assert!(result.is_ok(), "The function should return Ok.");
@@ -386,8 +371,7 @@ mod tests {
             Arc::clone(&provider),
             &messages,
             &token_counter,
-            context_limit,
-        )
+            context_limit)
         .await;
 
         assert!(result.is_ok(), "The function should return Ok.");
@@ -455,9 +439,7 @@ mod tests {
                 RawTextContent {
                     text: "Summary".to_string(),
                 }
-                .no_annotation(),
-            )],
-        )];
+                .no_annotation())])];
         let arguments = json!({
             "param1": "value1"
         });

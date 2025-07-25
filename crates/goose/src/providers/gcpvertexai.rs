@@ -277,8 +277,7 @@ impl GcpVertexAIProvider {
     fn build_request_url(
         &self,
         provider: ModelProvider,
-        location: &str,
-    ) -> Result<Url, GcpVertexAIError> {
+        location: &str) -> Result<Url, GcpVertexAIError> {
         // Create host URL for the specified location
         let host_url = if self.location == location {
             &self.host
@@ -322,8 +321,7 @@ impl GcpVertexAIProvider {
         &self,
         payload: &Value,
         context: &RequestContext,
-        location: &str,
-    ) -> Result<Value, ProviderError> {
+        location: &str) -> Result<Value, ProviderError> {
         let url = self
             .build_request_url(context.provider(), location)
             .map_err(|e| ProviderError::RequestFailed(e.to_string()))?;
@@ -473,8 +471,7 @@ impl GcpVertexAIProvider {
     async fn post(
         &self,
         payload: &Value,
-        context: &RequestContext,
-    ) -> Result<Value, ProviderError> {
+        context: &RequestContext) -> Result<Value, ProviderError> {
         // Try with user-specified location first
         let result = self
             .post_with_location(payload, context, &self.location)
@@ -557,40 +554,33 @@ impl Provider for GcpVertexAIProvider {
                     "GCP_MAX_RATE_LIMIT_RETRIES",
                     false,
                     false,
-                    Some(&DEFAULT_MAX_RETRIES.to_string()),
-                ),
+                    Some(&DEFAULT_MAX_RETRIES.to_string())),
                 ConfigKey::new(
                     "GCP_MAX_OVERLOADED_RETRIES",
                     false,
                     false,
-                    Some(&DEFAULT_MAX_RETRIES.to_string()),
-                ),
+                    Some(&DEFAULT_MAX_RETRIES.to_string())),
                 ConfigKey::new(
                     "GCP_MAX_RETRIES",
                     false,
                     false,
-                    Some(&DEFAULT_MAX_RETRIES.to_string()),
-                ),
+                    Some(&DEFAULT_MAX_RETRIES.to_string())),
                 ConfigKey::new(
                     "GCP_INITIAL_RETRY_INTERVAL_MS",
                     false,
                     false,
-                    Some(&DEFAULT_INITIAL_RETRY_INTERVAL_MS.to_string()),
-                ),
+                    Some(&DEFAULT_INITIAL_RETRY_INTERVAL_MS.to_string())),
                 ConfigKey::new(
                     "GCP_BACKOFF_MULTIPLIER",
                     false,
                     false,
-                    Some(&DEFAULT_BACKOFF_MULTIPLIER.to_string()),
-                ),
+                    Some(&DEFAULT_BACKOFF_MULTIPLIER.to_string())),
                 ConfigKey::new(
                     "GCP_MAX_RETRY_INTERVAL_MS",
                     false,
                     false,
-                    Some(&DEFAULT_MAX_RETRY_INTERVAL_MS.to_string()),
-                ),
-            ],
-        )
+                    Some(&DEFAULT_MAX_RETRY_INTERVAL_MS.to_string())),
+            ])
     }
 
     /// Completes a model interaction by sending a request and processing the response.
@@ -607,8 +597,7 @@ impl Provider for GcpVertexAIProvider {
         &self,
         system: &str,
         messages: &[Message],
-        tools: &[Tool],
-    ) -> Result<(Message, ProviderUsage), ProviderError> {
+        tools: &[Tool]) -> Result<(Message, ProviderUsage), ProviderError> {
         // Create request and context
         let (request, context) = create_request(&self.model, system, messages, tools)?;
 

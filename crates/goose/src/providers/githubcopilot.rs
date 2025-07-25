@@ -341,7 +341,7 @@ impl GithubCopilotProvider {
                 .await
                 .context("failed to parse response while polling for access token")?;
             if resp.access_token.is_some() {
-                tracing::trace!("successful authorization: {:#?}", resp,);
+                tracing::trace!("successful authorization: {:#?}", resp);
             }
             if let Some(access_token) = resp.access_token {
                 return Ok(access_token);
@@ -368,12 +368,10 @@ impl GithubCopilotProvider {
         headers.insert(http::header::ACCEPT, "application/json".parse().unwrap());
         headers.insert(
             http::header::CONTENT_TYPE,
-            "application/json".parse().unwrap(),
-        );
+            "application/json".parse().unwrap());
         headers.insert(
             http::header::USER_AGENT,
-            "GithubCopilot/1.155.0".parse().unwrap(),
-        );
+            "GithubCopilot/1.155.0".parse().unwrap());
         headers.insert("editor-version", "vscode/1.85.1".parse().unwrap());
         headers.insert("editor-plugin-version", "copilot/1.155.0".parse().unwrap());
         headers
@@ -390,8 +388,7 @@ impl Provider for GithubCopilotProvider {
             GITHUB_COPILOT_DEFAULT_MODEL,
             GITHUB_COPILOT_KNOWN_MODELS.to_vec(),
             GITHUB_COPILOT_DOC_URL,
-            vec![ConfigKey::new("GITHUB_COPILOT_TOKEN", true, true, None)],
-        )
+            vec![ConfigKey::new("GITHUB_COPILOT_TOKEN", true, true, None)])
     }
 
     fn get_model_config(&self) -> ModelConfig {
@@ -406,8 +403,7 @@ impl Provider for GithubCopilotProvider {
         &self,
         system: &str,
         messages: &[Message],
-        tools: &[Tool],
-    ) -> Result<(Message, ProviderUsage), ProviderError> {
+        tools: &[Tool]) -> Result<(Message, ProviderUsage), ProviderError> {
         let mut payload =
             create_request(&self.model, system, messages, tools, &ImageFormat::OpenAi)?;
 

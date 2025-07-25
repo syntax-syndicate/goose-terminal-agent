@@ -78,8 +78,7 @@ pub fn create(name: &str, model: ModelConfig) -> Result<Arc<dyn Provider>> {
 fn create_lead_worker_from_env(
     default_provider_name: &str,
     default_model: &ModelConfig,
-    lead_model_name: &str,
-) -> Result<Arc<dyn Provider>> {
+    lead_model_name: &str) -> Result<Arc<dyn Provider>> {
     let config = crate::config::Config::global();
 
     // Get lead provider (optional, defaults to main provider)
@@ -101,8 +100,7 @@ fn create_lead_worker_from_env(
     // Create model configs with context limit environment variable support
     let lead_model_config = ModelConfig::new_with_context_env(
         lead_model_name.to_string(),
-        Some("GOOSE_LEAD_CONTEXT_LIMIT"),
-    );
+        Some("GOOSE_LEAD_CONTEXT_LIMIT"));
 
     // For worker model, preserve the original context_limit from config (highest precedence)
     // while still allowing environment variable overrides
@@ -143,8 +141,7 @@ fn create_lead_worker_from_env(
         worker_provider,
         lead_turns,
         failure_threshold,
-        fallback_turns,
-    )))
+        fallback_turns)))
 }
 
 fn create_provider(name: &str, model: ModelConfig) -> Result<Arc<dyn Provider>> {
@@ -198,8 +195,7 @@ mod tests {
                 "mock-model",
                 vec!["mock-model"],
                 "",
-                vec![],
-            )
+                vec![])
         }
 
         fn get_model_config(&self) -> ModelConfig {
@@ -210,8 +206,7 @@ mod tests {
             &self,
             _system: &str,
             _messages: &[Message],
-            _tools: &[Tool],
-        ) -> Result<(Message, ProviderUsage), ProviderError> {
+            _tools: &[Tool]) -> Result<(Message, ProviderUsage), ProviderError> {
             Ok((
                 Message::new(
                     Role::Assistant,
@@ -223,11 +218,8 @@ mod tests {
                                 self.name, self.model_config.model_name
                             ),
                         }
-                        .no_annotation(),
-                    )],
-                ),
-                ProviderUsage::new(self.model_config.model_name.clone(), Usage::default()),
-            ))
+                        .no_annotation())]),
+                ProviderUsage::new(self.model_config.model_name.clone(), Usage::default())))
         }
     }
 
@@ -288,12 +280,10 @@ mod tests {
             ("GOOSE_LEAD_TURNS", env::var("GOOSE_LEAD_TURNS").ok()),
             (
                 "GOOSE_LEAD_FAILURE_THRESHOLD",
-                env::var("GOOSE_LEAD_FAILURE_THRESHOLD").ok(),
-            ),
+                env::var("GOOSE_LEAD_FAILURE_THRESHOLD").ok()),
             (
                 "GOOSE_LEAD_FALLBACK_TURNS",
-                env::var("GOOSE_LEAD_FALLBACK_TURNS").ok(),
-            ),
+                env::var("GOOSE_LEAD_FALLBACK_TURNS").ok()),
         ];
 
         // Clear all lead env vars
@@ -395,8 +385,7 @@ mod tests {
             ("GOOSE_LEAD_MODEL", env::var("GOOSE_LEAD_MODEL").ok()),
             (
                 "GOOSE_WORKER_CONTEXT_LIMIT",
-                env::var("GOOSE_WORKER_CONTEXT_LIMIT").ok(),
-            ),
+                env::var("GOOSE_WORKER_CONTEXT_LIMIT").ok()),
             ("GOOSE_CONTEXT_LIMIT", env::var("GOOSE_CONTEXT_LIMIT").ok()),
         ];
 

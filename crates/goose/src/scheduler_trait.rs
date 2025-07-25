@@ -29,8 +29,7 @@ pub trait SchedulerTrait: Send + Sync {
     async fn sessions(
         &self,
         sched_id: &str,
-        limit: usize,
-    ) -> Result<Vec<(String, SessionMetadata)>, SchedulerError>;
+        limit: usize) -> Result<Vec<(String, SessionMetadata)>, SchedulerError>;
 
     /// Update a schedule's cron expression
     async fn update_schedule(&self, sched_id: &str, new_cron: String)
@@ -42,6 +41,5 @@ pub trait SchedulerTrait: Send + Sync {
     /// Get information about a running job
     async fn get_running_job_info(
         &self,
-        sched_id: &str,
-    ) -> Result<Option<(String, DateTime<Utc>)>, SchedulerError>;
+        sched_id: &str) -> Result<Option<(String, DateTime<Utc>)>, SchedulerError>;
 }

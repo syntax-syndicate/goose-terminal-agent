@@ -1,5 +1,4 @@
-use mcp_core::ToolError;
-use rmcp::model::{Content, ServerNotification, Tool, ToolAnnotations};
+use rmcp::model::{Content, ServerNotification, ErrorData, ErrorCode, Tool, ToolAnnotations};
 use serde_json::Value;
 
 use crate::agents::subagent_task_config::TaskConfig;
@@ -64,8 +63,7 @@ pub async fn run_tasks(
     execute_data: Value,
     task_config: TaskConfig,
     tasks_manager: &TasksManager,
-    cancellation_token: Option<CancellationToken>,
-) -> ToolCallResult {
+    cancellation_token: Option<CancellationToken>) -> ToolCallResult {
     let (notification_tx, notification_rx) = mpsc::channel::<ServerNotification>(100);
 
     let tasks_manager_clone = tasks_manager.clone();
@@ -82,15 +80,14 @@ pub async fn run_tasks(
             notification_tx,
             task_config,
             &tasks_manager_clone,
-            cancellation_token,
-        )
+            cancellation_token)
         .await
         {
             Ok(result) => {
                 let output = serde_json::to_string(&result).unwrap();
                 Ok(vec![Content::text(output)])
             }
-            Err(e) => Err(ToolError::ExecutionError(e.to_string())),
+            Err(e) => Err(ErrorData::new(ErrorCode::INTERNAL_ERROR, e.to_string(), None)),
         }
     };
 

@@ -60,8 +60,7 @@ impl SageMakerTgiProvider {
             aws_config
                 .credentials_provider()
                 .unwrap()
-                .provide_credentials(),
-        )?;
+                .provide_credentials())?;
 
         // Create client with longer timeout for model initialization
         let timeout_config = aws_config::timeout::TimeoutConfig::builder()
@@ -187,8 +186,7 @@ impl SageMakerTgiProvider {
 
         if response_array.is_empty() {
             return Err(ProviderError::RequestFailed(
-                "Empty response array".to_string(),
-            ));
+                "Empty response array".to_string()));
         }
 
         let first_result = &response_array[0];
@@ -205,8 +203,7 @@ impl SageMakerTgiProvider {
         Ok(Message::new(
             Role::Assistant,
             Utc::now().timestamp(),
-            vec![MessageContent::text(clean_text)],
-        ))
+            vec![MessageContent::text(clean_text)]))
     }
 
     /// Strip HTML tags from text to ensure clean output
@@ -275,8 +272,7 @@ impl Provider for SageMakerTgiProvider {
                 ConfigKey::new("SAGEMAKER_ENDPOINT_NAME", false, false, None),
                 ConfigKey::new("AWS_REGION", true, false, Some("us-east-1")),
                 ConfigKey::new("AWS_PROFILE", true, false, Some("default")),
-            ],
-        )
+            ])
     }
 
     fn get_model_config(&self) -> ModelConfig {
@@ -291,8 +287,7 @@ impl Provider for SageMakerTgiProvider {
         &self,
         system: &str,
         messages: &[Message],
-        tools: &[Tool],
-    ) -> Result<(Message, ProviderUsage), ProviderError> {
+        tools: &[Tool]) -> Result<(Message, ProviderUsage), ProviderError> {
         let model_name = &self.model.model_name;
 
         let request_payload = self.create_tgi_request(system, messages).map_err(|e| {
@@ -331,8 +326,7 @@ impl Provider for SageMakerTgiProvider {
                         &self.model,
                         &debug_payload,
                         &serde_json::to_value(&message).unwrap_or_default(),
-                        &usage,
-                    );
+                        &usage);
 
                     let provider_usage = ProviderUsage::new(model_name.to_string(), usage);
                     return Ok((message, provider_usage));

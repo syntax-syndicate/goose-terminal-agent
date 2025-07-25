@@ -163,8 +163,7 @@ pub struct ScheduledJob {
 
 async fn persist_jobs_from_arc(
     storage_path: &Path,
-    jobs_arc: &Arc<Mutex<JobsMap>>,
-) -> Result<(), SchedulerError> {
+    jobs_arc: &Arc<Mutex<JobsMap>>) -> Result<(), SchedulerError> {
     let jobs_guard = jobs_arc.lock().await;
     let list: Vec<ScheduledJob> = jobs_guard.values().map(|(_, j)| j.clone()).collect();
     if let Some(parent) = storage_path.parent() {
@@ -210,8 +209,7 @@ impl Scheduler {
 
     pub async fn add_scheduled_job(
         &self,
-        original_job_spec: ScheduledJob,
-    ) -> Result<(), SchedulerError> {
+        original_job_spec: ScheduledJob) -> Result<(), SchedulerError> {
         let mut jobs_guard = self.jobs.lock().await;
         if jobs_guard.contains_key(&original_job_spec.id) {
             return Err(SchedulerError::JobIdExists(original_job_spec.id.clone()));
@@ -253,8 +251,7 @@ impl Scheduler {
                     original_job_spec.source,
                     destination_recipe_path.display(),
                     e
-                ),
-            ))
+                )))
         })?;
 
         let mut stored_job = original_job_spec.clone();
@@ -338,8 +335,7 @@ impl Scheduler {
                     job_to_execute.clone(),
                     None,
                     Some(current_jobs_arc.clone()),
-                    Some(task_job_id.clone()),
-                ));
+                    Some(task_job_id.clone())));
 
                 // Store the abort handle at the scheduler level
                 {
@@ -516,8 +512,7 @@ impl Scheduler {
                         job_to_execute,
                         None,
                         Some(current_jobs_arc.clone()),
-                        Some(task_job_id.clone()),
-                    ));
+                        Some(task_job_id.clone())));
 
                     // Store the abort handle at the scheduler level
                     {
@@ -599,8 +594,7 @@ impl Scheduler {
     // Renamed and kept for direct use when a guard is already held (e.g. add/remove)
     async fn persist_jobs_to_storage_with_guard(
         &self,
-        jobs_guard: &tokio::sync::MutexGuard<'_, JobsMap>,
-    ) -> Result<(), SchedulerError> {
+        jobs_guard: &tokio::sync::MutexGuard<'_, JobsMap>) -> Result<(), SchedulerError> {
         let list: Vec<ScheduledJob> = jobs_guard.values().map(|(_, j)| j.clone()).collect();
         if let Some(parent) = self.storage_path.parent() {
             fs::create_dir_all(parent)?;
@@ -647,8 +641,7 @@ impl Scheduler {
     pub async fn sessions(
         &self,
         sched_id: &str,
-        limit: usize,
-    ) -> Result<Vec<(String, SessionMetadata)>, SchedulerError> {
+        limit: usize) -> Result<Vec<(String, SessionMetadata)>, SchedulerError> {
         // Changed return type
         let all_session_files = session::storage::list_sessions()
             .map_err(|e| SchedulerError::StorageError(io::Error::other(e)))?;
@@ -706,8 +699,7 @@ impl Scheduler {
             job_to_run.clone(),
             None,
             Some(self.jobs.clone()),
-            Some(sched_id.to_string()),
-        ));
+            Some(sched_id.to_string())));
 
         // Store the abort handle for run_now jobs
         {
@@ -793,8 +785,7 @@ impl Scheduler {
     pub async fn update_schedule(
         &self,
         sched_id: &str,
-        new_cron: String,
-    ) -> Result<(), SchedulerError> {
+        new_cron: String) -> Result<(), SchedulerError> {
         let mut jobs_guard = self.jobs.lock().await;
         match jobs_guard.get_mut(sched_id) {
             Some((job_uuid, job_def)) => {
@@ -899,8 +890,7 @@ impl Scheduler {
                             job_to_execute,
                             None,
                             Some(current_jobs_arc.clone()),
-                            Some(task_job_id.clone()),
-                        ));
+                            Some(task_job_id.clone())));
 
                         // Store the abort handle at the scheduler level
                         {
@@ -1035,8 +1025,7 @@ impl Scheduler {
 
     pub async fn get_running_job_info(
         &self,
-        sched_id: &str,
-    ) -> Result<Option<(String, DateTime<Utc>)>, SchedulerError> {
+        sched_id: &str) -> Result<Option<(String, DateTime<Utc>)>, SchedulerError> {
         let jobs_guard = self.jobs.lock().await;
         match jobs_guard.get(sched_id) {
             Some((_, job_def)) => {
@@ -1067,8 +1056,7 @@ async fn run_scheduled_job_internal(
     job: ScheduledJob,
     provider_override: Option<Arc<dyn GooseProvider>>, // New optional parameter
     jobs_arc: Option<Arc<Mutex<JobsMap>>>,
-    job_id: Option<String>,
-) -> std::result::Result<String, JobExecutionError> {
+    job_id: Option<String>) -> std::result::Result<String, JobExecutionError> {
     tracing::info!("Executing job: {} (Source: {})", job.id, job.source);
 
     let recipe_path = Path::new(&job.source);
@@ -1173,8 +1161,7 @@ async fn run_scheduled_job_internal(
     }
 
     let session_file_path = match crate::session::storage::get_path(
-        crate::session::storage::Identifier::Name(session_id_for_return.clone()),
-    ) {
+        crate::session::storage::Identifier::Name(session_id_for_return.clone())) {
         Ok(path) => path,
         Err(e) => {
             return Err(JobExecutionError {
@@ -1249,8 +1236,7 @@ async fn run_scheduled_job_internal(
                         if let Err(e) = crate::session::storage::save_messages_with_metadata(
                             &session_file_path,
                             &updated_metadata,
-                            &all_session_messages,
-                        ) {
+                            &all_session_messages) {
                             tracing::error!(
                                 "[Job {}] Failed to persist final messages: {}",
                                 job.id,
@@ -1280,8 +1266,7 @@ async fn run_scheduled_job_internal(
                         if let Err(e_fb) = crate::session::storage::save_messages_with_metadata(
                             &session_file_path,
                             &fallback_metadata,
-                            &all_session_messages,
-                        ) {
+                            &all_session_messages) {
                             tracing::error!("[Job {}] Failed to persist final messages with fallback metadata: {}", job.id, e_fb);
                         }
                     }
@@ -1370,8 +1355,7 @@ mod tests {
             &self,
             _system: &str,
             _messages: &[Message],
-            _tools: &[Tool],
-        ) -> Result<(Message, ProviderUsage), ProviderError> {
+            _tools: &[Tool]) -> Result<(Message, ProviderUsage), ProviderError> {
             Ok((
                 Message::new(
                     Role::Assistant,
@@ -1380,19 +1364,15 @@ mod tests {
                         RawTextContent {
                             text: "Mocked scheduled response".to_string(),
                         }
-                        .no_annotation(),
-                    )],
-                ),
-                ProviderUsage::new("mock-scheduler-test".to_string(), Usage::default()),
-            ))
+                        .no_annotation())]),
+                ProviderUsage::new("mock-scheduler-test".to_string(), Usage::default())))
         }
     }
 
     // This function is pub(super) making it visible to run_scheduled_job_internal (parent module)
     // when cfg(test) is active for the whole compilation unit.
     pub(super) fn create_scheduler_test_mock_provider(
-        model_config: ModelConfig,
-    ) -> Arc<dyn GooseProvider> {
+        model_config: ModelConfig) -> Arc<dyn GooseProvider> {
         Arc::new(MockSchedulerTestProvider { model_config })
     }
 
@@ -1530,16 +1510,14 @@ impl SchedulerTrait for Scheduler {
     async fn sessions(
         &self,
         sched_id: &str,
-        limit: usize,
-    ) -> Result<Vec<(String, SessionMetadata)>, SchedulerError> {
+        limit: usize) -> Result<Vec<(String, SessionMetadata)>, SchedulerError> {
         self.sessions(sched_id, limit).await
     }
 
     async fn update_schedule(
         &self,
         sched_id: &str,
-        new_cron: String,
-    ) -> Result<(), SchedulerError> {
+        new_cron: String) -> Result<(), SchedulerError> {
         self.update_schedule(sched_id, new_cron).await
     }
 
@@ -1549,8 +1527,7 @@ impl SchedulerTrait for Scheduler {
 
     async fn get_running_job_info(
         &self,
-        sched_id: &str,
-    ) -> Result<Option<(String, DateTime<Utc>)>, SchedulerError> {
+        sched_id: &str) -> Result<Option<(String, DateTime<Utc>)>, SchedulerError> {
         self.get_running_job_info(sched_id).await
     }
 }

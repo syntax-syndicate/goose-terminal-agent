@@ -157,8 +157,7 @@ impl Provider for OpenAiProvider {
                 ConfigKey::new("OPENAI_PROJECT", false, false, None),
                 ConfigKey::new("OPENAI_CUSTOM_HEADERS", false, true, None),
                 ConfigKey::new("OPENAI_TIMEOUT", false, false, Some("600")),
-            ],
-        )
+            ])
     }
 
     fn get_model_config(&self) -> ModelConfig {
@@ -173,8 +172,7 @@ impl Provider for OpenAiProvider {
         &self,
         system: &str,
         messages: &[Message],
-        tools: &[Tool],
-    ) -> Result<(Message, ProviderUsage), ProviderError> {
+        tools: &[Tool]) -> Result<(Message, ProviderUsage), ProviderError> {
         let payload = create_request(&self.model, system, messages, tools, &ImageFormat::OpenAi)?;
 
         // Make request
@@ -249,8 +247,7 @@ impl Provider for OpenAiProvider {
         &self,
         system: &str,
         messages: &[Message],
-        tools: &[Tool],
-    ) -> Result<MessageStream, ProviderError> {
+        tools: &[Tool]) -> Result<MessageStream, ProviderError> {
         let mut payload =
             create_request(&self.model, system, messages, tools, &ImageFormat::OpenAi)?;
         payload["stream"] = serde_json::Value::Bool(true);

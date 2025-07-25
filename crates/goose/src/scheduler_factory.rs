@@ -94,8 +94,7 @@ impl SchedulerFactory {
 
     /// Create a legacy scheduler (for testing or explicit use)
     pub async fn create_legacy(
-        storage_path: PathBuf,
-    ) -> Result<Arc<dyn SchedulerTrait>, SchedulerError> {
+        storage_path: PathBuf) -> Result<Arc<dyn SchedulerTrait>, SchedulerError> {
         tracing::info!("Creating legacy scheduler (explicit)");
         let scheduler = Scheduler::new(storage_path).await?;
         Ok(scheduler as Arc<dyn SchedulerTrait>)

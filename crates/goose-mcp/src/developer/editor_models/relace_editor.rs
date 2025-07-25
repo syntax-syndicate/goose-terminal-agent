@@ -26,8 +26,7 @@ impl EditorModelImpl for RelaceEditor {
         &self,
         original_code: &str,
         _old_str: &str,
-        update_snippet: &str,
-    ) -> Result<String, String> {
+        update_snippet: &str) -> Result<String, String> {
         eprintln!("Calling Relace Editor API");
 
         // Construct the full URL

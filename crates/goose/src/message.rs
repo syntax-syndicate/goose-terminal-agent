@@ -6,9 +6,8 @@
 /// The content of the messages uses MCP types to avoid additional conversions
 /// when interacting with MCP servers.
 use chrono::Utc;
-use mcp_core::handler::ToolResult;
 use mcp_core::tool::ToolCall;
-use rmcp::model::ResourceContents;
+use rmcp::model::{ErrorData, ResourceContents};
 use rmcp::model::Role;
 use rmcp::model::{
     AnnotateAble, Content, ImageContent, PromptMessage, PromptMessageContent, PromptMessageRole,
@@ -21,6 +20,8 @@ use std::fmt;
 use utoipa::ToSchema;
 
 mod tool_result_serde;
+
+type ToolResult<T> = Result<T, ErrorData>;
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -160,8 +161,7 @@ impl MessageContent {
                 data: data.into(),
                 mime_type: mime_type.into(),
             }
-            .no_annotation(),
-        )
+            .no_annotation())
     }
 
     pub fn tool_request<S: Into<String>>(id: S, tool_call: ToolResult<ToolCall>) -> Self {
@@ -182,8 +182,7 @@ impl MessageContent {
         id: S,
         tool_name: String,
         arguments: Value,
-        prompt: Option<String>,
-    ) -> Self {
+        prompt: Option<String>) -> Self {
         MessageContent::ToolConfirmationRequest(ToolConfirmationRequest {
             id: id.into(),
             tool_name,
@@ -448,8 +447,7 @@ impl Message {
     pub fn with_tool_request<S: Into<String>>(
         self,
         id: S,
-        tool_call: ToolResult<ToolCall>,
-    ) -> Self {
+        tool_call: ToolResult<ToolCall>) -> Self {
         self.with_content(MessageContent::tool_request(id, tool_call))
     }
 
@@ -457,8 +455,7 @@ impl Message {
     pub fn with_tool_response<S: Into<String>>(
         self,
         id: S,
-        result: ToolResult<Vec<Content>>,
-    ) -> Self {
+        result: ToolResult<Vec<Content>>) -> Self {
         self.with_content(MessageContent::tool_response(id, result))
     }
 
@@ -468,18 +465,15 @@ impl Message {
         id: S,
         tool_name: String,
         arguments: Value,
-        prompt: Option<String>,
-    ) -> Self {
+        prompt: Option<String>) -> Self {
         self.with_content(MessageContent::tool_confirmation_request(
-            id, tool_name, arguments, prompt,
-        ))
+            id, tool_name, arguments, prompt))
     }
 
     pub fn with_frontend_tool_request<S: Into<String>>(
         self,
         id: S,
-        tool_call: ToolResult<ToolCall>,
-    ) -> Self {
+        tool_call: ToolResult<ToolCall>) -> Self {
         self.with_content(MessageContent::frontend_tool_request(id, tool_call))
     }
 
@@ -487,8 +481,7 @@ impl Message {
     pub fn with_thinking<S1: Into<String>, S2: Into<String>>(
         self,
         thinking: S1,
-        signature: S2,
-    ) -> Self {
+        signature: S2) -> Self {
         self.with_content(MessageContent::thinking(thinking, signature))
     }
 
@@ -581,7 +574,7 @@ impl Message {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use mcp_core::handler::ToolError;
+    use rmcp::model::{ErrorData, ErrorCode};
     use rmcp::model::{PromptMessage, PromptMessageContent, RawEmbeddedResource, ResourceContents};
     use serde_json::{json, Value};
 
@@ -591,8 +584,7 @@ mod tests {
             .with_text("Hello, I'll help you with that.")
             .with_tool_request(
                 "tool123",
-                Ok(ToolCall::new("test_tool", json!({"param": "value"}))),
-            );
+                Ok(ToolCall::new("test_tool", json!({"param": "value"}))));
 
         let json_str = serde_json::to_string_pretty(&message).unwrap();
         println!("Serialized message: {}", json_str);
@@ -629,10 +621,7 @@ mod tests {
     fn test_error_serialization() {
         let message = Message::assistant().with_tool_request(
             "tool123",
-            Err(ToolError::ExecutionError(
-                "Something went wrong".to_string(),
-            )),
-        );
+            Err(ErrorData::new(ErrorCode::INTERNAL_ERROR, "Something went wrong".to_string(), None)));
 
         let json_str = serde_json::to_string_pretty(&message).unwrap();
         println!("Serialized error: {}", json_str);

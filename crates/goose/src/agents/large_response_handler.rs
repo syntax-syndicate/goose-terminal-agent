@@ -1,6 +1,5 @@
 use chrono::Utc;
-use mcp_core::ToolError;
-use rmcp::model::Content;
+use rmcp::model::{Content, ErrorData, ErrorCode};
 use std::fs::File;
 use std::io::Write;
 
@@ -8,8 +7,7 @@ const LARGE_TEXT_THRESHOLD: usize = 200_000;
 
 /// Process tool response and handle large text content
 pub fn process_tool_response(
-    response: Result<Vec<Content>, ToolError>,
-) -> Result<Vec<Content>, ToolError> {
+    response: Result<Vec<Content>, ErrorData>) -> Result<Vec<Content>, ErrorData> {
     match response {
         Ok(contents) => {
             let mut processed_contents = Vec::new();
@@ -79,8 +77,7 @@ fn write_large_text_to_file(content: &str) -> Result<String, std::io::Error> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use mcp_core::ToolError;
-    use rmcp::model::Content;
+    use rmcp::model::{Content, ErrorData, ErrorCode};
     use std::fs;
     use std::path::Path;
 
@@ -213,8 +210,8 @@ mod tests {
     #[test]
     fn test_error_response_passes_through() {
         // Create an error response
-        let error = ToolError::ExecutionError("Test error".to_string());
-        let response: Result<Vec<Content>, ToolError> = Err(error);
+        let error = ErrorData::new(ErrorCode::INTERNAL_ERROR, "Test error".to_string(), None);
+        let response: Result<Vec<Content>, ErrorData> = Err(error);
 
         // Process the response
         let processed = process_tool_response(response);
@@ -222,10 +219,9 @@ mod tests {
         // Verify the error is passed through unchanged
         assert!(processed.is_err());
         match processed {
-            Err(ToolError::ExecutionError(msg)) => {
-                assert_eq!(msg, "Test error");
+            Err(err) => {
+                assert_eq!(err.message, "Test error");
             }
-            _ => panic!("Expected execution error"),
         }
     }
 }

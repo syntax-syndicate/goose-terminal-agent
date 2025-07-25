@@ -94,8 +94,7 @@ impl RetryManager {
     async fn reset_status_for_retry(
         messages: &mut Vec<Message>,
         initial_messages: &[Message],
-        final_output_tool: &Arc<Mutex<Option<crate::agents::final_output_tool::FinalOutputTool>>>,
-    ) {
+        final_output_tool: &Arc<Mutex<Option<crate::agents::final_output_tool::FinalOutputTool>>>) {
         messages.clear();
         messages.extend_from_slice(initial_messages);
         info!("Reset message history to initial state for retry");
@@ -112,8 +111,7 @@ impl RetryManager {
         messages: &mut Vec<Message>,
         session: &Option<SessionConfig>,
         initial_messages: &[Message],
-        final_output_tool: &Arc<Mutex<Option<crate::agents::final_output_tool::FinalOutputTool>>>,
-    ) -> Result<RetryResult> {
+        final_output_tool: &Arc<Mutex<Option<crate::agents::final_output_tool::FinalOutputTool>>>) -> Result<RetryResult> {
         let Some(session_config) = session else {
             return Ok(RetryResult::Skipped);
         };
@@ -190,8 +188,7 @@ fn get_on_failure_timeout(retry_config: &RetryConfig) -> Duration {
 /// Execute all success checks and return true if all pass
 pub async fn execute_success_checks(
     checks: &[SuccessCheck],
-    retry_config: &RetryConfig,
-) -> Result<bool> {
+    retry_config: &RetryConfig) -> Result<bool> {
     let timeout = get_retry_timeout(retry_config);
 
     for check in checks {
@@ -220,8 +217,7 @@ pub async fn execute_success_checks(
 /// Execute a shell command with cross-platform compatibility and mandatory timeout
 pub async fn execute_shell_command(
     command: &str,
-    timeout: std::time::Duration,
-) -> Result<std::process::Output> {
+    timeout: std::time::Duration) -> Result<std::process::Output> {
     debug!(
         "Executing shell command with timeout {:?}: {}",
         timeout, command

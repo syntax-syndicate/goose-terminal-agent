@@ -2,13 +2,13 @@ use async_trait::async_trait;
 use etcetera::{choose_app_strategy, AppStrategy};
 use indoc::formatdoc;
 use mcp_core::{
-    handler::{PromptError, ResourceError, ToolError},
+    handler::{PromptError, ResourceError},
     protocol::ServerCapabilities,
     tool::ToolCall,
 };
 use mcp_server::router::CapabilitiesBuilder;
 use mcp_server::Router;
-use rmcp::model::{Content, JsonRpcMessage, Prompt, Resource, Tool, ToolAnnotations};
+use rmcp::model::{Content, JsonRpcMessage, Prompt, Resource, Tool, ToolAnnotations, ErrorData, ErrorCode};
 use rmcp::object;
 use serde_json::Value;
 use std::{
@@ -50,8 +50,7 @@ impl MemoryRouter {
                     "is_global": {"type": "boolean"}
                 },
                 "required": ["category", "data", "is_global"]
-            }),
-        )
+            }))
         .annotate(ToolAnnotations {
             title: Some("Remember Memory".to_string()),
             read_only_hint: Some(false),
@@ -70,8 +69,7 @@ impl MemoryRouter {
                     "is_global": {"type": "boolean"}
                 },
                 "required": ["category", "is_global"]
-            }),
-        )
+            }))
         .annotate(ToolAnnotations {
             title: Some("Retrieve Memory".to_string()),
             read_only_hint: Some(true),
@@ -90,8 +88,7 @@ impl MemoryRouter {
                     "is_global": {"type": "boolean"}
                 },
                 "required": ["category", "is_global"]
-            }),
-        )
+            }))
         .annotate(ToolAnnotations {
             title: Some("Remove Memory Category".to_string()),
             read_only_hint: Some(false),
@@ -111,8 +108,7 @@ impl MemoryRouter {
                     "is_global": {"type": "boolean"}
                 },
                 "required": ["category", "memory_content", "is_global"]
-            }),
-        )
+            }))
         .annotate(ToolAnnotations {
             title: Some("Remove Specific Memory".to_string()),
             read_only_hint: Some(false),
@@ -330,8 +326,7 @@ impl MemoryRouter {
                     let category_memories = self.retrieve(&category, is_global)?;
                     memories.insert(
                         category,
-                        category_memories.into_iter().flat_map(|(_, v)| v).collect(),
-                    );
+                        category_memories.into_iter().flat_map(|(_, v)| v).collect());
                 }
             }
         }
@@ -344,8 +339,7 @@ impl MemoryRouter {
         category: &str,
         data: &str,
         tags: &[&str],
-        is_global: bool,
-    ) -> io::Result<()> {
+        is_global: bool) -> io::Result<()> {
         let memory_file_path = self.get_memory_file(category, is_global);
 
         if let Some(parent) = memory_file_path.parent() {
@@ -367,8 +361,7 @@ impl MemoryRouter {
     pub fn retrieve(
         &self,
         category: &str,
-        is_global: bool,
-    ) -> io::Result<HashMap<String, Vec<String>>> {
+        is_global: bool) -> io::Result<HashMap<String, Vec<String>>> {
         let memory_file_path = self.get_memory_file(category, is_global);
         if !memory_file_path.exists() {
             return Ok(HashMap::new());
@@ -407,8 +400,7 @@ impl MemoryRouter {
         &self,
         category: &str,
         memory_content: &str,
-        is_global: bool,
-    ) -> io::Result<()> {
+        is_global: bool) -> io::Result<()> {
         let memory_file_path = self.get_memory_file(category, is_global);
         if !memory_file_path.exists() {
             return Ok(());
@@ -458,8 +450,7 @@ impl MemoryRouter {
                 let data = args.data.filter(|d| !d.is_empty()).ok_or_else(|| {
                     io::Error::new(
                         io::ErrorKind::InvalidInput,
-                        "Data must exist when remembering a memory",
-                    )
+                        "Data must exist when remembering a memory")
                 })?;
                 self.remember("context", args.category, data, &args.tags, args.is_global)?;
                 Ok(format!("Stored memory in category: {}", args.category))
@@ -522,8 +513,7 @@ impl Router for MemoryRouter {
         &self,
         tool_name: &str,
         arguments: Value,
-        _notifier: mpsc::Sender<JsonRpcMessage>,
-    ) -> Pin<Box<dyn Future<Output = Result<Vec<Content>, ToolError>> + Send + 'static>> {
+        _notifier: mpsc::Sender<JsonRpcMessage>) -> Pin<Box<dyn Future<Output = Result<Vec<Content>, ErrorData>> + Send + 'static>> {
         let this = self.clone();
         let tool_name = tool_name.to_string();
 
@@ -534,7 +524,7 @@ impl Router for MemoryRouter {
             };
             match this.execute_tool_call(tool_call).await {
                 Ok(result) => Ok(vec![Content::text(result)]),
-                Err(err) => Err(ToolError::ExecutionError(err.to_string())),
+                Err(err) => Err(ErrorData::new(ErrorCode::INTERNAL_ERROR, err.to_string(, None))),
             }
         })
     }
@@ -545,8 +535,7 @@ impl Router for MemoryRouter {
 
     fn read_resource(
         &self,
-        _uri: &str,
-    ) -> Pin<Box<dyn Future<Output = Result<String, ResourceError>> + Send + 'static>> {
+        _uri: &str) -> Pin<Box<dyn Future<Output = Result<String, ResourceError>> + Send + 'static>> {
         Box::pin(async move { Ok("".to_string()) })
     }
     fn list_prompts(&self) -> Vec<Prompt> {
@@ -555,8 +544,7 @@ impl Router for MemoryRouter {
 
     fn get_prompt(
         &self,
-        prompt_name: &str,
-    ) -> Pin<Box<dyn Future<Output = Result<String, PromptError>> + Send + 'static>> {
+        prompt_name: &str) -> Pin<Box<dyn Future<Output = Result<String, PromptError>> + Send + 'static>> {
         let prompt_name = prompt_name.to_string();
         Box::pin(async move {
             Err(PromptError::NotFound(format!(
@@ -585,8 +573,7 @@ impl<'a> MemoryArgs<'a> {
         if category.is_empty() {
             return Err(io::Error::new(
                 io::ErrorKind::InvalidInput,
-                "Category must be a string",
-            ));
+                "Category must be a string"));
         }
 
         let data = args.get("data").and_then(|d| d.as_str());
@@ -605,8 +592,7 @@ impl<'a> MemoryArgs<'a> {
             _ => {
                 return Err(io::Error::new(
                     io::ErrorKind::InvalidInput,
-                    "is_global must be a boolean or string 'true'/'false'",
-                ))
+                    "is_global must be a boolean or string 'true'/'false'"))
             }
         };
 
@@ -645,8 +631,7 @@ mod tests {
                 "test_category",
                 "test_data",
                 &["tag1"],
-                false,
-            )
+                false)
             .unwrap();
 
         assert!(router.local_memory_dir.exists());
@@ -658,8 +643,7 @@ mod tests {
                 "global_category",
                 "global_data",
                 &["global_tag"],
-                true,
-            )
+                true)
             .unwrap();
 
         assert!(router.global_memory_dir.exists());
@@ -699,8 +683,7 @@ mod tests {
                 "test_category",
                 "test_data_content",
                 &["test_tag"],
-                false,
-            )
+                false)
             .unwrap();
 
         let memories = router.retrieve("test_category", false).unwrap();

@@ -36,8 +36,7 @@ impl CredentialsManager {
         credentials_path: String,
         fallback_to_disk: bool,
         keychain_service: String,
-        keychain_username: String,
-    ) -> Self {
+        keychain_username: String) -> Self {
         Self {
             credentials_path,
             fallback_to_disk,
@@ -269,8 +268,7 @@ mod tests {
             cred_path_str,
             true, // fallback to disk
             "test_service".to_string(),
-            "test_user".to_string(),
-        );
+            "test_user".to_string());
 
         // Test credentials to store
         let creds = TestCredentials::new();
@@ -303,8 +301,7 @@ mod tests {
             cred_path_str,
             false, // no fallback to disk
             "test_service_that_should_not_exist".to_string(),
-            "test_user_no_fallback".to_string(),
-        );
+            "test_user_no_fallback".to_string());
 
         // Read should fail with NotFound or KeyringError depending on the system
         let read_result = manager.read_credentials::<TestCredentials>();
@@ -331,8 +328,7 @@ mod tests {
             invalid_path,
             true,
             "test_service".to_string(),
-            "test_user".to_string(),
-        );
+            "test_user".to_string());
 
         // Create test credentials
         let creds = TestCredentials::new();

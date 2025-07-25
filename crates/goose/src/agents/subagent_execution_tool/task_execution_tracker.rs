@@ -64,8 +64,7 @@ impl TaskExecutionTracker {
         tasks: Vec<Task>,
         display_mode: DisplayMode,
         notifier: Sender<ServerNotification>,
-        cancellation_token: Option<CancellationToken>,
-    ) -> Self {
+        cancellation_token: Option<CancellationToken>) -> Self {
         let task_map = tasks
             .into_iter()
             .map(|task| {
@@ -79,8 +78,7 @@ impl TaskExecutionTracker {
                         end_time: None,
                         result: None,
                         current_output: String::new(),
-                    },
-                )
+                    })
             })
             .collect();
 
@@ -100,8 +98,7 @@ impl TaskExecutionTracker {
     fn log_notification_error(
         &self,
         error: &mpsc::error::TrySendError<ServerNotification>,
-        context: &str,
-    ) {
+        context: &str) {
         if !self.is_cancelled() {
             tracing::warn!("Failed to send {} notification: {}", context, error);
         }
@@ -119,8 +116,7 @@ impl TaskExecutionTracker {
                         logger: None,
                     },
                     extensions: Default::default(),
-                },
-            ))
+                }))
         {
             self.log_notification_error(&e, context);
         }
@@ -180,8 +176,7 @@ impl TaskExecutionTracker {
                 drop(tasks);
                 let event = TaskExecutionNotificationEvent::line_output(
                     task_id.to_string(),
-                    formatted_line,
-                );
+                    formatted_line);
 
                 self.try_send_notification(event, "live output");
             }

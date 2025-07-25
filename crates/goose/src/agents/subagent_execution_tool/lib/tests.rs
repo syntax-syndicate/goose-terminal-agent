@@ -18,8 +18,7 @@ fn create_test_task_result(task_id: &str, status: TaskStatus, error: Option<Stri
 
 fn create_test_execution_response(
     results: Vec<TaskResult>,
-    failed_count: usize,
-) -> ExecutionResponse {
+    failed_count: usize) -> ExecutionResponse {
     ExecutionResponse {
         status: "completed".to_string(),
         results: results.clone(),
@@ -39,14 +38,12 @@ fn test_extract_failed_tasks() {
         create_test_task_result(
             "task2",
             TaskStatus::Failed,
-            Some("Error message".to_string()),
-        ),
+            Some("Error message".to_string())),
         create_test_task_result("task3", TaskStatus::Completed, None),
         create_test_task_result(
             "task4",
             TaskStatus::Failed,
-            Some("Another error".to_string()),
-        ),
+            Some("Another error".to_string())),
     ];
 
     let failed_tasks = extract_failed_tasks(&results);
@@ -75,8 +72,7 @@ fn test_format_failed_task_error_with_error_message() {
     let result = create_test_task_result(
         "task1",
         TaskStatus::Failed,
-        Some("Test error message".to_string()),
-    );
+        Some("Test error message".to_string()));
 
     let formatted = format_failed_task_error(&result);
 

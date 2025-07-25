@@ -195,8 +195,7 @@ impl ConversationFixer {
 pub fn debug_conversation_fix(
     messages: &[Message],
     fixed: &[Message],
-    issues: &[String],
-) -> String {
+    issues: &[String]) -> String {
     let mut output = String::new();
 
     output.push_str("=== CONVERSATION FIX DEBUG ===\n\n");
@@ -258,9 +257,7 @@ mod tests {
                     "search_1",
                     Ok(ToolCall::new(
                         "web_search",
-                        json!({"query": "rust programming"}),
-                    )),
-                ),
+                        json!({"query": "rust programming"})))),
             Message::user().with_tool_response("search_1", Ok(vec![])),
             Message::assistant().with_text("Based on the search results, here's what I found..."),
         ];

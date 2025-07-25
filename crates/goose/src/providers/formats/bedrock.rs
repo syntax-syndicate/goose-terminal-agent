@@ -6,8 +6,8 @@ use aws_sdk_bedrockruntime::types as bedrock;
 use aws_smithy_types::{Document, Number};
 use base64::Engine;
 use chrono::Utc;
-use mcp_core::{ToolCall, ToolError, ToolResult};
-use rmcp::model::{Content, RawContent, ResourceContents, Role, Tool};
+use mcp_core::{ToolCallToolResult};
+use rmcp::model::{Content, RawContent, ResourceContents, Role, Tool, ErrorData, ErrorCode};
 use serde_json::Value;
 
 use super::super::base::Usage;
@@ -21,8 +21,7 @@ pub fn to_bedrock_message(message: &Message) -> Result<bedrock::Message> {
                 .content
                 .iter()
                 .map(to_bedrock_message_content)
-                .collect::<Result<_>>()?,
-        ))
+                .collect::<Result<_>>()?))
         .build()
         .map_err(|err| anyhow!("Failed to construct Bedrock message: {}", err))
 }
@@ -91,8 +90,7 @@ pub fn to_bedrock_message_content(content: &MessageContent) -> Result<bedrock::C
                                 .is_none_or(|audience| !audience.contains(&Role::User))
                         })
                         .map(|c| to_bedrock_tool_result_content_block(&tool_res.id, c.clone()))
-                        .collect::<Result<_>>()?,
-                ),
+                        .collect::<Result<_>>()?),
                 Err(_) => None,
             };
             bedrock::ContentBlock::ToolResult(
@@ -104,8 +102,7 @@ pub fn to_bedrock_message_content(content: &MessageContent) -> Result<bedrock::C
                         bedrock::ToolResultStatus::Error
                     })
                     .set_content(content)
-                    .build()?,
-            )
+                    .build()?)
         }
     })
 }
@@ -116,8 +113,7 @@ pub fn to_bedrock_message_content(content: &MessageContent) -> Result<bedrock::C
 /// by Bedrock for Anthropic Claude 3 models.
 pub fn to_bedrock_tool_result_content_block(
     tool_use_id: &str,
-    content: Content,
-) -> Result<bedrock::ToolResultContentBlock> {
+    content: Content) -> Result<bedrock::ToolResultContentBlock> {
     Ok(match content.raw {
         RawContent::Text(text) => bedrock::ToolResultContentBlock::Text(text.text),
         RawContent::Image(image) => {
@@ -162,8 +158,7 @@ pub fn to_bedrock_image(data: &String, mime_type: &String) -> Result<bedrock::Im
     let source = bedrock::ImageSource::Bytes(aws_smithy_types::Blob::new(
         base64::prelude::BASE64_STANDARD
             .decode(data)
-            .map_err(|e| anyhow!("Failed to decode base64 image data: {}", e))?,
-    ));
+            .map_err(|e| anyhow!("Failed to decode base64 image data: {}", e))?));
 
     // Build the image block
     Ok(bedrock::ImageBlock::builder()
@@ -175,8 +170,7 @@ pub fn to_bedrock_image(data: &String, mime_type: &String) -> Result<bedrock::Im
 pub fn to_bedrock_tool_config(tools: &[Tool]) -> Result<bedrock::ToolConfiguration> {
     Ok(bedrock::ToolConfiguration::builder()
         .set_tools(Some(
-            tools.iter().map(to_bedrock_tool).collect::<Result<_>>()?,
-        ))
+            tools.iter().map(to_bedrock_tool).collect::<Result<_>>()?))
         .build()?)
 }
 
@@ -188,13 +182,10 @@ pub fn to_bedrock_tool(tool: &Tool) -> Result<bedrock::Tool> {
                 tool.description
                     .as_ref()
                     .map(|d| d.to_string())
-                    .unwrap_or_default(),
-            )
+                    .unwrap_or_default())
             .input_schema(bedrock::ToolInputSchema::Json(to_bedrock_json(
-                &Value::Object(tool.input_schema.as_ref().clone()),
-            )))
-            .build()?,
-    ))
+                &Value::Object(tool.input_schema.as_ref().clone()))))
+            .build()?))
 }
 
 pub fn to_bedrock_json(value: &Value) -> Document {
@@ -216,15 +207,13 @@ pub fn to_bedrock_json(value: &Value) -> Document {
         Value::Array(arr) => Document::Array(arr.iter().map(to_bedrock_json).collect()),
         Value::Object(obj) => Document::Object(HashMap::from_iter(
             obj.into_iter()
-                .map(|(key, val)| (key.to_string(), to_bedrock_json(val))),
-        )),
+                .map(|(key, val)| (key.to_string(), to_bedrock_json(val))))),
     }
 }
 
 fn to_bedrock_document(
     tool_use_id: &str,
-    content: &ResourceContents,
-) -> Result<Option<bedrock::DocumentBlock>> {
+    content: &ResourceContents) -> Result<Option<bedrock::DocumentBlock>> {
     let (uri, text) = match content {
         ResourceContents::TextResourceContents { uri, text, .. } => (uri, text),
         ResourceContents::BlobResourceContents { .. } => {
@@ -257,8 +246,7 @@ fn to_bedrock_document(
             .name(name)
             .source(bedrock::DocumentSource::Bytes(text.as_bytes().into()))
             .build()
-            .map_err(|err| anyhow!("Failed to construct Bedrock document: {}", err))?,
-    ))
+            .map_err(|err| anyhow!("Failed to construct Bedrock document: {}", err))?))
 }
 
 pub fn from_bedrock_message(message: &bedrock::Message) -> Result<Message> {
@@ -280,36 +268,30 @@ pub fn from_bedrock_content_block(block: &bedrock::ContentBlock) -> Result<Messa
             tool_use.tool_use_id.to_string(),
             Ok(ToolCall::new(
                 tool_use.name.to_string(),
-                from_bedrock_json(&tool_use.input)?,
-            )),
-        ),
+                from_bedrock_json(&tool_use.input)?))),
         bedrock::ContentBlock::ToolResult(tool_res) => MessageContent::tool_response(
             tool_res.tool_use_id.to_string(),
             if tool_res.content.is_empty() {
-                Err(ToolError::ExecutionError(
-                    "Empty content for tool use from Bedrock".to_string(),
-                ))
+                Err(ErrorData::new(ErrorCode::INTERNAL_ERROR, 
+                    "Empty content for tool use from Bedrock".to_string()))
             } else {
                 tool_res
                     .content
                     .iter()
                     .map(from_bedrock_tool_result_content_block)
-                    .collect::<ToolResult<Vec<_>>>()
-            },
-        ),
+                    .collect::<Result<Vec<_, ErrorData>>>()
+            }),
         _ => bail!("Unsupported content block type from Bedrock"),
     })
 }
 
 pub fn from_bedrock_tool_result_content_block(
-    content: &bedrock::ToolResultContentBlock,
-) -> ToolResult<Content> {
+    content: &bedrock::ToolResultContentBlock) -> Result<Content, ErrorData> {
     Ok(match content {
         bedrock::ToolResultContentBlock::Text(text) => Content::text(text.to_string()),
         _ => {
-            return Err(ToolError::ExecutionError(
-                "Unsupported tool result from Bedrock".to_string(),
-            ))
+            return Err(ErrorData::new(ErrorCode::INTERNAL_ERROR, 
+                "Unsupported tool result from Bedrock".to_string()))
         }
     })
 }
@@ -338,8 +320,7 @@ pub fn from_bedrock_json(document: &Document) -> Result<Value> {
             Number::PosInt(i) => Value::Number((*i).into()),
             Number::NegInt(i) => Value::Number((*i).into()),
             Number::Float(f) => Value::Number(
-                serde_json::Number::from_f64(*f).ok_or(anyhow!("Expected a valid float"))?,
-            ),
+                serde_json::Number::from_f64(*f).ok_or(anyhow!("Expected a valid float"))?),
         },
         Document::String(str) => Value::String(str.clone()),
         Document::Array(arr) => {
@@ -348,8 +329,7 @@ pub fn from_bedrock_json(document: &Document) -> Result<Value> {
         Document::Object(obj) => Value::Object(
             obj.iter()
                 .map(|(key, val)| Ok((key.clone(), from_bedrock_json(val)?)))
-                .collect::<Result<_>>()?,
-        ),
+                .collect::<Result<_>>()?),
     })
 }
 

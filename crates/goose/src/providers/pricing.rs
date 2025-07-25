@@ -149,8 +149,7 @@ impl PricingCache {
             if let Some((provider, model_name)) = parse_model_id(&model_id) {
                 if let (Some(input_cost), Some(output_cost)) = (
                     convert_pricing(&model.pricing.prompt),
-                    convert_pricing(&model.pricing.completion),
-                ) {
+                    convert_pricing(&model.pricing.completion)) {
                     let provider_lower = provider.to_lowercase();
                     let provider_models = structured_pricing.entry(provider_lower).or_default();
 
@@ -160,8 +159,7 @@ impl PricingCache {
                             input_cost,
                             output_cost,
                             context_length: model.context_length,
-                        },
-                    );
+                        });
                 }
             }
         }

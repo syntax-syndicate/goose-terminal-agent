@@ -133,8 +133,7 @@ impl PermissionManager {
     pub fn update_smart_approve_permission(
         &mut self,
         principal_name: &str,
-        level: PermissionLevel,
-    ) {
+        level: PermissionLevel) {
         self.update_permission(SMART_APPROVE_PERMISSION, principal_name, level)
     }
 

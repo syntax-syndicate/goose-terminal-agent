@@ -193,8 +193,7 @@ impl AzureProvider {
                         e,
                         e.is_timeout(),
                         e.is_connect(),
-                        e.is_request(),
-                    );
+                        e.is_request());
 
                     // For timeout errors, we should retry
                     if e.is_timeout() {
@@ -230,8 +229,7 @@ impl Provider for AzureProvider {
                 ConfigKey::new("AZURE_OPENAI_DEPLOYMENT_NAME", true, false, None),
                 ConfigKey::new("AZURE_OPENAI_API_VERSION", true, false, Some("2024-10-21")),
                 ConfigKey::new("AZURE_OPENAI_API_KEY", true, true, Some("")),
-            ],
-        )
+            ])
     }
 
     fn get_model_config(&self) -> ModelConfig {
@@ -246,8 +244,7 @@ impl Provider for AzureProvider {
         &self,
         system: &str,
         messages: &[Message],
-        tools: &[Tool],
-    ) -> Result<(Message, ProviderUsage), ProviderError> {
+        tools: &[Tool]) -> Result<(Message, ProviderUsage), ProviderError> {
         let payload = create_request(&self.model, system, messages, tools, &ImageFormat::OpenAi)?;
         let response = self.post(&payload).await?;
 

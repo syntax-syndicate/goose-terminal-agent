@@ -4,7 +4,7 @@ use std::sync::Arc;
 use async_stream::try_stream;
 use futures::stream::{self, BoxStream};
 use futures::{Stream, StreamExt};
-use rmcp::model::ServerNotification;
+use rmcp::model::{ErrorData, ServerNotification};
 use tokio::sync::Mutex;
 use tokio_util::sync::CancellationToken;
 
@@ -12,18 +12,17 @@ use crate::config::permission::PermissionLevel;
 use crate::config::PermissionManager;
 use crate::message::{Message, ToolRequest};
 use crate::permission::Permission;
-use mcp_core::ToolResult;
 use rmcp::model::Content;
 
 // ToolCallResult combines the result of a tool call with an optional notification stream that
 // can be used to receive notifications from the tool.
 pub struct ToolCallResult {
-    pub result: Box<dyn Future<Output = ToolResult<Vec<Content>>> + Send + Unpin>,
+    pub result: Box<dyn Future<Output = Result<Vec<Content>, ErrorData>> + Send + Unpin>,
     pub notification_stream: Option<Box<dyn Stream<Item = ServerNotification> + Send + Unpin>>,
 }
 
-impl From<ToolResult<Vec<Content>>> for ToolCallResult {
-    fn from(result: ToolResult<Vec<Content>>) -> Self {
+impl From<Result<Vec<Content>, ErrorData>> for ToolCallResult {
+    fn from(result: Result<Vec<Content>, ErrorData>) -> Self {
         Self {
             result: Box::new(futures::future::ready(result)),
             notification_stream: None,
@@ -54,8 +53,7 @@ impl Agent {
         tool_futures: Arc<Mutex<Vec<(String, ToolStream)>>>,
         permission_manager: &'a mut PermissionManager,
         message_tool_response: Arc<Mutex<Message>>,
-        cancellation_token: Option<CancellationToken>,
-    ) -> BoxStream<'a, anyhow::Result<Message>> {
+        cancellation_token: Option<CancellationToken>) -> BoxStream<'a, anyhow::Result<Message>> {
         try_stream! {
             for request in tool_requests {
                 if let Ok(tool_call) = request.tool_call.clone() {
@@ -63,8 +61,7 @@ impl Agent {
                         request.id.clone(),
                         tool_call.name.clone(),
                         tool_call.arguments.clone(),
-                        Some("Goose would like to call the above tool. Allow? (y/n):".to_string()),
-                    );
+                        Some("Goose would like to call the above tool. Allow? (y/n):".to_string()));
                     yield confirmation;
 
                     let mut rx = self.confirmation_rx.lock().await;
@@ -77,12 +74,10 @@ impl Agent {
                                 futures.push((req_id, match tool_result {
                                     Ok(result) => tool_stream(
                                         result.notification_stream.unwrap_or_else(|| Box::new(stream::empty())),
-                                        result.result,
-                                    ),
+                                        result.result),
                                     Err(e) => tool_stream(
                                         Box::new(stream::empty()),
-                                        futures::future::ready(Err(e)),
-                                    ),
+                                        futures::future::ready(Err(e))),
                                 }));
 
                                 if confirmation.permission == Permission::AlwaysAllow {
@@ -93,8 +88,7 @@ impl Agent {
                                 let mut response = message_tool_response.lock().await;
                                 *response = response.clone().with_tool_response(
                                     request.id.clone(),
-                                    Ok(vec![Content::text(DECLINED_RESPONSE)]),
-                                );
+                                    Ok(vec![Content::text(DECLINED_RESPONSE)]));
                             }
                             break; // Exit the loop once the matching `req_id` is found
                         }
@@ -107,8 +101,7 @@ impl Agent {
     pub(crate) fn handle_frontend_tool_requests<'a>(
         &'a self,
         tool_requests: &'a [ToolRequest],
-        message_tool_response: Arc<Mutex<Message>>,
-    ) -> BoxStream<'a, anyhow::Result<Message>> {
+        message_tool_response: Arc<Mutex<Message>>) -> BoxStream<'a, anyhow::Result<Message>> {
         try_stream! {
             for request in tool_requests {
                 if let Ok(tool_call) = request.tool_call.clone() {

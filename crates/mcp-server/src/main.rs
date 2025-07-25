@@ -1,10 +1,10 @@
 use anyhow::Result;
 use mcp_core::handler::{PromptError, ResourceError};
-use mcp_core::{handler::ToolError, protocol::ServerCapabilities};
+use mcp_core::protocol::ServerCapabilities;
 use mcp_server::router::{CapabilitiesBuilder, RouterService};
 use mcp_server::{ByteTransport, Router, Server};
 use rmcp::model::{
-    Content, JsonRpcMessage, Prompt, PromptArgument, RawResource, Resource, Tool, ToolAnnotations,
+    Content, JsonRpcMessage, Prompt, PromptArgument, RawResource, Resource, Tool, ToolAnnotations, ErrorData, ErrorCode,
 };
 use rmcp::object;
 use serde_json::Value;
@@ -30,19 +30,19 @@ impl CounterRouter {
         }
     }
 
-    async fn increment(&self) -> Result<i32, ToolError> {
+    async fn increment(&self) -> Result<i32, ErrorData> {
         let mut counter = self.counter.lock().await;
         *counter += 1;
         Ok(*counter)
     }
 
-    async fn decrement(&self) -> Result<i32, ToolError> {
+    async fn decrement(&self) -> Result<i32, ErrorData> {
         let mut counter = self.counter.lock().await;
         *counter -= 1;
         Ok(*counter)
     }
 
-    async fn get_value(&self) -> Result<i32, ToolError> {
+    async fn get_value(&self) -> Result<i32, ErrorData> {
         let counter = self.counter.lock().await;
         Ok(*counter)
     }
@@ -78,8 +78,7 @@ impl Router for CounterRouter {
                     "type": "object",
                     "properties": {},
                     "required": []
-                }),
-            )
+                }))
             .annotate(ToolAnnotations {
                 title: Some("Increment Tool".to_string()),
                 read_only_hint: Some(false),
@@ -94,8 +93,7 @@ impl Router for CounterRouter {
                     "type": "object",
                     "properties": {},
                     "required": []
-                }),
-            )
+                }))
             .annotate(ToolAnnotations {
                 title: Some("Decrement Tool".to_string()),
                 read_only_hint: Some(false),
@@ -110,8 +108,7 @@ impl Router for CounterRouter {
                     "type": "object",
                     "properties": {},
                     "required": []
-                }),
-            )
+                }))
             .annotate(ToolAnnotations {
                 title: Some("Get Value Tool".to_string()),
                 read_only_hint: Some(true),
@@ -126,8 +123,7 @@ impl Router for CounterRouter {
         &self,
         tool_name: &str,
         _arguments: Value,
-        _notifier: mpsc::Sender<JsonRpcMessage>,
-    ) -> Pin<Box<dyn Future<Output = Result<Vec<Content>, ToolError>> + Send + 'static>> {
+        _notifier: mpsc::Sender<JsonRpcMessage>) -> Pin<Box<dyn Future<Output = Result<Vec<Content>, ErrorData>> + Send + 'static>> {
         let this = self.clone();
         let tool_name = tool_name.to_string();
 
@@ -145,7 +141,7 @@ impl Router for CounterRouter {
                     let value = this.get_value().await?;
                     Ok(vec![Content::text(value.to_string())])
                 }
-                _ => Err(ToolError::NotFound(format!("Tool {} not found", tool_name))),
+                _ => Err(ErrorData::new(ErrorCode::RESOURCE_NOT_FOUND, format!("Tool {} not found", tool_name), None)),
             }
         })
     }
@@ -159,8 +155,7 @@ impl Router for CounterRouter {
 
     fn read_resource(
         &self,
-        uri: &str,
-    ) -> Pin<Box<dyn Future<Output = Result<String, ResourceError>> + Send + 'static>> {
+        uri: &str) -> Pin<Box<dyn Future<Output = Result<String, ResourceError>> + Send + 'static>> {
         let uri = uri.to_string();
         Box::pin(async move {
             match uri.as_str() {
@@ -189,14 +184,12 @@ impl Router for CounterRouter {
                 name: "message".to_string(),
                 description: Some("A message to put in the prompt".to_string()),
                 required: Some(true),
-            }]),
-        )]
+            }]))]
     }
 
     fn get_prompt(
         &self,
-        prompt_name: &str,
-    ) -> Pin<Box<dyn Future<Output = Result<String, PromptError>> + Send + 'static>> {
+        prompt_name: &str) -> Pin<Box<dyn Future<Output = Result<String, PromptError>> + Send + 'static>> {
         let prompt_name = prompt_name.to_string();
         Box::pin(async move {
             match prompt_name.as_str() {

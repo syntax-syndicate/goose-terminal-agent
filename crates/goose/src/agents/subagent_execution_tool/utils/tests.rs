@@ -109,12 +109,10 @@ mod count_by_status {
         let mut tasks = HashMap::new();
         tasks.insert(
             "task1".to_string(),
-            create_test_task("task1", TaskStatus::Pending),
-        );
+            create_test_task("task1", TaskStatus::Pending));
         tasks.insert(
             "task2".to_string(),
-            create_test_task("task2", TaskStatus::Pending),
-        );
+            create_test_task("task2", TaskStatus::Pending));
 
         let (total, pending, running, completed, failed) = count_by_status(&tasks);
         assert_eq!(
@@ -128,24 +126,19 @@ mod count_by_status {
         let mut tasks = HashMap::new();
         tasks.insert(
             "task1".to_string(),
-            create_test_task("task1", TaskStatus::Pending),
-        );
+            create_test_task("task1", TaskStatus::Pending));
         tasks.insert(
             "task2".to_string(),
-            create_test_task("task2", TaskStatus::Running),
-        );
+            create_test_task("task2", TaskStatus::Running));
         tasks.insert(
             "task3".to_string(),
-            create_test_task("task3", TaskStatus::Completed),
-        );
+            create_test_task("task3", TaskStatus::Completed));
         tasks.insert(
             "task4".to_string(),
-            create_test_task("task4", TaskStatus::Failed),
-        );
+            create_test_task("task4", TaskStatus::Failed));
         tasks.insert(
             "task5".to_string(),
-            create_test_task("task5", TaskStatus::Completed),
-        );
+            create_test_task("task5", TaskStatus::Completed));
 
         let (total, pending, running, completed, failed) = count_by_status(&tasks);
         assert_eq!(

@@ -171,8 +171,7 @@ impl TemporalScheduler {
         }
 
         Err(SchedulerError::SchedulerInternalError(
-            "Could not find any free port for Temporal service".to_string(),
-        ))
+            "Could not find any free port for Temporal service".to_string()))
     }
 
     /// Check if a Temporal service is running and responding on the given port
@@ -296,8 +295,7 @@ impl TemporalScheduler {
         let binary_path = Self::find_go_service_binary()?;
         let working_dir = std::path::Path::new(&binary_path).parent().ok_or_else(|| {
             SchedulerError::SchedulerInternalError(
-                "Could not determine working directory for Go service".to_string(),
-            )
+                "Could not determine working directory for Go service".to_string())
         })?;
 
         info!("Found Go service binary at: {}", binary_path);
@@ -686,13 +684,11 @@ impl TemporalScheduler {
                     Ok(run_response.session_id)
                 } else {
                     Err(SchedulerError::SchedulerInternalError(
-                        "Invalid response format for run_now".to_string(),
-                    ))
+                        "Invalid response format for run_now".to_string()))
                 }
             } else {
                 Err(SchedulerError::SchedulerInternalError(
-                    "No session ID returned from run_now".to_string(),
-                ))
+                    "No session ID returned from run_now".to_string()))
             }
         } else {
             Err(SchedulerError::SchedulerInternalError(response.message))
@@ -704,8 +700,7 @@ impl TemporalScheduler {
     pub async fn sessions(
         &self,
         sched_id: &str,
-        limit: usize,
-    ) -> Result<Vec<(String, SessionMetadata)>, SchedulerError> {
+        limit: usize) -> Result<Vec<(String, SessionMetadata)>, SchedulerError> {
         use crate::session::storage;
 
         // Get all session files
@@ -751,8 +746,7 @@ impl TemporalScheduler {
     pub async fn update_schedule(
         &self,
         sched_id: &str,
-        new_cron: String,
-    ) -> Result<(), SchedulerError> {
+        new_cron: String) -> Result<(), SchedulerError> {
         tracing::info!(
             "TemporalScheduler: update_schedule() called for job '{}' with cron '{}'",
             sched_id,
@@ -860,8 +854,7 @@ impl TemporalScheduler {
 
                 for (session_name, _) in recent_sessions {
                     let session_path = match crate::session::storage::get_path(
-                        crate::session::storage::Identifier::Name(session_name.clone()),
-                    ) {
+                        crate::session::storage::Identifier::Name(session_name.clone())) {
                         Ok(path) => path,
                         Err(e) => {
                             tracing::warn!(
@@ -940,8 +933,7 @@ impl TemporalScheduler {
 
     pub async fn get_running_job_info(
         &self,
-        sched_id: &str,
-    ) -> Result<Option<(String, DateTime<Utc>)>, SchedulerError> {
+        sched_id: &str) -> Result<Option<(String, DateTime<Utc>)>, SchedulerError> {
         tracing::info!(
             "TemporalScheduler: get_running_job_info() called for job '{}'",
             sched_id
@@ -968,8 +960,7 @@ impl TemporalScheduler {
                         if let Some((session_name, _session_metadata)) = recent_sessions.first() {
                             // Check if this session is still active by looking at the session file
                             let session_path = match crate::session::storage::get_path(
-                                crate::session::storage::Identifier::Name(session_name.clone()),
-                            ) {
+                                crate::session::storage::Identifier::Name(session_name.clone())) {
                                 Ok(path) => path,
                                 Err(e) => {
                                     tracing::warn!(
@@ -1160,8 +1151,7 @@ impl TemporalScheduler {
 
                     if final_check {
                         return Err(SchedulerError::SchedulerInternalError(
-                            "Failed to stop services even with KILL signal".to_string(),
-                        ));
+                            "Failed to stop services even with KILL signal".to_string()));
                     }
                 }
 
@@ -1211,16 +1201,14 @@ impl SchedulerTrait for TemporalScheduler {
     async fn sessions(
         &self,
         sched_id: &str,
-        limit: usize,
-    ) -> Result<Vec<(String, SessionMetadata)>, SchedulerError> {
+        limit: usize) -> Result<Vec<(String, SessionMetadata)>, SchedulerError> {
         self.sessions(sched_id, limit).await
     }
 
     async fn update_schedule(
         &self,
         sched_id: &str,
-        new_cron: String,
-    ) -> Result<(), SchedulerError> {
+        new_cron: String) -> Result<(), SchedulerError> {
         self.update_schedule(sched_id, new_cron).await
     }
 
@@ -1230,8 +1218,7 @@ impl SchedulerTrait for TemporalScheduler {
 
     async fn get_running_job_info(
         &self,
-        sched_id: &str,
-    ) -> Result<Option<(String, DateTime<Utc>)>, SchedulerError> {
+        sched_id: &str) -> Result<Option<(String, DateTime<Utc>)>, SchedulerError> {
         self.get_running_job_info(sched_id).await
     }
 }

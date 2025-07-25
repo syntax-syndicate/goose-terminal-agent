@@ -63,8 +63,7 @@ pub struct PkceOAuth2Client {
 impl PkceOAuth2Client {
     pub fn new(
         config_path: impl AsRef<Path>,
-        credentials_manager: Arc<CredentialsManager>,
-    ) -> Result<Self, Box<dyn Error + Send + Sync>> {
+        credentials_manager: Arc<CredentialsManager>) -> Result<Self, Box<dyn Error + Send + Sync>> {
         // Load and parse the config file
         let config_content = fs::read_to_string(config_path)?;
         let config: OAuth2Config = serde_json::from_str(&config_content)?;
@@ -86,8 +85,7 @@ impl PkceOAuth2Client {
             .set_token_uri(token_url)
             .set_redirect_uri(
                 RedirectUrl::new("http://localhost:18080".to_string())
-                    .expect("Invalid redirect URL"),
-            );
+                    .expect("Invalid redirect URL"));
 
         let http_client = reqwest::ClientBuilder::new()
             // Following redirects opens the client up to SSRF vulnerabilities.
@@ -120,8 +118,7 @@ impl PkceOAuth2Client {
 
     async fn perform_oauth_flow(
         &self,
-        scopes: &[&str],
-    ) -> Result<String, Box<dyn Error + Send + Sync>> {
+        scopes: &[&str]) -> Result<String, Box<dyn Error + Send + Sync>> {
         // Create a PKCE code verifier and challenge
         let (pkce_challenge, pkce_verifier) = PkceCodeChallenge::new_random_sha256();
 
@@ -206,8 +203,7 @@ impl PkceOAuth2Client {
 
     async fn refresh_token(
         &self,
-        refresh_token: &str,
-    ) -> Result<String, Box<dyn Error + Send + Sync>> {
+        refresh_token: &str) -> Result<String, Box<dyn Error + Send + Sync>> {
         debug!("Attempting to refresh access token");
 
         // Create a RefreshToken from the string
@@ -312,8 +308,7 @@ impl PkceOAuth2Client {
 impl GetToken for PkceOAuth2Client {
     fn get_token<'a>(
         &'a self,
-        scopes: &'a [&str],
-    ) -> Pin<
+        scopes: &'a [&str]) -> Pin<
         Box<dyn Future<Output = Result<Option<String>, Box<dyn Error + Send + Sync>>> + Send + 'a>,
     > {
         Box::pin(async move {

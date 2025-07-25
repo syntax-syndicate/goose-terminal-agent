@@ -22,8 +22,7 @@ impl EditorModel {
         &self,
         original_code: &str,
         old_str: &str,
-        update_snippet: &str,
-    ) -> Result<String, String> {
+        update_snippet: &str) -> Result<String, String> {
         match self {
             EditorModel::MorphLLM(editor) => {
                 editor
@@ -60,8 +59,7 @@ pub trait EditorModelImpl {
         &self,
         original_code: &str,
         old_str: &str,
-        update_snippet: &str,
-    ) -> Result<String, String>;
+        update_snippet: &str) -> Result<String, String>;
 
     /// Get the description for the str_replace command when this editor is active
     fn get_str_replace_description(&self) -> &'static str;
@@ -88,11 +86,9 @@ pub fn create_editor_model() -> Option<EditorModel> {
         Some(EditorModel::Relace(RelaceEditor::new(api_key, host, model)))
     } else if host.contains("api.morphllm") {
         Some(EditorModel::MorphLLM(MorphLLMEditor::new(
-            api_key, host, model,
-        )))
+            api_key, host, model)))
     } else {
         Some(EditorModel::OpenAICompatible(OpenAICompatibleEditor::new(
-            api_key, host, model,
-        )))
+            api_key, host, model)))
     }
 }

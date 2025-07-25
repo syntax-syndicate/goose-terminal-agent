@@ -131,8 +131,7 @@ impl AsyncTokenCounter {
         &self,
         system_prompt: &str,
         messages: &[Message],
-        tools: &[Tool],
-    ) -> usize {
+        tools: &[Tool]) -> usize {
         let tokens_per_message = 4;
         let mut num_tokens = 0;
 
@@ -174,8 +173,7 @@ impl AsyncTokenCounter {
         system_prompt: &str,
         messages: &[Message],
         tools: &[Tool],
-        resources: &[String],
-    ) -> usize {
+        resources: &[String]) -> usize {
         let mut num_tokens = self.count_chat_tokens(system_prompt, messages, tools);
 
         if !resources.is_empty() {
@@ -276,8 +274,7 @@ impl TokenCounter {
         &self,
         system_prompt: &str,
         messages: &[Message],
-        tools: &[Tool],
-    ) -> usize {
+        tools: &[Tool]) -> usize {
         // <|im_start|>ROLE<|im_sep|>MESSAGE<|im_end|>
         let tokens_per_message = 4;
 
@@ -326,8 +323,7 @@ impl TokenCounter {
         system_prompt: &str,
         messages: &[Message],
         tools: &[Tool],
-        resources: &[String],
-    ) -> usize {
+        resources: &[String]) -> usize {
         let mut num_tokens = self.count_chat_tokens(system_prompt, messages, tools);
 
         if !resources.is_empty() {
@@ -420,21 +416,16 @@ mod tests {
                 Role::User,
                 0,
                 vec![MessageContent::text(
-                    "What's the weather like in San Francisco?",
-                )],
-            ),
+                    "What's the weather like in San Francisco?")]),
             Message::new(
                 Role::Assistant,
                 1,
                 vec![MessageContent::text(
-                    "Looks like it's 60 degrees Fahrenheit in San Francisco.",
-                )],
-            ),
+                    "Looks like it's 60 degrees Fahrenheit in San Francisco.")]),
             Message::new(
                 Role::User,
                 2,
-                vec![MessageContent::text("How about New York?")],
-            ),
+                vec![MessageContent::text("How about New York?")]),
         ];
 
         let tools = vec![Tool::new(
@@ -453,8 +444,7 @@ mod tests {
                     }
                 },
                 "required": ["location"]
-            }),
-        )];
+            }))];
 
         let token_count_without_tools = counter.count_chat_tokens(system_prompt, &messages, &[]);
         println!("Total tokens without tools: {}", token_count_without_tools);
@@ -517,21 +507,16 @@ mod tests {
                 Role::User,
                 0,
                 vec![MessageContent::text(
-                    "What's the weather like in San Francisco?",
-                )],
-            ),
+                    "What's the weather like in San Francisco?")]),
             Message::new(
                 Role::Assistant,
                 1,
                 vec![MessageContent::text(
-                    "Looks like it's 60 degrees Fahrenheit in San Francisco.",
-                )],
-            ),
+                    "Looks like it's 60 degrees Fahrenheit in San Francisco.")]),
             Message::new(
                 Role::User,
                 2,
-                vec![MessageContent::text("How about New York?")],
-            ),
+                vec![MessageContent::text("How about New York?")]),
         ];
 
         let tools = vec![Tool::new(
@@ -550,8 +535,7 @@ mod tests {
                     }
                 },
                 "required": ["location"]
-            }),
-        )];
+            }))];
 
         let token_count_without_tools = counter.count_chat_tokens(system_prompt, &messages, &[]);
         println!(

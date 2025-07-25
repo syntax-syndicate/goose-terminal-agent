@@ -4,7 +4,7 @@ use crate::providers::base::Usage;
 use crate::providers::errors::ProviderError;
 use anyhow::{anyhow, Result};
 use mcp_core::tool::ToolCall;
-use rmcp::model::{Role, Tool};
+use rmcp::model::{Role, Tool, ErrorData, ErrorCode};
 use serde_json::{json, Value};
 use std::collections::HashSet;
 
@@ -155,8 +155,7 @@ pub fn format_messages(messages: &[Message]) -> Vec<Value> {
                     if let Some(last_content) = content_array.last_mut() {
                         last_content.as_object_mut().unwrap().insert(
                             CACHE_CONTROL_FIELD.to_string(),
-                            json!({ TYPE_FIELD: "ephemeral" }),
-                        );
+                            json!({ TYPE_FIELD: "ephemeral" }));
                     }
                 }
             }
@@ -190,8 +189,7 @@ pub fn format_tools(tools: &[Tool]) -> Vec<Value> {
     if let Some(last_tool) = tool_specs.last_mut() {
         last_tool.as_object_mut().unwrap().insert(
             CACHE_CONTROL_FIELD.to_string(),
-            json!({ TYPE_FIELD: "ephemeral" }),
-        );
+            json!({ TYPE_FIELD: "ephemeral" }));
     }
 
     tool_specs
@@ -301,8 +299,7 @@ pub fn get_usage(data: &Value) -> Result<Usage> {
         Ok(Usage::new(
             Some(total_input_i32),
             Some(output_tokens_i32),
-            Some(total_tokens_i32),
-        ))
+            Some(total_tokens_i32)))
     } else if data.as_object().is_some() {
         // Check if the data itself is the usage object (for message_delta events that might have usage at top level)
         let input_tokens = data
@@ -344,8 +341,7 @@ pub fn get_usage(data: &Value) -> Result<Usage> {
             Ok(Usage::new(
                 Some(total_input_i32),
                 Some(output_tokens_i32),
-                Some(total_tokens_i32),
-            ))
+                Some(total_tokens_i32)))
         } else {
             tracing::debug!("🔍 Anthropic no token data found in object");
             Ok(Usage::new(None, None, None))
@@ -365,8 +361,7 @@ pub fn create_request(
     model_config: &ModelConfig,
     system: &str,
     messages: &[Message],
-    tools: &[Tool],
-) -> Result<Value> {
+    tools: &[Tool]) -> Result<Value> {
     let anthropic_messages = format_messages(messages);
     let tool_specs = format_tools(tools);
     let system_spec = format_system(system);
@@ -431,8 +426,7 @@ pub fn create_request(
             json!({
                 "type": "enabled",
                 "budget_tokens": budget_tokens
-            }),
-        );
+            }));
     }
 
     Ok(payload)
@@ -440,12 +434,10 @@ pub fn create_request(
 
 /// Process streaming response from Anthropic's API
 pub fn response_to_streaming_message<S>(
-    mut stream: S,
-) -> impl futures::Stream<
+    mut stream: S) -> impl futures::Stream<
     Item = anyhow::Result<(
         Option<Message>,
-        Option<crate::providers::base::ProviderUsage>,
-    )>,
+        Option<crate::providers::base::ProviderUsage>)>,
 > + 'static
 where
     S: futures::Stream<Item = anyhow::Result<String>> + Unpin + Send + 'static,
@@ -542,8 +534,7 @@ where
                                 let mut message = Message::new(
                                     Role::Assistant,
                                     chrono::Utc::now().timestamp(),
-                                    vec![MessageContent::text(text)],
-                                );
+                                    vec![MessageContent::text(text)]);
                                 message.id = message_id.clone();
                                 yield (Some(message), None);
                             }
@@ -572,14 +563,12 @@ where
                                     Ok(parsed) => parsed,
                                     Err(_) => {
                                         // If parsing fails, create an error tool request
-                                        let error = mcp_core::handler::ToolError::InvalidParameters(
-                                            format!("Could not parse tool arguments: {}", args)
+                                        let error = mcp_core::handler::ErrorData::new(ErrorCode::INVALID_PARAMS, format!("Could not parse tool arguments: {}", args, None)
                                         );
                                         let mut message = Message::new(
                                             Role::Assistant,
                                             chrono::Utc::now().timestamp(),
-                                            vec![MessageContent::tool_request(tool_id, Err(error))],
-                                        );
+                                            vec![MessageContent::tool_request(tool_id, Err(error))]);
                                         message.id = message_id.clone();
                                         yield (Some(message), None);
                                         continue;
@@ -591,8 +580,7 @@ where
                             let mut message = Message::new(
                                 rmcp::model::Role::Assistant,
                                 chrono::Utc::now().timestamp(),
-                                vec![MessageContent::tool_request(tool_id, Ok(tool_call))],
-                            );
+                                vec![MessageContent::tool_request(tool_id, Ok(tool_call))]);
                             message.id = message_id.clone();
                             yield (Some(message), None);
                         }
@@ -867,8 +855,7 @@ mod tests {
                             "description": "The mathematical expression to evaluate"
                         }
                     }
-                }),
-            ),
+                })),
             Tool::new(
                 "weather",
                 "Get weather information",
@@ -880,8 +867,7 @@ mod tests {
                             "description": "The location to get weather for"
                         }
                     }
-                }),
-            ),
+                })),
         ];
 
         let spec = format_tools(&tools);
@@ -987,17 +973,13 @@ mod tests {
 
     #[test]
     fn test_tool_error_handling_maintains_pairing() {
-        use mcp_core::handler::ToolError;
-
-        let messages = vec![
+                let messages = vec![
             Message::assistant().with_tool_request(
                 "tool_1",
-                Ok(ToolCall::new("calculator", json!({"expression": "2 + 2"}))),
-            ),
+                Ok(ToolCall::new("calculator", json!({"expression": "2 + 2"})))),
             Message::user().with_tool_response(
                 "tool_1",
-                Err(ToolError::ExecutionError("Tool failed".to_string())),
-            ),
+                Err(ErrorData::new(ErrorCode::INTERNAL_ERROR, "Tool failed".to_string(, None)))),
         ];
 
         let spec = format_messages(&messages);

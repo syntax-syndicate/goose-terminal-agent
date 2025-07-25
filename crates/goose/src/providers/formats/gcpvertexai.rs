@@ -254,8 +254,7 @@ fn create_anthropic_request(
     model_config: &ModelConfig,
     system: &str,
     messages: &[Message],
-    tools: &[Tool],
-) -> Result<Value> {
+    tools: &[Tool]) -> Result<Value> {
     let mut request = anthropic::create_request(model_config, system, messages, tools)?;
 
     let obj = request
@@ -267,8 +266,7 @@ fn create_anthropic_request(
     obj.remove("model");
     obj.insert(
         "anthropic_version".to_string(),
-        Value::String("vertex-2023-10-16".to_string()),
-    );
+        Value::String("vertex-2023-10-16".to_string()));
 
     Ok(request)
 }
@@ -287,8 +285,7 @@ fn create_google_request(
     model_config: &ModelConfig,
     system: &str,
     messages: &[Message],
-    tools: &[Tool],
-) -> Result<Value> {
+    tools: &[Tool]) -> Result<Value> {
     google::create_request(model_config, system, messages, tools)
 }
 
@@ -306,8 +303,7 @@ pub fn create_request(
     model_config: &ModelConfig,
     system: &str,
     messages: &[Message],
-    tools: &[Tool],
-) -> Result<(Value, RequestContext)> {
+    tools: &[Tool]) -> Result<(Value, RequestContext)> {
     let context = RequestContext::new(&model_config.model_name)?;
 
     let request = match &context.model {
@@ -403,15 +399,13 @@ mod tests {
             assert_eq!(
                 model.known_location(),
                 expected_location,
-                "Model {model_id} should have default location {expected_location:?}",
-            );
+                "Model {model_id} should have default location {expected_location:?}");
 
             let context = RequestContext::new(model_id)?;
             assert_eq!(
                 context.model.known_location(),
                 expected_location,
-                "RequestContext for {model_id} should have default location {expected_location:?}",
-            );
+                "RequestContext for {model_id} should have default location {expected_location:?}");
         }
 
         Ok(())

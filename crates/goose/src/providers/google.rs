@@ -119,8 +119,7 @@ impl GoogleProvider {
                             retries += 1;
                             if retries > max_retries {
                                 return Err(ProviderError::RateLimitExceeded(
-                                    "Max retries exceeded for rate limit error".to_string(),
-                                ));
+                                    "Max retries exceeded for rate limit error".to_string()));
                             }
 
                             let delay = 2u64.pow(retries);
@@ -157,8 +156,7 @@ impl Provider for GoogleProvider {
             vec![
                 ConfigKey::new("GOOGLE_API_KEY", true, true, None),
                 ConfigKey::new("GOOGLE_HOST", false, false, Some(GOOGLE_API_HOST)),
-            ],
-        )
+            ])
     }
 
     fn get_model_config(&self) -> ModelConfig {
@@ -173,8 +171,7 @@ impl Provider for GoogleProvider {
         &self,
         system: &str,
         messages: &[Message],
-        tools: &[Tool],
-    ) -> Result<(Message, ProviderUsage), ProviderError> {
+        tools: &[Tool]) -> Result<(Message, ProviderUsage), ProviderError> {
         let payload = create_request(&self.model, system, messages, tools)?;
 
         // Make request

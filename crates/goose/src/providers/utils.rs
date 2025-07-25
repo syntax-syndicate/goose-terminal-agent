@@ -263,8 +263,7 @@ pub fn load_image_file(path: &str) -> Result<ImageContent, ProviderError> {
     // Verify it's an image before proceeding
     if !is_image_file(path) {
         return Err(ProviderError::RequestFailed(
-            "File is not a valid image".to_string(),
-        ));
+            "File is not a valid image".to_string()));
     }
 
     // Read the file
@@ -278,14 +277,12 @@ pub fn load_image_file(path: &str) -> Result<ImageContent, ProviderError> {
             "jpg" | "jpeg" => "image/jpeg",
             _ => {
                 return Err(ProviderError::RequestFailed(
-                    "Unsupported image format".to_string(),
-                ))
+                    "Unsupported image format".to_string()))
             }
         },
         None => {
             return Err(ProviderError::RequestFailed(
-                "Unknown image format".to_string(),
-            ))
+                "Unknown image format".to_string()))
         }
     };
 
@@ -332,8 +329,7 @@ pub fn emit_debug_trace<T1, T2>(
     model_config: &ModelConfig,
     payload: &T1,
     response: &T2,
-    usage: &Usage,
-) where
+    usage: &Usage) where
     T1: ?Sized + Serialize,
     T2: ?Sized + Serialize,
 {
@@ -343,8 +339,7 @@ pub fn emit_debug_trace<T1, T2>(
         output = %serde_json::to_string_pretty(response).unwrap_or_default(),
         input_tokens = ?usage.input_tokens.unwrap_or_default(),
         output_tokens = ?usage.output_tokens.unwrap_or_default(),
-        total_tokens = ?usage.total_tokens.unwrap_or_default(),
-    );
+        total_tokens = ?usage.total_tokens.unwrap_or_default());
 }
 
 /// Safely parse a JSON string that may contain doubly-encoded or malformed JSON.
@@ -618,8 +613,7 @@ mod tests {
             (
                 404,
                 Some(StatusCode::INTERNAL_SERVER_ERROR),
-                StatusCode::INTERNAL_SERVER_ERROR,
-            ),
+                StatusCode::INTERNAL_SERVER_ERROR),
         ];
 
         for (error_code, status, expected_status) in test_cases {

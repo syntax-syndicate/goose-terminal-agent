@@ -76,8 +76,7 @@ pub fn expand_path(path_str: &str) -> String {
         // Expand Windows environment variables (%VAR%)
         let with_userprofile = path_str.replace(
             "%USERPROFILE%",
-            &env::var("USERPROFILE").unwrap_or_default(),
-        );
+            &env::var("USERPROFILE").unwrap_or_default());
         // Add more Windows environment variables as needed
         with_userprofile.replace("%APPDATA%", &env::var("APPDATA").unwrap_or_default())
     } else {

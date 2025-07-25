@@ -43,8 +43,7 @@ static GLOBAL_ENV: Lazy<Arc<RwLock<Environment<'static>>>> = Lazy::new(|| {
 /// * `context_data`  - Data to be inserted into the template (must be `Serialize`).
 pub fn render_global_template<T: Serialize>(
     template_name: &str,
-    context_data: &T,
-) -> Result<String, MiniJinjaError> {
+    context_data: &T) -> Result<String, MiniJinjaError> {
     let env = GLOBAL_ENV.read().expect("GLOBAL_ENV lock poisoned");
     let tmpl = env.get_template(template_name)?;
     let ctx = MJValue::from_serialize(context_data);
@@ -62,8 +61,7 @@ pub fn render_global_template<T: Serialize>(
 /// added to the global environment at startup (due to parse errors, etc.), this will error out.
 pub fn render_global_file<T: Serialize>(
     template_file: impl Into<PathBuf>,
-    context_data: &T,
-) -> Result<String, MiniJinjaError> {
+    context_data: &T) -> Result<String, MiniJinjaError> {
     let file_path = template_file.into();
     let template_name = file_path.to_string_lossy().to_string();
 
@@ -73,8 +71,7 @@ pub fn render_global_file<T: Serialize>(
 /// Alias for render_global_file for backward compatibility
 pub fn render_global_from_file<T: Serialize>(
     template_file: impl Into<PathBuf>,
-    context_data: &T,
-) -> Result<String, MiniJinjaError> {
+    context_data: &T) -> Result<String, MiniJinjaError> {
     render_global_file(template_file, context_data)
 }
 
@@ -88,8 +85,7 @@ pub fn render_global_from_file<T: Serialize>(
 /// * `context_data`  - Data to be inserted into the template (must be `Serialize`).
 pub fn render_inline_once<T: Serialize>(
     template_str: &str,
-    context_data: &T,
-) -> Result<String, MiniJinjaError> {
+    context_data: &T) -> Result<String, MiniJinjaError> {
     let mut env = Environment::new();
     env.add_template("inline_ephemeral", template_str)?;
     let tmpl = env.get_template("inline_ephemeral")?;

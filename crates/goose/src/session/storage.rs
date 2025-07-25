@@ -357,8 +357,7 @@ pub fn get_most_recent_session() -> Result<PathBuf> {
             .cmp(
                 &a.metadata()
                     .and_then(|m| m.modified())
-                    .unwrap_or(std::time::SystemTime::UNIX_EPOCH),
-            )
+                    .unwrap_or(std::time::SystemTime::UNIX_EPOCH))
     });
 
     Ok(entries[0].path())
@@ -427,8 +426,7 @@ pub fn read_messages(session_file: &Path) -> Result<Vec<Message>> {
 /// - Line length restrictions to prevent memory issues
 pub fn read_messages_with_truncation(
     session_file: &Path,
-    max_content_size: Option<usize>,
-) -> Result<Vec<Message>> {
+    max_content_size: Option<usize>) -> Result<Vec<Message>> {
     // Security check: file size limit
     if session_file.exists() {
         let metadata = fs::metadata(session_file)?;
@@ -544,8 +542,7 @@ pub fn read_messages_with_truncation(
                     tracing::warn!("Line {} exceeds length limit", line_number);
                     corrupted_lines.push((
                         line_number,
-                        "[Line too long - truncated for security]".to_string(),
-                    ));
+                        "[Line too long - truncated for security]".to_string()));
                     line_number += 1;
                     continue;
                 }
@@ -632,8 +629,7 @@ pub fn read_messages_with_truncation(
 /// Parse a message from JSON string with optional content truncation
 fn parse_message_with_truncation(
     json_str: &str,
-    max_content_size: Option<usize>,
-) -> Result<Message> {
+    max_content_size: Option<usize>) -> Result<Message> {
     // First try to parse normally
     match serde_json::from_str::<Message>(json_str) {
         Ok(mut message) => {
@@ -1053,8 +1049,7 @@ pub async fn persist_messages(
     session_file: &Path,
     messages: &[Message],
     provider: Option<Arc<dyn Provider>>,
-    working_dir: Option<PathBuf>,
-) -> Result<()> {
+    working_dir: Option<PathBuf>) -> Result<()> {
     persist_messages_with_schedule_id(session_file, messages, provider, None, working_dir).await
 }
 
@@ -1072,8 +1067,7 @@ pub async fn persist_messages_with_schedule_id(
     messages: &[Message],
     provider: Option<Arc<dyn Provider>>,
     schedule_id: Option<String>,
-    working_dir: Option<PathBuf>,
-) -> Result<()> {
+    working_dir: Option<PathBuf>) -> Result<()> {
     // Validate the session file path for security
     let secure_path = get_path(Identifier::Path(session_file.to_path_buf()))?;
 
@@ -1098,8 +1092,7 @@ pub async fn persist_messages_with_schedule_id(
                 messages,
                 provider,
                 schedule_id,
-                working_dir,
-            )
+                working_dir)
             .await
         }
         _ => {
@@ -1144,8 +1137,7 @@ pub async fn persist_messages_with_schedule_id(
 pub fn save_messages_with_metadata(
     session_file: &Path,
     metadata: &SessionMetadata,
-    messages: &[Message],
-) -> Result<()> {
+    messages: &[Message]) -> Result<()> {
     use fs2::FileExt;
 
     // Validate the path for security
@@ -1259,8 +1251,7 @@ pub async fn generate_description(
     session_file: &Path,
     messages: &[Message],
     provider: Arc<dyn Provider>,
-    working_dir: Option<PathBuf>,
-) -> Result<()> {
+    working_dir: Option<PathBuf>) -> Result<()> {
     generate_description_with_schedule_id(session_file, messages, provider, None, working_dir).await
 }
 
@@ -1278,8 +1269,7 @@ pub async fn generate_description_with_schedule_id(
     messages: &[Message],
     provider: Arc<dyn Provider>,
     schedule_id: Option<String>,
-    working_dir: Option<PathBuf>,
-) -> Result<()> {
+    working_dir: Option<PathBuf>) -> Result<()> {
     // Validate the path for security
     let secure_path = get_path(Identifier::Path(session_file.to_path_buf()))?;
 
@@ -1355,28 +1345,23 @@ mod tests {
             // Case 1: Unclosed quotes
             (
                 r#"{"role":"user","content":[{"type":"text","text":"Hello there}]"#,
-                "Unclosed JSON with truncated content",
-            ),
+                "Unclosed JSON with truncated content"),
             // Case 2: Trailing comma
             (
                 r#"{"role":"user","content":[{"type":"text","text":"Test"},]}"#,
-                "JSON with trailing comma",
-            ),
+                "JSON with trailing comma"),
             // Case 3: Missing closing brace
             (
                 r#"{"role":"user","content":[{"type":"text","text":"Test""#,
-                "Incomplete JSON structure",
-            ),
+                "Incomplete JSON structure"),
             // Case 4: Control characters in text
             (
                 r#"{"role":"user","content":[{"type":"text","text":"Test\u{0000}with\u{0001}control\u{0002}chars"}]}"#,
-                "JSON with control characters",
-            ),
+                "JSON with control characters"),
             // Case 5: Partial message with role and text
             (
                 r#"broken{"role": "assistant", "text": "This is recoverable content"more broken"#,
-                "Partial message with recoverable content",
-            ),
+                "Partial message with recoverable content"),
         ];
 
         println!("[TEST] Starting corruption recovery tests...");
@@ -1687,8 +1672,7 @@ mod tests {
         let mut lines: Vec<String> = contents.lines().map(String::from).collect();
         lines[0] = lines[0].replace(
             &get_home_dir().to_string_lossy().into_owned(),
-            &invalid_dir.to_string_lossy().into_owned(),
-        );
+            &invalid_dir.to_string_lossy().into_owned());
         fs::write(&file_path, lines.join("\n"))?;
 
         // Read back - should fall back to home dir
@@ -1717,8 +1701,7 @@ mod tests {
             &messages,
             None,
             None,
-            Some(working_dir_path.clone()),
-        )
+            Some(working_dir_path.clone()))
         .await?;
 
         // Read back the metadata and verify working_dir is preserved
@@ -1767,8 +1750,7 @@ mod tests {
             &messages,
             None,
             None,
-            Some(working_dir_path.clone()),
-        )
+            Some(working_dir_path.clone()))
         .await?;
 
         // Read back the metadata - this should now have the correct working_dir
@@ -1814,8 +1796,7 @@ mod tests {
             &messages,
             None,
             None,
-            Some(working_dir_path.clone()),
-        )
+            Some(working_dir_path.clone()))
         .await?;
 
         let metadata_updated = read_metadata(&file_path_3)?;
@@ -1835,8 +1816,7 @@ mod tests {
             &messages,
             None,
             None,
-            Some(current_dir.clone()),
-        )
+            Some(current_dir.clone()))
         .await?;
 
         let metadata_current = read_metadata(&file_path_4)?;
@@ -1948,8 +1928,7 @@ mod tests {
             &messages,
             None,
             Some("test_schedule".to_string()),
-            None,
-        )
+            None)
         .await?;
 
         assert!(

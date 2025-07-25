@@ -62,8 +62,7 @@ impl BedrockProvider {
             sdk_config
                 .credentials_provider()
                 .unwrap()
-                .provide_credentials(),
-        )?;
+                .provide_credentials())?;
         let client = Client::new(&sdk_config);
 
         Ok(Self { client, model })
@@ -87,8 +86,7 @@ impl Provider for BedrockProvider {
             BEDROCK_DEFAULT_MODEL,
             BEDROCK_KNOWN_MODELS.to_vec(),
             BEDROCK_DOC_LINK,
-            vec![ConfigKey::new("AWS_PROFILE", true, false, Some("default"))],
-        )
+            vec![ConfigKey::new("AWS_PROFILE", true, false, Some("default"))])
     }
 
     fn get_model_config(&self) -> ModelConfig {
@@ -103,8 +101,7 @@ impl Provider for BedrockProvider {
         &self,
         system: &str,
         messages: &[Message],
-        tools: &[Tool],
-    ) -> Result<(Message, ProviderUsage), ProviderError> {
+        tools: &[Tool]) -> Result<(Message, ProviderUsage), ProviderError> {
         let model_name = &self.model.model_name;
 
         let mut request = self
@@ -116,8 +113,7 @@ impl Provider for BedrockProvider {
                 messages
                     .iter()
                     .map(to_bedrock_message)
-                    .collect::<Result<_>>()?,
-            ));
+                    .collect::<Result<_>>()?));
 
         if !tools.is_empty() {
             request = request.tool_config(to_bedrock_tool_config(tools)?);
@@ -157,15 +153,13 @@ impl Provider for BedrockProvider {
                                 &self.model,
                                 &debug_payload,
                                 &serde_json::to_value(&message).unwrap_or_default(),
-                                &usage,
-                            );
+                                &usage);
 
                             let provider_usage = ProviderUsage::new(model_name.to_string(), usage);
                             Ok((message, provider_usage))
                         }
                         _ => Err(ProviderError::RequestFailed(
-                            "No output from Bedrock".to_string(),
-                        )),
+                            "No output from Bedrock".to_string())),
                     };
                 }
                 Err(err) => {

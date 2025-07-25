@@ -165,16 +165,14 @@ impl AdcCredentials {
         Self::load_impl(
             &RealFilesystemOps,
             &RealEnvOps,
-            "http://metadata.google.internal",
-        )
+            "http://metadata.google.internal")
         .await
     }
 
     async fn load_impl(
         fs_ops: &impl FilesystemOps,
         env_ops: &impl EnvOps,
-        metadata_base_url: &str,
-    ) -> Result<Self, AuthError> {
+        metadata_base_url: &str) -> Result<Self, AuthError> {
         // Try GOOGLE_APPLICATION_CREDENTIALS first
         if let Ok(cred_path) = Self::get_env_credentials_path(env_ops) {
             if let Ok(creds) = Self::load_from_file(fs_ops, &cred_path).await {
@@ -195,8 +193,7 @@ impl AdcCredentials {
         }
 
         Err(AuthError::Credentials(
-            "No valid credentials found in any location".to_string(),
-        ))
+            "No valid credentials found in any location".to_string()))
     }
 
     async fn load_from_file(fs_ops: &impl FilesystemOps, path: &str) -> Result<Self, AuthError> {
@@ -222,8 +219,7 @@ impl AdcCredentials {
         } else {
             (
                 "HOME",
-                ".config/gcloud/application_default_credentials.json",
-            )
+                ".config/gcloud/application_default_credentials.json")
         };
 
         env_ops
@@ -254,8 +250,7 @@ impl AdcCredentials {
 
         if !response.status().is_success() {
             return Err(AuthError::Credentials(
-                "Not running on GCP or metadata server unavailable".to_string(),
-            ));
+                "Not running on GCP or metadata server unavailable".to_string()));
         }
 
         // Get the identity token and credentials from metadata server
@@ -449,8 +444,7 @@ impl GcpAuth {
         encode(
             &Header::new(jsonwebtoken::Algorithm::RS256),
             &claims,
-            &encoding_key,
-        )
+            &encoding_key)
         .map_err(|e| AuthError::TokenCreation(format!("Failed to create JWT: {}", e)))
     }
 
@@ -465,8 +459,7 @@ impl GcpAuth {
     async fn exchange_token(
         &self,
         token_uri: &str,
-        params: &[(&str, &str)],
-    ) -> Result<TokenResponse, AuthError> {
+        params: &[(&str, &str)]) -> Result<TokenResponse, AuthError> {
         let response = self
             .client
             .post(token_uri)
@@ -502,8 +495,7 @@ impl GcpAuth {
     /// * `Result<TokenResponse>` - The token response
     async fn get_service_account_token(
         &self,
-        creds: &ServiceAccountCredentials,
-    ) -> Result<TokenResponse, AuthError> {
+        creds: &ServiceAccountCredentials) -> Result<TokenResponse, AuthError> {
         let jwt = self.create_jwt_token(creds)?;
         let params = [
             ("grant_type", "urn:ietf:params:oauth:grant-type:jwt-bearer"),
@@ -523,8 +515,7 @@ impl GcpAuth {
     /// * `Result<TokenResponse>` - The token response
     async fn get_authorized_user_token(
         &self,
-        creds: &AuthorizedUserCredentials,
-    ) -> Result<TokenResponse, AuthError> {
+        creds: &AuthorizedUserCredentials) -> Result<TokenResponse, AuthError> {
         let params = [
             ("client_id", creds.client_id.as_str()),
             ("client_secret", creds.client_secret.as_str()),
@@ -545,8 +536,7 @@ impl GcpAuth {
     /// * `Result<TokenResponse>` - The token response
     async fn get_default_access_token(
         &self,
-        creds: &TokenResponse,
-    ) -> Result<TokenResponse, AuthError> {
+        creds: &TokenResponse) -> Result<TokenResponse, AuthError> {
         Ok(creds.clone())
     }
 }
@@ -728,8 +718,7 @@ iXVBc2YmAuU8hiOFUPxtyQfNzG5fQ0rhJSewdtyWxIadJSLj6fsK+AEsNQ==
                 client_email: "".to_string(),
                 private_key: "invalid".to_string(),
                 token_uri: "https://invalid.example.com".to_string(),
-            },
-        ))
+            }))
         .await;
 
         let result = auth.get_token().await;
@@ -890,8 +879,7 @@ iXVBc2YmAuU8hiOFUPxtyQfNzG5fQ0rhJSewdtyWxIadJSLj6fsK+AEsNQ==
         let result = AdcCredentials::load_impl(
             &context.fs_mock,
             &context.env_mock,
-            "http://metadata.example.com",
-        )
+            "http://metadata.example.com")
         .await;
 
         assert!(result.is_ok());
@@ -947,8 +935,7 @@ iXVBc2YmAuU8hiOFUPxtyQfNzG5fQ0rhJSewdtyWxIadJSLj6fsK+AEsNQ==
         let result = AdcCredentials::load_impl(
             &context.fs_mock,
             &context.env_mock,
-            "http://metadata.example.com",
-        )
+            "http://metadata.example.com")
         .await;
 
         assert!(result.is_ok());
@@ -996,8 +983,7 @@ iXVBc2YmAuU8hiOFUPxtyQfNzG5fQ0rhJSewdtyWxIadJSLj6fsK+AEsNQ==
         // Configure mock response
         Mock::given(method("GET"))
             .and(path(
-                "/computeMetadata/v1/instance/service-accounts/default/token",
-            ))
+                "/computeMetadata/v1/instance/service-accounts/default/token"))
             .and(header("Metadata-Flavor", "Google"))
             .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
                 "access_token": expected_token,
@@ -1071,15 +1057,13 @@ iXVBc2YmAuU8hiOFUPxtyQfNzG5fQ0rhJSewdtyWxIadJSLj6fsK+AEsNQ==
             .return_once(|_| {
                 Err(std::io::Error::new(
                     std::io::ErrorKind::NotFound,
-                    "File not found",
-                ))
+                    "File not found"))
             });
 
         let result = AdcCredentials::load_impl(
             &context.fs_mock,
             &context.env_mock,
-            "http://metadata.example.com",
-        )
+            "http://metadata.example.com")
         .await;
 
         assert!(matches!(result, Err(AuthError::Credentials(_))));
@@ -1107,8 +1091,7 @@ iXVBc2YmAuU8hiOFUPxtyQfNzG5fQ0rhJSewdtyWxIadJSLj6fsK+AEsNQ==
         let result = AdcCredentials::load_impl(
             &context.fs_mock,
             &context.env_mock,
-            "http://metadata.example.com",
-        )
+            "http://metadata.example.com")
         .await;
         assert!(matches!(result, Err(AuthError::Credentials(_))));
     }

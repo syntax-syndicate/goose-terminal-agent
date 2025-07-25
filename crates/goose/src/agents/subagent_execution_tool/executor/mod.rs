@@ -22,21 +22,18 @@ pub async fn execute_single_task(
     task: &Task,
     notifier: mpsc::Sender<ServerNotification>,
     task_config: TaskConfig,
-    cancellation_token: Option<CancellationToken>,
-) -> ExecutionResponse {
+    cancellation_token: Option<CancellationToken>) -> ExecutionResponse {
     let start_time = Instant::now();
     let task_execution_tracker = Arc::new(TaskExecutionTracker::new(
         vec![task.clone()],
         DisplayMode::SingleTaskOutput,
         notifier,
-        cancellation_token.clone(),
-    ));
+        cancellation_token.clone()));
     let result = process_task(
         task,
         task_execution_tracker.clone(),
         task_config,
-        cancellation_token.unwrap_or_default(),
-    )
+        cancellation_token.unwrap_or_default())
     .await;
 
     // Complete the task in the tracker
@@ -58,14 +55,12 @@ pub async fn execute_tasks_in_parallel(
     tasks: Vec<Task>,
     notifier: Sender<ServerNotification>,
     task_config: TaskConfig,
-    cancellation_token: Option<CancellationToken>,
-) -> ExecutionResponse {
+    cancellation_token: Option<CancellationToken>) -> ExecutionResponse {
     let task_execution_tracker = Arc::new(TaskExecutionTracker::new(
         tasks.clone(),
         DisplayMode::MultipleTasksOutput,
         notifier,
-        cancellation_token.clone(),
-    ));
+        cancellation_token.clone()));
     let start_time = Instant::now();
     let task_count = tasks.len();
 
@@ -86,8 +81,7 @@ pub async fn execute_tasks_in_parallel(
         task_rx,
         result_tx,
         task_execution_tracker.clone(),
-        cancellation_token.unwrap_or_default(),
-    );
+        cancellation_token.unwrap_or_default());
 
     let worker_count = std::cmp::min(task_count, DEFAULT_MAX_WORKERS);
     let mut worker_handles = Vec::new();
@@ -135,13 +129,11 @@ fn calculate_stats(results: &[TaskResult], execution_time_ms: u128) -> Execution
 }
 
 fn create_channels(
-    task_count: usize,
-) -> (
+    task_count: usize) -> (
     mpsc::Sender<Task>,
     mpsc::Receiver<Task>,
     mpsc::Sender<TaskResult>,
-    mpsc::Receiver<TaskResult>,
-) {
+    mpsc::Receiver<TaskResult>) {
     let (task_tx, task_rx) = mpsc::channel::<Task>(task_count);
     let (result_tx, result_rx) = mpsc::channel::<TaskResult>(task_count);
     (task_tx, task_rx, result_tx, result_rx)
@@ -151,8 +143,7 @@ fn create_shared_state(
     task_rx: mpsc::Receiver<Task>,
     result_tx: mpsc::Sender<TaskResult>,
     task_execution_tracker: Arc<TaskExecutionTracker>,
-    cancellation_token: CancellationToken,
-) -> Arc<SharedState> {
+    cancellation_token: CancellationToken) -> Arc<SharedState> {
     Arc::new(SharedState {
         task_receiver: Arc::new(tokio::sync::Mutex::new(task_rx)),
         result_sender: result_tx,
@@ -164,8 +155,7 @@ fn create_shared_state(
 
 async fn send_tasks_to_channel(
     tasks: Vec<Task>,
-    task_tx: mpsc::Sender<Task>,
-) -> Result<(), String> {
+    task_tx: mpsc::Sender<Task>) -> Result<(), String> {
     for task in tasks {
         task_tx
             .send(task)
@@ -190,8 +180,7 @@ fn create_empty_response() -> ExecutionResponse {
 async fn collect_results(
     result_rx: &mut mpsc::Receiver<TaskResult>,
     task_execution_tracker: Arc<TaskExecutionTracker>,
-    expected_count: usize,
-) -> Vec<TaskResult> {
+    expected_count: usize) -> Vec<TaskResult> {
     let mut results = Vec::new();
     while let Some(result) = result_rx.recv().await {
         task_execution_tracker

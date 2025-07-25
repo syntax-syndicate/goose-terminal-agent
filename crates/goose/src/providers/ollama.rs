@@ -112,10 +112,8 @@ impl Provider for OllamaProvider {
                     "OLLAMA_TIMEOUT",
                     false,
                     false,
-                    Some(&(OLLAMA_TIMEOUT.to_string())),
-                ),
-            ],
-        )
+                    Some(&(OLLAMA_TIMEOUT.to_string()))),
+            ])
     }
 
     fn get_model_config(&self) -> ModelConfig {
@@ -130,8 +128,7 @@ impl Provider for OllamaProvider {
         &self,
         system: &str,
         messages: &[Message],
-        tools: &[Tool],
-    ) -> Result<(Message, ProviderUsage), ProviderError> {
+        tools: &[Tool]) -> Result<(Message, ProviderUsage), ProviderError> {
         let config = crate::config::Config::global();
         let goose_mode = config.get_param("GOOSE_MODE").unwrap_or("auto".to_string());
         let filtered_tools = if goose_mode == "chat" { &[] } else { tools };
@@ -141,8 +138,7 @@ impl Provider for OllamaProvider {
             system,
             messages,
             filtered_tools,
-            &super::utils::ImageFormat::OpenAi,
-        )?;
+            &super::utils::ImageFormat::OpenAi)?;
         let response = self.post(&payload).await?;
         let message = response_to_message(&response)?;
 

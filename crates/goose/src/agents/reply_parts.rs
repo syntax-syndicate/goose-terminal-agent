@@ -21,8 +21,7 @@ use super::super::agents::Agent;
 
 async fn toolshim_postprocess(
     response: Message,
-    toolshim_tools: &[Tool],
-) -> Result<Message, ProviderError> {
+    toolshim_tools: &[Tool]) -> Result<Message, ProviderError> {
     let interpreter = OllamaInterpreter::new().map_err(|e| {
         ProviderError::ExecutionError(format!("Failed to create OllamaInterpreter: {}", e))
     })?;
@@ -80,8 +79,7 @@ impl Agent {
             self.frontend_instructions.lock().await.clone(),
             extension_manager.suggest_disable_extensions_prompt().await,
             Some(model_name),
-            tool_selection_strategy,
-        );
+            tool_selection_strategy);
 
         // Handle toolshim if enabled
         let mut toolshim_tools = vec![];
@@ -102,8 +100,7 @@ impl Agent {
     /// - read_only_tools: Tools with read-only annotations
     /// - non_read_tools: Tools without read-only annotations
     pub(crate) fn categorize_tools_by_annotation(
-        tools: &[Tool],
-    ) -> (HashSet<String>, HashSet<String>) {
+        tools: &[Tool]) -> (HashSet<String>, HashSet<String>) {
         tools
             .iter()
             .fold((HashSet::new(), HashSet::new()), |mut acc, tool| {
@@ -126,8 +123,7 @@ impl Agent {
         system_prompt: &str,
         messages: &[Message],
         tools: &[Tool],
-        toolshim_tools: &[Tool],
-    ) -> Result<(Message, ProviderUsage), ProviderError> {
+        toolshim_tools: &[Tool]) -> Result<(Message, ProviderUsage), ProviderError> {
         let config = provider.get_model_config();
 
         // Convert tool messages to text if toolshim is enabled
@@ -158,8 +154,7 @@ impl Agent {
         system_prompt: &str,
         messages: &[Message],
         tools: &[Tool],
-        toolshim_tools: &[Tool],
-    ) -> Result<MessageStream, ProviderError> {
+        toolshim_tools: &[Tool]) -> Result<MessageStream, ProviderError> {
         let config = provider.get_model_config();
 
         // Convert tool messages to text if toolshim is enabled
@@ -210,8 +205,7 @@ impl Agent {
     /// - filtered_message: The original message with frontend tool requests removed
     pub(crate) async fn categorize_tool_requests(
         &self,
-        response: &Message,
-    ) -> (Vec<ToolRequest>, Vec<ToolRequest>, Message) {
+        response: &Message) -> (Vec<ToolRequest>, Vec<ToolRequest>, Message) {
         // First collect all tool requests
         let tool_requests: Vec<ToolRequest> = response
             .content
@@ -276,8 +270,7 @@ impl Agent {
     pub(crate) async fn update_session_metrics(
         session_config: &crate::agents::types::SessionConfig,
         usage: &ProviderUsage,
-        messages_length: usize,
-    ) -> Result<()> {
+        messages_length: usize) -> Result<()> {
         let session_file_path = match session::storage::get_path(session_config.id.clone()) {
             Ok(path) => path,
             Err(e) => {
@@ -306,8 +299,7 @@ impl Agent {
             accumulate(metadata.accumulated_input_tokens, usage.usage.input_tokens);
         metadata.accumulated_output_tokens = accumulate(
             metadata.accumulated_output_tokens,
-            usage.usage.output_tokens,
-        );
+            usage.usage.output_tokens);
 
         session::storage::update_metadata(&session_file_path, &metadata).await?;
 

@@ -1,17 +1,16 @@
 use crate::agents::subagent::SubAgent;
 use crate::agents::subagent_task_config::TaskConfig;
 use anyhow::Result;
-use mcp_core::ToolError;
+use rmcp::model::{ErrorData, ErrorCode};
 
 /// Standalone function to run a complete subagent task
 pub async fn run_complete_subagent_task(
     text_instruction: String,
-    task_config: TaskConfig,
-) -> Result<String, anyhow::Error> {
+    task_config: TaskConfig) -> Result<String, anyhow::Error> {
     // Create the subagent with the parent agent's provider
     let subagent = SubAgent::new(task_config.clone())
         .await
-        .map_err(|e| ToolError::ExecutionError(format!("Failed to create subagent: {}", e)))?;
+        .map_err(|e| anyhow::anyhow!("Failed to create subagent: {}", e))?;
 
     // Execute the subagent task
     let messages = subagent

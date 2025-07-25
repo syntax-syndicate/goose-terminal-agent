@@ -108,16 +108,14 @@ impl Provider for TestProvider {
             "test-model",
             vec!["test-model"],
             "",
-            vec![],
-        )
+            vec![])
     }
 
     async fn complete(
         &self,
         system: &str,
         messages: &[Message],
-        tools: &[Tool],
-    ) -> Result<(Message, ProviderUsage), ProviderError> {
+        tools: &[Tool]) -> Result<(Message, ProviderUsage), ProviderError> {
         let hash = Self::hash_input(messages);
 
         if let Some(inner) = &self.inner {
@@ -184,16 +182,14 @@ mod tests {
                 "mock-model",
                 vec!["mock-model"],
                 "",
-                vec![],
-            )
+                vec![])
         }
 
         async fn complete(
             &self,
             _system: &str,
             _messages: &[Message],
-            _tools: &[Tool],
-        ) -> Result<(Message, ProviderUsage), ProviderError> {
+            _tools: &[Tool]) -> Result<(Message, ProviderUsage), ProviderError> {
             Ok((
                 Message::new(
                     Role::Assistant,
@@ -203,10 +199,8 @@ mod tests {
                             text: self.response.clone(),
                         },
                         annotations: None,
-                    })],
-                ),
-                ProviderUsage::new("mock-model".to_string(), Usage::default()),
-            ))
+                    })]),
+                ProviderUsage::new("mock-model".to_string(), Usage::default())))
         }
 
         fn get_model_config(&self) -> ModelConfig {

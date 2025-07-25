@@ -48,8 +48,7 @@ fn get_project_path(project_id: &str) -> Result<PathBuf> {
 pub fn create_project(
     name: String,
     description: Option<String>,
-    default_directory: PathBuf,
-) -> Result<Project> {
+    default_directory: PathBuf) -> Result<Project> {
     let project_dir = ensure_project_dir()?;
 
     // Validate the default directory exists
@@ -86,8 +85,7 @@ pub fn update_project(
     project_id: &str,
     name: Option<String>,
     description: Option<Option<String>>,
-    default_directory: Option<PathBuf>,
-) -> Result<Project> {
+    default_directory: Option<PathBuf>) -> Result<Project> {
     let project_path = get_project_path(project_id)?;
 
     if !project_path.exists() {

@@ -60,8 +60,7 @@ fn filter_unparseable_variables(template_variables: &[String]) -> Result<Vec<Str
 
 fn replace_unparseable_vars_with_raw(
     content: &str,
-    unparsable_template_variables: &[String],
-) -> Result<String> {
+    unparsable_template_variables: &[String]) -> Result<String> {
     let mut result = content.to_string();
 
     for var in unparsable_template_variables {
@@ -85,8 +84,7 @@ fn replace_unparseable_vars_with_raw(
 
 pub fn render_recipe_content_with_params(
     content: &str,
-    params: &HashMap<String, String>,
-) -> Result<String> {
+    params: &HashMap<String, String>) -> Result<String> {
     // Pre-process content to replace empty double quotes with single quotes
     // This prevents MiniJinja from escaping "" to "\"\"" which would break YAML parsing
     let re = Regex::new(r#":\s*"""#).unwrap();
@@ -99,8 +97,7 @@ pub fn render_recipe_content_with_params(
     let env = add_template_in_env(
         &content_with_safe_variables,
         params.get(BUILT_IN_RECIPE_DIR_PARAM).unwrap().clone(),
-        UndefinedBehavior::Strict,
-    )?;
+        UndefinedBehavior::Strict)?;
     let template = env.get_template(CURRENT_TEMPLATE_NAME).unwrap();
     let rendered_content = template
         .render(params)
@@ -111,8 +108,7 @@ pub fn render_recipe_content_with_params(
 fn add_template_in_env(
     content: &str,
     recipe_dir: String,
-    undefined_behavior: UndefinedBehavior,
-) -> Result<Environment> {
+    undefined_behavior: UndefinedBehavior) -> Result<Environment> {
     let mut env = minijinja::Environment::new();
     env.set_undefined_behavior(undefined_behavior);
     env.set_loader(move |name| {
@@ -122,8 +118,7 @@ fn add_template_in_env(
             Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(None),
             Err(e) => Err(minijinja::Error::new(
                 minijinja::ErrorKind::InvalidOperation,
-                "could not read template",
-            )
+                "could not read template")
             .with_source(e)),
         }
     });
@@ -135,8 +130,7 @@ fn add_template_in_env(
 fn get_env_with_template_variables(
     content: &str,
     recipe_dir: String,
-    undefined_behavior: UndefinedBehavior,
-) -> Result<(Environment, HashSet<String>)> {
+    undefined_behavior: UndefinedBehavior) -> Result<(Environment, HashSet<String>)> {
     let env = add_template_in_env(content, recipe_dir, undefined_behavior)?;
     let template = env.get_template(CURRENT_TEMPLATE_NAME).unwrap();
     let state = template.eval_to_state(())?;
@@ -149,16 +143,14 @@ fn get_env_with_template_variables(
 
 pub fn parse_recipe_content(
     content: &str,
-    recipe_dir: String,
-) -> Result<(Recipe, HashSet<String>)> {
+    recipe_dir: String) -> Result<(Recipe, HashSet<String>)> {
     // Pre-process template variables to handle invalid variable names
     let preprocessed_content = preprocess_template_variables(content)?;
 
     let (env, template_variables) = get_env_with_template_variables(
         &preprocessed_content,
         recipe_dir,
-        UndefinedBehavior::Lenient,
-    )?;
+        UndefinedBehavior::Lenient)?;
     let template = env.get_template(CURRENT_TEMPLATE_NAME).unwrap();
     let rendered_content = template
         .render(())
@@ -172,16 +164,14 @@ pub fn parse_recipe_content(
 pub fn render_recipe_for_preview(
     content: &str,
     recipe_dir: String,
-    params: &HashMap<String, String>,
-) -> Result<Recipe> {
+    params: &HashMap<String, String>) -> Result<Recipe> {
     // Pre-process template variables to handle invalid variable names
     let preprocessed_content = preprocess_template_variables(content)?;
 
     let (env, template_variables) = get_env_with_template_variables(
         &preprocessed_content,
         recipe_dir,
-        UndefinedBehavior::Lenient,
-    )?;
+        UndefinedBehavior::Lenient)?;
     let template = env.get_template(CURRENT_TEMPLATE_NAME).unwrap();
     // if the variables are not provided, the template will be rendered with the variables, otherwise it will keep the variables as is
     let mut ctx = preserve_vars(&template_variables).clone();

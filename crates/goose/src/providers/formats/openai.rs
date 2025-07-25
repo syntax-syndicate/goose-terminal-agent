@@ -8,8 +8,8 @@ use crate::providers::utils::{
 use anyhow::{anyhow, Error};
 use async_stream::try_stream;
 use futures::Stream;
-use mcp_core::{ToolCall, ToolError};
-use rmcp::model::{AnnotateAble, Content, RawContent, ResourceContents, Role, Tool};
+use mcp_core::{ToolCall};
+use rmcp::model::{AnnotateAble, Content, RawContent, ResourceContents, Role, Tool, ErrorData, ErrorCode};
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use std::ops::Deref;
@@ -299,24 +299,23 @@ pub fn response_to_message(response: &Value) -> anyhow::Result<Message> {
                 };
 
                 if !is_valid_function_name(&function_name) {
-                    let error = ToolError::NotFound(format!(
+                    let error = ErrorData::new(ErrorCode::RESOURCE_NOT_FOUND, format!(
                         "The provided function name '{}' had invalid characters, it must match this regex [a-zA-Z0-9_-]+",
                         function_name
-                    ));
+                    , None));
                     content.push(MessageContent::tool_request(id, Err(error)));
                 } else {
                     match safely_parse_json(&arguments_str) {
                         Ok(params) => {
                             content.push(MessageContent::tool_request(
                                 id,
-                                Ok(ToolCall::new(&function_name, params)),
-                            ));
+                                Ok(ToolCall::new(&function_name, params))));
                         }
                         Err(e) => {
-                            let error = ToolError::InvalidParameters(format!(
+                            let error = ErrorData::new(ErrorCode::INVALID_PARAMS, format!(
                                 "Could not interpret tool use parameters for id {}: {}. Raw arguments: '{}'",
                                 id, e, arguments_str
-                            ));
+                            , None));
                             content.push(MessageContent::tool_request(id, Err(error)));
                         }
                     }
@@ -328,8 +327,7 @@ pub fn response_to_message(response: &Value) -> anyhow::Result<Message> {
     Ok(Message::new(
         Role::Assistant,
         chrono::Utc::now().timestamp(),
-        content,
-    ))
+        content))
 }
 
 pub fn get_usage(usage: &Value) -> Usage {
@@ -406,8 +404,7 @@ fn strip_data_prefix(line: &str) -> Option<&str> {
 }
 
 pub fn response_to_streaming_message<S>(
-    mut stream: S,
-) -> impl Stream<Item = anyhow::Result<(Option<Message>, Option<ProviderUsage>)>> + 'static
+    mut stream: S) -> impl Stream<Item = anyhow::Result<(Option<Message>, Option<ProviderUsage>)>> + 'static
 where
     S: Stream<Item = anyhow::Result<String>> + Unpin + Send + 'static,
 {
@@ -497,13 +494,12 @@ where
                         let content = match parsed {
                             Ok(params) => MessageContent::tool_request(
                                 id.clone(),
-                                Ok(ToolCall::new(function_name.clone(), params)),
-                            ),
+                                Ok(ToolCall::new(function_name.clone(), params))),
                             Err(e) => {
-                                let error = ToolError::InvalidParameters(format!(
+                                let error = ErrorData::new(ErrorCode::INVALID_PARAMS, format!(
                                     "Could not interpret tool use parameters for id {}: {}",
                                     id, e
-                                ));
+                                , None));
                                 MessageContent::tool_request(id.clone(), Err(error))
                             }
                         };
@@ -518,8 +514,7 @@ where
                         created: chrono::Utc::now().timestamp(),
                         content: contents,
                     }),
-                    usage,
-                )
+                    usage)
             } else if let Some(text) = &chunk.choices[0].delta.content {
                 yield (
                     Some(Message {
@@ -532,8 +527,7 @@ where
                         usage
                     } else {
                         None
-                    },
-                )
+                    })
             }
         }
     }
@@ -544,8 +538,7 @@ pub fn create_request(
     system: &str,
     messages: &[Message],
     tools: &[Tool],
-    image_format: &ImageFormat,
-) -> anyhow::Result<Value, Error> {
+    image_format: &ImageFormat) -> anyhow::Result<Value, Error> {
     if model_config.model_name.starts_with("o1-mini") {
         return Err(anyhow!(
             "o1-mini model is not currently supported since Goose uses tool calling and o1-mini does not support it. Please use o1 or o3 models instead."
@@ -566,8 +559,7 @@ pub fn create_request(
             }
             _ => (
                 model_config.model_name.to_string(),
-                Some("medium".to_string()),
-            ),
+                Some("medium".to_string())),
         }
     } else {
         // For non-O family models, use the model name as is and no reasoning effort
@@ -764,8 +756,7 @@ mod tests {
                     }
                 },
                 "required": ["input"]
-            }),
-        );
+            }));
 
         let spec = format_tools(&[tool])?;
 
@@ -782,8 +773,7 @@ mod tests {
             Message::user().with_text("How are you?"),
             Message::assistant().with_tool_request(
                 "tool1",
-                Ok(ToolCall::new("example", json!({"param1": "value1"}))),
-            ),
+                Ok(ToolCall::new("example", json!({"param1": "value1"})))),
         ];
 
         // Get the ID from the tool request to use in the response
@@ -816,8 +806,7 @@ mod tests {
     fn test_format_messages_multiple_content() -> anyhow::Result<()> {
         let mut messages = vec![Message::assistant().with_tool_request(
             "tool1",
-            Ok(ToolCall::new("example", json!({"param1": "value1"}))),
-        )];
+            Ok(ToolCall::new("example", json!({"param1": "value1"}))))];
 
         // Get the ID from the tool request to use in the response
         let tool_id = if let MessageContent::ToolRequest(request) = &messages[0].content[0] {
@@ -855,8 +844,7 @@ mod tests {
                     }
                 },
                 "required": ["input"]
-            }),
-        );
+            }));
 
         let tool2 = Tool::new(
             "test_tool",
@@ -870,8 +858,7 @@ mod tests {
                     }
                 },
                 "required": ["input"]
-            }),
-        );
+            }));
 
         let result = format_tools(&[tool1, tool2]);
         assert!(result.is_err());
@@ -979,7 +966,7 @@ mod tests {
 
         if let MessageContent::ToolRequest(request) = &message.content[0] {
             match &request.tool_call {
-                Err(ToolError::NotFound(msg)) => {
+                Err(ErrorData::new(ErrorCode::RESOURCE_NOT_FOUND, msg, None, None)) => {
                     assert!(msg.starts_with("The provided function name"));
                 }
                 _ => panic!("Expected ToolNotFound error"),
@@ -1001,7 +988,7 @@ mod tests {
 
         if let MessageContent::ToolRequest(request) = &message.content[0] {
             match &request.tool_call {
-                Err(ToolError::InvalidParameters(msg)) => {
+                Err(ErrorData::new(ErrorCode::INVALID_PARAMS, msg, None, None)) => {
                     assert!(msg.starts_with("Could not interpret tool use parameters"));
                 }
                 _ => panic!("Expected InvalidParameters error"),

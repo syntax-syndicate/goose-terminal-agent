@@ -138,8 +138,7 @@ impl XlsxTool {
         worksheet_name: &str,
         row: u32,
         col: u32,
-        value: &str,
-    ) -> Result<()> {
+        value: &str) -> Result<()> {
         let worksheet = self
             .workbook
             .get_sheet_by_name_mut(worksheet_name)
@@ -161,8 +160,7 @@ impl XlsxTool {
         &self,
         worksheet: &Worksheet,
         search_text: &str,
-        case_sensitive: bool,
-    ) -> Result<Vec<(u32, u32)>> {
+        case_sensitive: bool) -> Result<Vec<(u32, u32)>> {
         // Returns a vector of (row, column) coordinates where matches are found
         let mut matches = Vec::new();
         let search_text = if !case_sensitive {

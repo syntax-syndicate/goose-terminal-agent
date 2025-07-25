@@ -58,8 +58,7 @@ pub trait ToolInterpreter {
     async fn interpret_to_tool_calls(
         &self,
         content: &str,
-        tools: &[Tool],
-    ) -> Result<Vec<ToolCall>, ProviderError>;
+        tools: &[Tool]) -> Result<Vec<ToolCall>, ProviderError>;
 }
 
 /// Ollama-specific implementation of the ToolInterpreter trait
@@ -144,8 +143,7 @@ impl OllamaInterpreter {
         system_prompt: &str,
         format_instruction: &str,
         format_schema: Value,
-        model: &str,
-    ) -> Result<Value, ProviderError> {
+        model: &str) -> Result<Value, ProviderError> {
         let base_url = self.base_url.trim_end_matches('/');
         let url = format!("{}/api/chat", base_url);
 
@@ -160,8 +158,7 @@ impl OllamaInterpreter {
             system_prompt,
             &messages,
             &[], // No tools
-            &super::utils::ImageFormat::OpenAi,
-        )?;
+            &super::utils::ImageFormat::OpenAi)?;
 
         payload["stream"] = json!(false); // needed for the /api/chat endpoint to work
         payload["format"] = format_schema;
@@ -239,8 +236,7 @@ impl ToolInterpreter for OllamaInterpreter {
     async fn interpret_to_tool_calls(
         &self,
         last_assistant_msg: &str,
-        tools: &[Tool],
-    ) -> Result<Vec<ToolCall>, ProviderError> {
+        tools: &[Tool]) -> Result<Vec<ToolCall>, ProviderError> {
         if tools.is_empty() {
             return Ok(vec![]);
         }
@@ -383,8 +379,7 @@ pub fn modify_system_prompt_for_tool_json(system_prompt: &str, tools: &[Tool]) -
 pub async fn augment_message_with_tool_calls<T: ToolInterpreter>(
     interpreter: &T,
     message: Message,
-    tools: &[Tool],
-) -> Result<Message, ProviderError> {
+    tools: &[Tool]) -> Result<Message, ProviderError> {
     // If there are no tools or the message is empty, return the original message
     if tools.is_empty() {
         return Ok(message);

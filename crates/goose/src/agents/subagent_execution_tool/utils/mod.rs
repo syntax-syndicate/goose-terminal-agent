@@ -18,8 +18,7 @@ pub fn count_by_status(tasks: &HashMap<String, TaskInfo>) -> (usize, usize, usiz
             TaskStatus::Running => (pending, running + 1, completed, failed),
             TaskStatus::Completed => (pending, running, completed + 1, failed),
             TaskStatus::Failed => (pending, running, completed, failed + 1),
-        },
-    );
+        });
     (total, pending, running, completed, failed)
 }
 

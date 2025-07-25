@@ -250,8 +250,7 @@ impl ExtensionConfig {
         name: S,
         uri: S,
         description: S,
-        timeout: T,
-    ) -> Self {
+        timeout: T) -> Self {
         Self::StreamableHttp {
             name: name.into(),
             uri: uri.into(),
@@ -268,8 +267,7 @@ impl ExtensionConfig {
         name: S,
         cmd: S,
         description: S,
-        timeout: T,
-    ) -> Self {
+        timeout: T) -> Self {
         Self::Stdio {
             name: name.into(),
             cmd: cmd.into(),
@@ -286,8 +284,7 @@ impl ExtensionConfig {
         name: S,
         code: S,
         description: S,
-        timeout: T,
-    ) -> Self {
+        timeout: T) -> Self {
         Self::InlinePython {
             name: name.into(),
             code: code.into(),
@@ -400,8 +397,7 @@ impl ToolInfo {
         name: &str,
         description: &str,
         parameters: Vec<String>,
-        permission: Option<PermissionLevel>,
-    ) -> Self {
+        permission: Option<PermissionLevel>) -> Self {
         Self {
             name: name.to_string(),
             description: description.to_string(),

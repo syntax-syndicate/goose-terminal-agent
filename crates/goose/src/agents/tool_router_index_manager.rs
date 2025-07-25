@@ -15,8 +15,7 @@ impl ToolRouterIndexManager {
         selector: &Arc<Box<dyn RouterToolSelector>>,
         extension_manager: &ExtensionManager,
         extension_name: &str,
-        action: &str,
-    ) -> Result<()> {
+        action: &str) -> Result<()> {
         match action {
             "add" => {
                 // Get tools for specific extension
@@ -78,8 +77,7 @@ impl ToolRouterIndexManager {
     /// Indexes platform tools (search_available_extensions, manage_extensions, etc.)
     pub async fn index_platform_tools(
         selector: &Arc<Box<dyn RouterToolSelector>>,
-        extension_manager: &ExtensionManager,
-    ) -> Result<()> {
+        extension_manager: &ExtensionManager) -> Result<()> {
         let mut tools = Vec::new();
 
         // Add the standard platform tools
