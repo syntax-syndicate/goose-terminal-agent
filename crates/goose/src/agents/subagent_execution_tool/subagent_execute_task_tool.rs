@@ -1,5 +1,5 @@
 use mcp_core::ToolError;
-use rmcp::model::{Content, Notification, ServerNotification, Tool, ToolAnnotations};
+use rmcp::model::{Content, ServerNotification, Tool, ToolAnnotations};
 use serde_json::Value;
 
 use crate::agents::subagent_task_config::TaskConfig;

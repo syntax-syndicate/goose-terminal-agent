@@ -42,9 +42,10 @@ use crate::providers::errors::ProviderError;
 use crate::recipe::{Author, Recipe, Response, Settings, SubRecipe};
 use crate::scheduler_trait::SchedulerTrait;
 use crate::tool_monitor::{ToolCall, ToolMonitor};
+use crate::utils::is_token_cancelled;
 use mcp_core::{ToolError, ToolResult};
 use regex::Regex;
-use rmcp::model::{Content, JsonRpcMessage, Prompt, ServerNotification};
+use rmcp::model::{Content, Prompt, ServerNotification};
 use rmcp::model::{GetPromptResult, Tool};
 use serde_json::Value;
 use tokio::sync::{mpsc, Mutex, RwLock};
@@ -76,8 +77,6 @@ pub struct Agent {
     pub(super) tool_monitor: Arc<Mutex<Option<ToolMonitor>>>,
     pub(super) router_tool_selector: Mutex<Option<Arc<Box<dyn RouterToolSelector>>>>,
     pub(super) scheduler_service: Mutex<Option<Arc<dyn SchedulerTrait>>>,
-    pub(super) mcp_tx: Mutex<mpsc::Sender<ServerNotification>>,
-    pub(super) mcp_notification_rx: Arc<Mutex<mpsc::Receiver<ServerNotification>>>,
     pub(super) retry_manager: RetryManager,
 }
 
@@ -766,26 +765,6 @@ impl Agent {
                     break;
                 }
 
-                // Handle MCP notifications from subagents
-                let mcp_notifications = self.get_mcp_notifications().await;
-                for notification in mcp_notifications {
-
-                    match &notification {
-                        ServerNotification::LoggingMessageNotification(notif) => {
-                            if let (Some(subagent_id), Some(_message)) = (
-                                notif.params.data.get("subagent_id").and_then(|v| v.as_str()),
-                                notif.params.data.get("message").and_then(|v| v.as_str()),
-                            ) {
-                                yield AgentEvent::McpNotification((
-                                    subagent_id.to_string(),
-                                    notification.clone(),
-                                ));
-                            }
-                        },
-                        _ => {}
-                    }
-                }
-
                 let mut stream = Self::stream_response_from_provider(
                     self.provider().await?,
                     &system_prompt,
@@ -1080,18 +1059,6 @@ impl Agent {
     pub async fn extend_system_prompt(&self, instruction: String) {
         let mut prompt_manager = self.prompt_manager.lock().await;
         prompt_manager.add_system_prompt_extra(instruction);
-    }
-
-    /// Get MCP notifications from subagents
-    pub async fn get_mcp_notifications(&self) -> Vec<ServerNotification> {
-        let mut notifications = Vec::new();
-        let mut rx = self.mcp_notification_rx.lock().await;
-
-        while let Ok(notification) = rx.try_recv() {
-            notifications.push(notification);
-        }
-
-        notifications
     }
 
     pub async fn update_provider(&self, provider: Arc<dyn Provider>) -> Result<()> {

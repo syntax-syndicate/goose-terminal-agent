@@ -1,9 +1,7 @@
 use rmcp::model::{
-    JsonRpcMessage, JsonRpcNotification, JsonRpcVersion2_0, LoggingLevel,
-    LoggingMessageNotification, LoggingMessageNotificationMethod, LoggingMessageNotificationParam,
-    Notification, ServerNotification,
+    LoggingLevel, LoggingMessageNotification, LoggingMessageNotificationMethod,
+    LoggingMessageNotificationParam, ServerNotification,
 };
-use rmcp::object;
 use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::{mpsc, RwLock};
@@ -17,7 +15,7 @@ use crate::agents::subagent_execution_tool::notification_events::{
 use crate::agents::subagent_execution_tool::task_types::{Task, TaskInfo, TaskResult, TaskStatus};
 use crate::agents::subagent_execution_tool::utils::{count_by_status, get_task_name};
 use crate::utils::is_token_cancelled;
-use serde_json::{json, Value};
+use serde_json::Value;
 use tokio::sync::mpsc::Sender;
 
 #[derive(Debug, Clone, PartialEq)]
