@@ -178,14 +178,8 @@ impl ExtensionManager {
             Ok(all_envs)
         }
 
-        let mut client: Box<dyn McpClientTrait> = match &config {
-            ExtensionConfig::Sse {
-                uri,
-                envs,
-                env_keys,
-                timeout,
-                ..
-            } => {
+        let client: Box<dyn McpClientTrait> = match &config {
+            ExtensionConfig::Sse { uri, timeout, .. } => {
                 // let all_envs: HashMap<String, String> =
                 //     merge_environments(envs, env_keys, &sanitized_name).await?;
                 let transport = SseClientTransport::start(uri.to_string())
@@ -201,14 +195,7 @@ impl ExtensionManager {
                     .await?,
                 )
             }
-            ExtensionConfig::StreamableHttp {
-                uri,
-                envs,
-                env_keys,
-                headers,
-                timeout,
-                ..
-            } => {
+            ExtensionConfig::StreamableHttp { uri, timeout, .. } => {
                 // let all_envs = merge_environments(envs, env_keys, &sanitized_name).await?;
                 let transport = StreamableHttpClientTransport::from_uri(uri.to_string());
                 Box::new(
@@ -281,7 +268,7 @@ impl ExtensionManager {
                 .insert(sanitized_name.clone(), instructions.clone());
         }
 
-        if let Some(resources) = info.and_then(|info| info.capabilities.resources.as_ref()) {
+        if let Some(_resources) = info.and_then(|info| info.capabilities.resources.as_ref()) {
             self.resource_capable_extensions
                 .insert(sanitized_name.clone());
         }
@@ -822,7 +809,7 @@ mod tests {
     use mcp_client::client::McpClientTrait;
     use rmcp::model::CallToolResult;
     use rmcp::model::InitializeResult;
-    use rmcp::model::JsonRpcMessage;
+
     use rmcp::model::ListPromptsResult;
     use rmcp::model::ListResourcesResult;
     use rmcp::model::ListToolsResult;

@@ -10,12 +10,8 @@ use crate::{
 use anyhow::anyhow;
 use chrono::{DateTime, Utc};
 use mcp_core::handler::ToolError;
-use rmcp::model::{
-    LoggingLevel, LoggingMessageNotification, LoggingMessageNotificationMethod,
-    LoggingMessageNotificationParam, ServerNotification, Tool,
-};
+use rmcp::model::Tool;
 use serde::{Deserialize, Serialize};
-use serde_json::json;
 // use serde_json::{self};
 use std::{collections::HashMap, sync::Arc};
 use tokio::sync::{Mutex, RwLock};
