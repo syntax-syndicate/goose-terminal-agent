@@ -217,11 +217,10 @@ impl ExtensionManager {
                 ..
             } => {
                 let all_envs = merge_environments(envs, env_keys, &sanitized_name).await?;
-                let transport =
-                    TokioChildProcess::new(Command::new(cmd.to_string()).configure(|command| {
-                        command.args(args).envs(all_envs);
-                    }))
-                    .map_err(|e| ExtensionError::ClientCreationError(e.to_string()))?;
+                let transport = TokioChildProcess::new(Command::new(cmd).configure(|command| {
+                    command.args(args).envs(all_envs);
+                }))
+                .map_err(|e| ExtensionError::ClientCreationError(e.to_string()))?;
                 Box::new(
                     McpClient::connect(
                         transport,
@@ -364,7 +363,7 @@ impl ExtensionManager {
                     for tool in client_tools.tools {
                         tools.push(Tool {
                             name: format!("{}__{}", name, tool.name).into(),
-                            description: tool.description.into(),
+                            description: tool.description,
                             input_schema: tool.input_schema,
                             annotations: tool.annotations,
                         });

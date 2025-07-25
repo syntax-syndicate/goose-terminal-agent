@@ -163,7 +163,6 @@ impl McpClientTrait for McpClient {
                 uri: uri.to_string(),
             })
             .await
-            .map_err(|e| e.into())
     }
 
     async fn list_tools(&self, cursor: Option<String>) -> Result<ListToolsResult, Error> {
@@ -172,7 +171,6 @@ impl McpClientTrait for McpClient {
             .await
             .list_tools(Some(PaginatedRequestParam { cursor }))
             .await
-            .map_err(|e| e.into())
     }
 
     async fn call_tool(&self, name: &str, arguments: Value) -> Result<CallToolResult, Error> {
@@ -188,7 +186,6 @@ impl McpClientTrait for McpClient {
                 arguments,
             })
             .await
-            .map_err(|e| e.into())
     }
 
     async fn list_prompts(&self, cursor: Option<String>) -> Result<ListPromptsResult, Error> {
@@ -197,7 +194,6 @@ impl McpClientTrait for McpClient {
             .await
             .list_prompts(Some(PaginatedRequestParam { cursor }))
             .await
-            .map_err(|e| e.into())
     }
 
     async fn get_prompt(&self, name: &str, arguments: Value) -> Result<GetPromptResult, Error> {
@@ -213,7 +209,6 @@ impl McpClientTrait for McpClient {
                 arguments,
             })
             .await
-            .map_err(|e| e.into())
     }
 
     async fn subscribe(&self) -> mpsc::Receiver<ServerNotification> {
