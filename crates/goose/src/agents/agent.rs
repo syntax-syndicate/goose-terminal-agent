@@ -101,7 +101,7 @@ pub enum ToolStreamItem<T> {
 
 pub type ToolStream = Pin<Box<dyn Stream<Item = ToolStreamItem<ToolResult<Vec<Content>>>> + Send>>;
 
-// tool_stream combines a stream of JsonRpcMessages with a future representing the
+// tool_stream combines a stream of ServerNotifications with a future representing the
 // final result of the tool call. MCP notifications are not request-scoped, but
 // this lets us capture all notifications emitted during the tool call for
 // simpler consumption
@@ -744,7 +744,7 @@ impl Agent {
                 });
 
             loop {
-                if cancel_token.as_ref().is_some_and(|t| t.is_cancelled()) {
+                if is_token_cancelled(&cancel_token) {
                     break;
                 }
 
@@ -800,7 +800,7 @@ impl Agent {
                 let mut tools_updated = false;
 
                 while let Some(next) = stream.next().await {
-                    if cancel_token.as_ref().is_some_and(|t| t.is_cancelled()) {
+                    if is_token_cancelled(&cancel_token) {
                         break;
                     }
 
@@ -972,7 +972,7 @@ impl Agent {
                                     let mut all_install_successful = true;
 
                                     while let Some((request_id, item)) = combined.next().await {
-                                        if cancel_token.as_ref().is_some_and(|t| t.is_cancelled()) {
+                                        if is_token_cancelled(&cancel_token) {
                                             break;
                                         }
                                         match item {

@@ -7,7 +7,7 @@ use rmcp::object;
 use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::{mpsc, RwLock};
-use tokio::time::{Duration, Instant};
+use tokio::time::{sleep, Duration, Instant};
 use tokio_util::sync::CancellationToken;
 
 use crate::agents::subagent_execution_tool::notification_events::{
@@ -16,6 +16,7 @@ use crate::agents::subagent_execution_tool::notification_events::{
 };
 use crate::agents::subagent_execution_tool::task_types::{Task, TaskInfo, TaskResult, TaskStatus};
 use crate::agents::subagent_execution_tool::utils::{count_by_status, get_task_name};
+use crate::utils::is_token_cancelled;
 use serde_json::{json, Value};
 use tokio::sync::mpsc::Sender;
 
@@ -26,6 +27,7 @@ pub enum DisplayMode {
 }
 
 const THROTTLE_INTERVAL_MS: u64 = 250;
+const COMPLETION_NOTIFICATION_DELAY_MS: u64 = 500;
 
 fn format_task_metadata(task_info: &TaskInfo) -> String {
     if let Some(params) = task_info.task.get_command_parameters() {
@@ -94,9 +96,7 @@ impl TaskExecutionTracker {
     }
 
     fn is_cancelled(&self) -> bool {
-        self.cancellation_token
-            .as_ref()
-            .is_some_and(|t| t.is_cancelled())
+        is_token_cancelled(&self.cancellation_token)
     }
 
     fn log_notification_error<T>(&self, error: &mpsc::error::TrySendError<T>, context: &str) {
@@ -112,9 +112,9 @@ impl TaskExecutionTracker {
                 LoggingMessageNotification {
                     method: LoggingMessageNotificationMethod,
                     params: LoggingMessageNotificationParam {
+                        data: event.to_notification_data(),
                         level: LoggingLevel::Info,
                         logger: None,
-                        data: event.to_notification_data(),
                     },
                     extensions: Default::default(),
                 },
@@ -300,7 +300,8 @@ impl TaskExecutionTracker {
             .collect();
 
         let event = TaskExecutionNotificationEvent::tasks_complete(stats, failed_tasks);
-
         self.try_send_notification(event, "tasks complete");
+        // Wait for the notification to be recieved and displayed before clearing the tasks
+        sleep(Duration::from_millis(COMPLETION_NOTIFICATION_DELAY_MS)).await;
     }
 }
