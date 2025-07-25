@@ -823,22 +823,22 @@ mod tests {
     #[async_trait::async_trait]
     impl McpClientTrait for MockClient {
         fn get_info(&self) -> Option<&InitializeResult> {
-            todo!();
+            None
         }
 
         async fn list_resources(
             &self,
             _next_cursor: Option<String>,
         ) -> Result<ListResourcesResult, Error> {
-            todo!();
+            Err(Error::TransportClosed)
         }
 
         async fn read_resource(&self, _uri: &str) -> Result<ReadResourceResult, Error> {
-            todo!();
+            Err(Error::TransportClosed)
         }
 
         async fn list_tools(&self, _next_cursor: Option<String>) -> Result<ListToolsResult, Error> {
-            todo!();
+            Err(Error::TransportClosed)
         }
 
         async fn call_tool(&self, name: &str, _arguments: Value) -> Result<CallToolResult, Error> {
@@ -847,7 +847,7 @@ mod tests {
                     content: vec![],
                     is_error: None,
                 }),
-                _ => todo!(),
+                _ => Err(Error::TransportClosed),
             }
         }
 
@@ -855,7 +855,7 @@ mod tests {
             &self,
             _next_cursor: Option<String>,
         ) -> Result<ListPromptsResult, Error> {
-            todo!()
+            Err(Error::TransportClosed)
         }
 
         async fn get_prompt(
@@ -863,7 +863,7 @@ mod tests {
             _name: &str,
             _arguments: Value,
         ) -> Result<GetPromptResult, Error> {
-            todo!()
+            Err(Error::TransportClosed)
         }
 
         async fn subscribe(&self) -> mpsc::Receiver<ServerNotification> {
