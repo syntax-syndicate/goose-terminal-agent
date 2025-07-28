@@ -1,11 +1,12 @@
 use rmcp::{
     model::{
-        CallToolRequest, CallToolRequestParam, CallToolResult, ClientCapabilities, ClientInfo, ClientRequest,
-        GetPromptRequest, GetPromptRequestParam, GetPromptResult, Implementation, InitializeResult,
-        ListPromptsRequest, ListPromptsResult, ListResourcesRequest, ListResourcesResult, ListToolsRequest, ListToolsResult,
-        LoggingMessageNotification, LoggingMessageNotificationMethod, PaginatedRequestParam,
-        ProgressNotification, ProgressNotificationMethod, ProtocolVersion, ReadResourceRequest,
-        ReadResourceRequestParam, ReadResourceResult, ServerNotification, ServerResult,
+        CallToolRequest, CallToolRequestParam, CallToolResult, ClientCapabilities, ClientInfo,
+        ClientRequest, GetPromptRequest, GetPromptRequestParam, GetPromptResult, Implementation,
+        InitializeResult, ListPromptsRequest, ListPromptsResult, ListResourcesRequest,
+        ListResourcesResult, ListToolsRequest, ListToolsResult, LoggingMessageNotification,
+        LoggingMessageNotificationMethod, PaginatedRequestParam, ProgressNotification,
+        ProgressNotificationMethod, ProtocolVersion, ReadResourceRequest, ReadResourceRequestParam,
+        ReadResourceResult, ServerNotification, ServerResult,
     },
     service::{ClientInitializeError, PeerRequestOptions, RunningService},
     transport::IntoTransport,
