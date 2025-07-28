@@ -45,6 +45,21 @@ export default function ExtensionsSection({
     showEnvVars
   );
 
+  // Update deep link state when props change
+  useEffect(() => {
+    setDeepLinkConfigStateVar(deepLinkConfig);
+    setShowEnvVarsStateVar(showEnvVars);
+  }, [deepLinkConfig, showEnvVars]);
+
+  // Reset deep link state when component is re-mounted (via key prop changes)
+  useEffect(() => {
+    return () => {
+      // Cleanup function to reset state when component unmounts
+      setDeepLinkConfigStateVar(null);
+      setShowEnvVarsStateVar(null);
+    };
+  }, []);
+
   const fetchExtensions = useCallback(async () => {
     const extensionsList = await getExtensions(true); // Force refresh
     // Sort extensions by name to maintain consistent order
@@ -129,14 +144,11 @@ export default function ExtensionsSection({
     const extensionConfig = createExtensionConfig(formData);
     try {
       await activateExtension({ addToConfig: addExtension, extensionConfig: extensionConfig });
+      // Immediately refresh the extensions list after successful activation
+      await fetchExtensions();
     } catch (error) {
       console.error('Failed to activate extension:', error);
-      // Even if activation fails, we don't reopen the modal
-    } finally {
-      // Add a small delay to ensure backend has updated, then refresh the extensions list
-      setTimeout(async () => {
-        await fetchExtensions();
-      }, 500);
+      await fetchExtensions();
     }
   };
 
@@ -182,6 +194,11 @@ export default function ExtensionsSection({
     setIsModalOpen(false);
     setIsAddModalOpen(false);
     setSelectedExtension(null);
+
+    // Clear any navigation state that might be cached
+    if (window.history.state?.deepLinkConfig) {
+      window.history.replaceState({}, '', window.location.hash);
+    }
   };
 
   return (

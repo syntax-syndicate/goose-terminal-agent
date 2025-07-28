@@ -122,6 +122,8 @@ export const ConfigProvider: React.FC<ConfigProviderProps> = ({ children }) => {
         body: query,
       });
       await reloadConfig();
+      // Force refresh extensions list to ensure UI is updated
+      setExtensionsList([]);
     },
     [reloadConfig]
   );
@@ -130,6 +132,8 @@ export const ConfigProvider: React.FC<ConfigProviderProps> = ({ children }) => {
     async (name: string) => {
       await apiRemoveExtension({ path: { name: name } });
       await reloadConfig();
+      // Force refresh extensions list to ensure UI is updated
+      setExtensionsList([]);
     },
     [reloadConfig]
   );
