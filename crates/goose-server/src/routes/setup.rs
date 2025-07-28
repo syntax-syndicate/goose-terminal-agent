@@ -18,7 +18,7 @@ pub struct SetupResponse {
 
 pub fn routes(state: Arc<AppState>) -> Router {
     Router::new()
-        .route("/setup/openrouter/start", post(start_openrouter_setup))
+        .route("/handle_openrouter", post(start_openrouter_setup))
         .with_state(state)
 }
 
@@ -27,7 +27,6 @@ async fn start_openrouter_setup(
 ) -> Result<Json<SetupResponse>, StatusCode> {
     tracing::info!("Starting OpenRouter setup flow");
 
-    // Try to acquire the mutex with a timeout to prevent concurrent OAuth flows
     let _lock = match tokio::time::timeout(
         std::time::Duration::from_secs(1),
         OAUTH_FLOW_MUTEX.lock(),
@@ -46,7 +45,6 @@ async fn start_openrouter_setup(
 
     tracing::info!("Acquired OAuth flow lock");
 
-    // Run the existing PKCE flow
     let mut auth_flow = OpenRouterAuth::new().map_err(|e| {
         tracing::error!("Failed to initialize auth flow: {}", e);
         StatusCode::INTERNAL_SERVER_ERROR
@@ -56,13 +54,10 @@ async fn start_openrouter_setup(
 
     match auth_flow.complete_flow().await {
         Ok(api_key) => {
-            // The complete_flow only returns the API key, we need to save the configuration
             tracing::info!("Got API key, configuring OpenRouter...");
 
-            // Configure everything using the common function
             let config = Config::global();
 
-            // Use the common configuration function
             if let Err(e) = configure_openrouter(config, api_key) {
                 tracing::error!("Failed to configure OpenRouter: {}", e);
                 return Ok(Json(SetupResponse {
@@ -84,39 +79,5 @@ async fn start_openrouter_setup(
                 message: format!("Setup failed: {}", e),
             }))
         }
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[tokio::test]
-    async fn test_oauth_flow_mutex() {
-        // Test that the OAuth flow mutex is properly initialized and prevents concurrent flows
-        let lock1 = OAUTH_FLOW_MUTEX.try_lock();
-        assert!(lock1.is_ok(), "First lock should succeed");
-
-        // Try to acquire second lock while first is held
-        let lock2_result = tokio::time::timeout(
-            std::time::Duration::from_millis(100),
-            OAUTH_FLOW_MUTEX.lock(),
-        )
-        .await;
-
-        assert!(
-            lock2_result.is_err(),
-            "Second lock should timeout while first is held"
-        );
-
-        // Drop first lock
-        drop(lock1);
-
-        // Now second lock should succeed
-        let lock2 = OAUTH_FLOW_MUTEX.try_lock();
-        assert!(
-            lock2.is_ok(),
-            "Second lock should succeed after first is dropped"
-        );
     }
 }

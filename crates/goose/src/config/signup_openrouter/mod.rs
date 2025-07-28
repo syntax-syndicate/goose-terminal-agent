@@ -38,21 +38,17 @@ struct TokenRequest {
 }
 
 impl PkceAuthFlow {
-    /// Create a new PKCE flow with generated verifier and challenge
     pub fn new() -> Result<Self> {
-        // Generate a random 128-character code verifier
         let code_verifier: String = rand::thread_rng()
             .sample_iter(&Alphanumeric)
             .take(128)
             .map(char::from)
             .collect();
 
-        // Create SHA256 hash of the verifier
         let mut hasher = Sha256::new();
         hasher.update(&code_verifier);
         let hash = hasher.finalize();
 
-        // Base64url encode the hash
         let code_challenge = URL_SAFE_NO_PAD.encode(hash);
 
         Ok(Self {
@@ -62,7 +58,6 @@ impl PkceAuthFlow {
         })
     }
 
-    /// Get the authorization URL to open in browser
     pub fn get_auth_url(&self) -> String {
         format!(
             "{}?callback_url={}&code_challenge={}&code_challenge_method=S256",
@@ -95,7 +90,6 @@ impl PkceAuthFlow {
         }
     }
 
-    /// Exchange authorization code for API key
     pub async fn exchange_code(&self, code: String) -> Result<String> {
         let client = Client::new();
 
@@ -135,26 +129,22 @@ impl PkceAuthFlow {
 
     /// Complete flow: open browser, wait for callback, exchange code
     pub async fn complete_flow(&mut self) -> Result<String> {
-        // Get the auth URL
         let auth_url = self.get_auth_url();
 
         println!("Opening browser for authentication...");
         eprintln!("Auth URL: {}", auth_url);
 
-        // Open browser
         if let Err(e) = webbrowser::open(&auth_url) {
             eprintln!("Failed to open browser automatically: {}", e);
             println!("Please open this URL manually: {}", auth_url);
         }
 
-        // Start server and wait for callback
         println!("Waiting for authentication callback...");
         let code = self.start_server().await?;
 
         println!("Authorization code received. Exchanging for API key...");
         eprintln!("Received code: {}", code);
 
-        // Exchange code for API key
         let api_key = self.exchange_code(code).await?;
 
         // Shutdown the server if it's still running
@@ -166,7 +156,6 @@ impl PkceAuthFlow {
     }
 }
 
-// Re-export for external use
 pub use self::PkceAuthFlow as OpenRouterAuth;
 
 use crate::config::Config;
@@ -180,19 +169,12 @@ const OPENROUTER_EDITOR_MODEL: &str = "morph/morph-v2";
 /// Configure OpenRouter settings after successful authentication
 /// This sets up the provider, models, and other related configuration
 pub fn configure_openrouter(config: &Config, api_key: String) -> Result<()> {
-    // Store API key securely
     config.set_secret("OPENROUTER_API_KEY", Value::String(api_key))?;
-
-    // Set provider
     config.set_param("GOOSE_PROVIDER", Value::String("openrouter".to_string()))?;
-
-    // Set main model
     config.set_param(
         "GOOSE_MODEL",
         Value::String(OPENROUTER_DEFAULT_MODEL.to_string()),
     )?;
-
-    // Set lead model for lead/worker pattern
     config.set_param(
         "GOOSE_LEAD_MODEL",
         Value::String(OPENROUTER_LEAD_MODEL.to_string()),
@@ -201,8 +183,6 @@ pub fn configure_openrouter(config: &Config, api_key: String) -> Result<()> {
         "GOOSE_LEAD_PROVIDER",
         Value::String("openrouter".to_string()),
     )?;
-
-    // Set editor model
     config.set_param(
         "GOOSE_EDITOR_MODEL",
         Value::String(OPENROUTER_EDITOR_MODEL.to_string()),

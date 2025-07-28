@@ -6,7 +6,7 @@ export interface OpenRouterSetupStatus {
 export async function startOpenRouterSetup(): Promise<{ success: boolean; message: string }> {
   try {
     const baseUrl = `${window.appConfig.get('GOOSE_API_HOST')}:${window.appConfig.get('GOOSE_PORT')}`;
-    const response = await fetch(`${baseUrl}/setup/openrouter/start`, {
+    const response = await fetch(`${baseUrl}/handle_openrouter`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
