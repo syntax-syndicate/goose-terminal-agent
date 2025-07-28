@@ -55,7 +55,7 @@ print("✅ API key generated!")
 print("📤 Sending email via SendGrid...")
 sg = SendGridAPIClient(SENDGRID_API_KEY)
 
-from_email = "Goose Team <onboarding@goosecredits.xyz>"  # ✅ Use your verified domain here
+from_email = "Goose Team <goose@opensource.block.xyz>"  
 subject = "🎉 Your Goose Contributor API Key"
 html_content = f"""
     <p>Thanks for contributing to the Goose Recipe Cookbook!</p>
