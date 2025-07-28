@@ -6,9 +6,15 @@ use axum::{
     routing::get,
     Router,
 };
+use include_dir::{include_dir, Dir};
+use minijinja::{context, Environment};
 use serde::Deserialize;
 use std::net::SocketAddr;
 use tokio::sync::oneshot;
+
+// Embed the HTML templates at compile time
+static TEMPLATES_DIR: Dir =
+    include_dir!("$CARGO_MANIFEST_DIR/src/config/signup_openrouter/templates");
 
 #[derive(Debug, Deserialize)]
 struct CallbackQuery {
@@ -47,64 +53,18 @@ async fn handle_callback(
 ) -> impl IntoResponse {
     // Check for error first
     if let Some(error) = params.error {
-        return (
-            StatusCode::BAD_REQUEST,
-            Html(format!(
-                r#"
-                <!DOCTYPE html>
-                <html>
-                <head>
-                    <title>Authentication Failed</title>
-                    <style>
-                        body {{
-                            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-                            display: flex;
-                            justify-content: center;
-                            align-items: center;
-                            height: 100vh;
-                            margin: 0;
-                            background-color: #f5f5f5;
-                        }}
-                        .container {{
-                            text-align: center;
-                            padding: 40px;
-                            background: white;
-                            border-radius: 8px;
-                            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-                            max-width: 500px;
-                        }}
-                        h1 {{
-                            color: #d32f2f;
-                            margin-bottom: 20px;
-                        }}
-                        p {{
-                            color: #666;
-                            line-height: 1.6;
-                        }}
-                        .error {{
-                            background-color: #ffebee;
-                            padding: 10px;
-                            border-radius: 4px;
-                            margin-top: 20px;
-                            color: #c62828;
-                            font-family: monospace;
-                            font-size: 14px;
-                        }}
-                    </style>
-                </head>
-                <body>
-                    <div class="container">
-                        <h1>❌ Authentication Failed</h1>
-                        <p>There was an error during the authentication process.</p>
-                        <div class="error">{}</div>
-                        <p>Please close this tab and try again.</p>
-                    </div>
-                </body>
-                </html>
-                "#,
-                html_escape::encode_text(&error)
-            )),
-        );
+        let mut env = Environment::new();
+        let template_content = TEMPLATES_DIR
+            .get_file("error.html")
+            .expect("error.html template not found")
+            .contents_utf8()
+            .expect("error.html is not valid UTF-8");
+
+        env.add_template("error", template_content).unwrap();
+        let tmpl = env.get_template("error").unwrap();
+        let rendered = tmpl.render(context! { error => error }).unwrap();
+
+        return (StatusCode::BAD_REQUEST, Html(rendered));
     }
 
     // Extract the code
@@ -115,101 +75,21 @@ async fn handle_callback(
             let _ = tx.send(code);
         }
 
-        return (
-            StatusCode::OK,
-            Html(r#"
-                <!DOCTYPE html>
-                <html>
-                <head>
-                    <title>Authentication Successful</title>
-                    <style>
-                        body {
-                            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-                            display: flex;
-                            justify-content: center;
-                            align-items: center;
-                            height: 100vh;
-                            margin: 0;
-                            background-color: #f5f5f5;
-                        }
-                        .container {
-                            text-align: center;
-                            padding: 40px;
-                            background: white;
-                            border-radius: 8px;
-                            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-                            max-width: 500px;
-                        }
-                        h1 {
-                            color: #4caf50;
-                            margin-bottom: 20px;
-                        }
-                        p {
-                            color: #666;
-                            line-height: 1.6;
-                        }
-                        .checkmark {
-                            font-size: 48px;
-                            margin-bottom: 20px;
-                        }
-                    </style>
-                </head>
-                <body>
-                    <div class="container">
-                        <div class="checkmark">✅</div>
-                        <h1>Authentication Successful!</h1>
-                        <p>You have successfully authenticated with OpenRouter.</p>
-                        <p>You can now close this tab and return to your terminal.</p>
-                    </div>
-                </body>
-                </html>
-            "#.to_string()),
-        );
+        let success_html = TEMPLATES_DIR
+            .get_file("success.html")
+            .expect("success.html template not found")
+            .contents_utf8()
+            .expect("success.html is not valid UTF-8");
+
+        return (StatusCode::OK, Html(success_html.to_string()));
     }
 
     // No code parameter
-    (
-        StatusCode::BAD_REQUEST,
-        Html(r#"
-            <!DOCTYPE html>
-            <html>
-            <head>
-                <title>Invalid Request</title>
-                <style>
-                    body {
-                        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-                        display: flex;
-                        justify-content: center;
-                        align-items: center;
-                        height: 100vh;
-                        margin: 0;
-                        background-color: #f5f5f5;
-                    }
-                    .container {
-                        text-align: center;
-                        padding: 40px;
-                        background: white;
-                        border-radius: 8px;
-                        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-                        max-width: 500px;
-                    }
-                    h1 {
-                        color: #ff9800;
-                        margin-bottom: 20px;
-                    }
-                    p {
-                        color: #666;
-                    }
-                </style>
-            </head>
-            <body>
-                <div class="container">
-                    <h1>⚠️ Invalid Request</h1>
-                    <p>This doesn't appear to be a valid authentication callback.</p>
-                    <p>Please close this tab and try the authentication process again.</p>
-                </div>
-            </body>
-            </html>
-        "#.to_string()),
-    )
+    let invalid_html = TEMPLATES_DIR
+        .get_file("invalid.html")
+        .expect("invalid.html template not found")
+        .contents_utf8()
+        .expect("invalid.html is not valid UTF-8");
+
+    (StatusCode::BAD_REQUEST, Html(invalid_html.to_string()))
 }
