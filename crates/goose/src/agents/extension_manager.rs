@@ -10,6 +10,7 @@ use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 use std::sync::LazyLock;
 use std::time::Duration;
+use tempfile::tempdir;
 use tokio::process::Command;
 use tokio::sync::Mutex;
 use tokio::task;
@@ -37,6 +38,7 @@ pub struct ExtensionManager {
     clients: HashMap<String, McpClientBox>,
     instructions: HashMap<String, String>,
     resource_capable_extensions: HashSet<String>,
+    temp_dirs: HashMap<String, tempfile::TempDir>,
 }
 
 /// A flattened representation of a resource used by the agent to prepare inference
@@ -107,6 +109,7 @@ impl ExtensionManager {
             clients: HashMap::new(),
             instructions: HashMap::new(),
             resource_capable_extensions: HashSet::new(),
+            temp_dirs: HashMap::new(),
         }
     }
 
@@ -258,6 +261,45 @@ impl ExtensionManager {
                     .await?,
                 )
             }
+            ExtensionConfig::InlinePython {
+                name,
+                code,
+                timeout,
+                dependencies,
+                ..
+            } => {
+                let temp_dir = tempdir()?;
+                let file_path = temp_dir.path().join(format!("{}.py", name));
+                std::fs::write(&file_path, code)?;
+
+                let command = Command::new("uvx").configure(|command| {
+                    command.arg("--with").arg("mcp");
+
+                    dependencies.iter().flatten().for_each(|dep| {
+                        command.arg("--with").arg(dep);
+                    });
+
+                    command
+                        .arg("python")
+                        .arg(file_path.to_str().unwrap().to_string());
+                });
+                let transport = TokioChildProcess::new(command)
+                    .map_err(|e| ExtensionError::ClientCreationError(e.to_string()))?;
+
+                let client = Box::new(
+                    McpClient::connect(
+                        transport,
+                        Duration::from_secs(
+                            timeout.unwrap_or(crate::config::DEFAULT_EXTENSION_TIMEOUT),
+                        ),
+                    )
+                    .await?,
+                );
+
+                self.temp_dirs.insert(sanitized_name.clone(), temp_dir);
+
+                client
+            }
             _ => unreachable!(),
         };
 
@@ -297,6 +339,7 @@ impl ExtensionManager {
         self.clients.remove(&sanitized_name);
         self.instructions.remove(&sanitized_name);
         self.resource_capable_extensions.remove(&sanitized_name);
+        self.temp_dirs.remove(&sanitized_name);
         Ok(())
     }
 
@@ -752,8 +795,11 @@ impl ExtensionManager {
                     }
                     | ExtensionConfig::Stdio {
                         description, name, ..
+                    }
+                    | ExtensionConfig::InlinePython {
+                        description, name, ..
                     } => {
-                        // For SSE/StreamableHttp/Stdio, use description if available
+                        // For SSE/StreamableHttp/Stdio/InlinePython, use description if available
                         description
                             .as_ref()
                             .map(|s| s.to_string())

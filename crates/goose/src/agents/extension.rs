@@ -25,6 +25,8 @@ pub enum ExtensionError {
     SetupError(String),
     #[error("Join error occurred during task execution: {0}")]
     TaskJoinError(#[from] tokio::task::JoinError),
+    #[error("IO error: {0}")]
+    IoError(#[from] std::io::Error),
 
     #[error("Failed to create MCP client: {0}")]
     ClientCreationError(String),
@@ -211,6 +213,21 @@ pub enum ExtensionConfig {
         #[serde(default)]
         bundled: Option<bool>,
     },
+    /// Inline Python code that will be executed using uvx
+    #[serde(rename = "inline_python")]
+    InlinePython {
+        /// The name used to identify this extension
+        name: String,
+        /// The Python code to execute
+        code: String,
+        /// Description of what the extension does
+        description: Option<String>,
+        /// Timeout in seconds
+        timeout: Option<u64>,
+        /// Python package dependencies required by this extension
+        #[serde(default)]
+        dependencies: Option<Vec<String>>,
+    },
 }
 
 impl Default for ExtensionConfig {
@@ -274,6 +291,21 @@ impl ExtensionConfig {
         }
     }
 
+    pub fn inline_python<S: Into<String>, T: Into<u64>>(
+        name: S,
+        code: S,
+        description: S,
+        timeout: T,
+    ) -> Self {
+        Self::InlinePython {
+            name: name.into(),
+            code: code.into(),
+            description: Some(description.into()),
+            timeout: Some(timeout.into()),
+            dependencies: None,
+        }
+    }
+
     pub fn with_args<I, S>(self, args: I) -> Self
     where
         I: IntoIterator<Item = S>,
@@ -316,6 +348,7 @@ impl ExtensionConfig {
             Self::Stdio { name, .. } => name,
             Self::Builtin { name, .. } => name,
             Self::Frontend { name, .. } => name,
+            Self::InlinePython { name, .. } => name,
         }
         .to_string()
     }
@@ -336,6 +369,9 @@ impl std::fmt::Display for ExtensionConfig {
             ExtensionConfig::Builtin { name, .. } => write!(f, "Builtin({})", name),
             ExtensionConfig::Frontend { name, tools, .. } => {
                 write!(f, "Frontend({}: {} tools)", name, tools.len())
+            }
+            ExtensionConfig::InlinePython { name, code, .. } => {
+                write!(f, "InlinePython({}: {} chars)", name, code.len())
             }
         }
     }
