@@ -279,9 +279,7 @@ impl ExtensionManager {
                         command.arg("--with").arg(dep);
                     });
 
-                    command
-                        .arg("python")
-                        .arg(file_path.to_str().unwrap().to_string());
+                    command.arg("python").arg(file_path.to_str().unwrap());
                 });
                 let transport = TokioChildProcess::new(command)
                     .map_err(|e| ExtensionError::ClientCreationError(e.to_string()))?;
