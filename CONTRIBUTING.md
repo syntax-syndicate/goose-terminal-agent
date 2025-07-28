@@ -15,6 +15,17 @@ on the App, you will also need to [install node and npm][nvm] - we recommend thr
 
 We provide a shortcut to standard commands using [just][just] in our `justfile`.
 
+### Windows Subsystem for Linux
+
+For WSL users, you might need to install `build-essential` and `libxcb` otherwise you might run into `cc` linking errors (cc stands for C Compiler).
+Install them by running these commands:
+
+```
+sudo apt update                   # Refreshes package list (no installs yet)
+sudo apt install build-essential  # build-essential is a package that installs all core tools
+sudo apt install libxcb1-dev      # libxcb1-dev is the development package for the X C Binding (XCB) library on Linux
+```
+
 ## Getting Started
 
 ### Rust
@@ -44,11 +55,13 @@ And then once you have a connection to an LLM provider working, you can run a se
 ```
 
 These same commands can be recompiled and immediately run using `cargo run -p goose-cli` for iteration.
-As you make changes to the rust code, you can try it out on the CLI, or also run checks and tests:
+As you make changes to the rust code, you can try it out on the CLI, or also run checks, tests, and linter:
 
 ```
 cargo check  # do your changes compile
-cargo test  # do the tests pass with your changes.
+cargo test  # do the tests pass with your changes
+cargo fmt   # format your code
+cargo clippy  # run the linter
 ```
 
 ### Node
@@ -64,6 +77,21 @@ You should see the app open a window, and drop you into first time setup. When y
 you can talk to goose!
 
 You can now make changes in the code in ui/desktop to iterate on the GUI half of goose.
+
+### Regenerating the OpenAPI schema
+
+The file `ui/desktop/openapi.json` is automatically generated during the build.
+It is written by the `generate_schema` binary in `crates/goose-server`.
+If you need to update the spec without starting the UI, run:
+
+```
+just generate-openapi
+```
+
+This command regenerates `ui/desktop/openapi.json` and then runs the UI's
+`generate-api` script to rebuild the TypeScript client from that spec.
+
+Changes to the API should be made in the Rust source under `crates/goose-server/src/`.
 
 ## Creating a fork
 
