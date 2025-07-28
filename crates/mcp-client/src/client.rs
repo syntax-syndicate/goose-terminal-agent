@@ -1,15 +1,15 @@
 use rmcp::{
     model::{
-        CallToolRequestParam, CallToolResult, ClientCapabilities, ClientInfo,
-        GetPromptRequestParam, GetPromptResult, Implementation, InitializeResult,
-        ListPromptsResult, ListResourcesResult, ListToolsResult, LoggingMessageNotification,
-        LoggingMessageNotificationMethod, PaginatedRequestParam, ProgressNotification,
-        ProgressNotificationMethod, ProtocolVersion, ReadResourceRequestParam, ReadResourceResult,
-        ServerNotification,
+        CallToolRequest, CallToolRequestParam, CallToolResult, ClientCapabilities, ClientInfo, ClientRequest,
+        GetPromptRequest, GetPromptRequestParam, GetPromptResult, Implementation, InitializeResult,
+        ListPromptsRequest, ListPromptsResult, ListResourcesRequest, ListResourcesResult, ListToolsRequest, ListToolsResult,
+        LoggingMessageNotification, LoggingMessageNotificationMethod, PaginatedRequestParam,
+        ProgressNotification, ProgressNotificationMethod, ProtocolVersion, ReadResourceRequest,
+        ReadResourceRequestParam, ReadResourceResult, ServerNotification, ServerResult,
     },
-    service::{ClientInitializeError, RunningService},
+    service::{ClientInitializeError, PeerRequestOptions, RunningService},
     transport::IntoTransport,
-    ClientHandler, RoleClient, ServiceExt,
+    ClientHandler, RoleClient, ServiceError, ServiceExt,
 };
 use serde_json::Value;
 use std::sync::Arc;
@@ -114,12 +114,13 @@ pub struct McpClient {
     client: Mutex<RunningService<RoleClient, GooseClient>>,
     notification_subscribers: Arc<Mutex<Vec<mpsc::Sender<ServerNotification>>>>,
     server_info: Option<InitializeResult>,
+    timeout: std::time::Duration,
 }
 
 impl McpClient {
     pub async fn connect<T, E, A>(
         transport: T,
-        _timeout: std::time::Duration, // TODO
+        timeout: std::time::Duration,
     ) -> Result<Self, ClientInitializeError<E>>
     where
         T: IntoTransport<RoleClient, E, A>,
@@ -137,7 +138,15 @@ impl McpClient {
             client: Mutex::new(client),
             notification_subscribers,
             server_info,
+            timeout,
         })
+    }
+
+    fn get_request_options(&self) -> PeerRequestOptions {
+        PeerRequestOptions {
+            timeout: Some(self.timeout),
+            meta: None,
+        }
     }
 }
 
@@ -148,29 +157,71 @@ impl McpClientTrait for McpClient {
     }
 
     async fn list_resources(&self, cursor: Option<String>) -> Result<ListResourcesResult, Error> {
-        self.client
+        let res = self
+            .client
             .lock()
             .await
-            .list_resources(Some(PaginatedRequestParam { cursor }))
-            .await
+            .send_request_with_option(
+                ClientRequest::ListResourcesRequest(ListResourcesRequest {
+                    params: Some(PaginatedRequestParam { cursor }),
+                    method: Default::default(),
+                    extensions: Default::default(),
+                }),
+                self.get_request_options(),
+            )
+            .await?
+            .await_response()
+            .await?;
+        match res {
+            ServerResult::ListResourcesResult(result) => Ok(result),
+            _ => Err(ServiceError::UnexpectedResponse),
+        }
     }
 
     async fn read_resource(&self, uri: &str) -> Result<ReadResourceResult, Error> {
-        self.client
+        let res = self
+            .client
             .lock()
             .await
-            .read_resource(ReadResourceRequestParam {
-                uri: uri.to_string(),
-            })
-            .await
+            .send_request_with_option(
+                ClientRequest::ReadResourceRequest(ReadResourceRequest {
+                    params: ReadResourceRequestParam {
+                        uri: uri.to_string(),
+                    },
+                    method: Default::default(),
+                    extensions: Default::default(),
+                }),
+                self.get_request_options(),
+            )
+            .await?
+            .await_response()
+            .await?;
+        match res {
+            ServerResult::ReadResourceResult(result) => Ok(result),
+            _ => Err(ServiceError::UnexpectedResponse),
+        }
     }
 
     async fn list_tools(&self, cursor: Option<String>) -> Result<ListToolsResult, Error> {
-        self.client
+        let res = self
+            .client
             .lock()
             .await
-            .list_tools(Some(PaginatedRequestParam { cursor }))
-            .await
+            .send_request_with_option(
+                ClientRequest::ListToolsRequest(ListToolsRequest {
+                    params: Some(PaginatedRequestParam { cursor }),
+                    method: Default::default(),
+                    extensions: Default::default(),
+                }),
+                self.get_request_options(),
+            )
+            .await?
+            .await_response()
+            .await?;
+        match res {
+            ServerResult::ListToolsResult(result) => Ok(result),
+            _ => Err(ServiceError::UnexpectedResponse),
+        }
     }
 
     async fn call_tool(&self, name: &str, arguments: Value) -> Result<CallToolResult, Error> {
@@ -178,22 +229,50 @@ impl McpClientTrait for McpClient {
             Value::Object(map) => Some(map),
             _ => None,
         };
-        self.client
+        let res = self
+            .client
             .lock()
             .await
-            .call_tool(CallToolRequestParam {
-                name: name.to_string().into(),
-                arguments,
-            })
-            .await
+            .send_request_with_option(
+                ClientRequest::CallToolRequest(CallToolRequest {
+                    params: CallToolRequestParam {
+                        name: name.to_string().into(),
+                        arguments,
+                    },
+                    method: Default::default(),
+                    extensions: Default::default(),
+                }),
+                self.get_request_options(),
+            )
+            .await?
+            .await_response()
+            .await?;
+        match res {
+            ServerResult::CallToolResult(result) => Ok(result),
+            _ => Err(ServiceError::UnexpectedResponse),
+        }
     }
 
     async fn list_prompts(&self, cursor: Option<String>) -> Result<ListPromptsResult, Error> {
-        self.client
+        let res = self
+            .client
             .lock()
             .await
-            .list_prompts(Some(PaginatedRequestParam { cursor }))
-            .await
+            .send_request_with_option(
+                ClientRequest::ListPromptsRequest(ListPromptsRequest {
+                    params: Some(PaginatedRequestParam { cursor }),
+                    method: Default::default(),
+                    extensions: Default::default(),
+                }),
+                self.get_request_options(),
+            )
+            .await?
+            .await_response()
+            .await?;
+        match res {
+            ServerResult::ListPromptsResult(result) => Ok(result),
+            _ => Err(ServiceError::UnexpectedResponse),
+        }
     }
 
     async fn get_prompt(&self, name: &str, arguments: Value) -> Result<GetPromptResult, Error> {
@@ -201,14 +280,28 @@ impl McpClientTrait for McpClient {
             Value::Object(map) => Some(map),
             _ => None,
         };
-        self.client
+        let res = self
+            .client
             .lock()
             .await
-            .get_prompt(GetPromptRequestParam {
-                name: name.to_string(),
-                arguments,
-            })
-            .await
+            .send_request_with_option(
+                ClientRequest::GetPromptRequest(GetPromptRequest {
+                    params: GetPromptRequestParam {
+                        name: name.to_string(),
+                        arguments,
+                    },
+                    method: Default::default(),
+                    extensions: Default::default(),
+                }),
+                self.get_request_options(),
+            )
+            .await?
+            .await_response()
+            .await?;
+        match res {
+            ServerResult::GetPromptResult(result) => Ok(result),
+            _ => Err(ServiceError::UnexpectedResponse),
+        }
     }
 
     async fn subscribe(&self) -> mpsc::Receiver<ServerNotification> {
