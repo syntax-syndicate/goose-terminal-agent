@@ -7,6 +7,7 @@ use rmcp::transport::{
     ConfigureCommandExt, SseClientTransport, StreamableHttpClientTransport, TokioChildProcess,
 };
 use std::collections::{HashMap, HashSet};
+use std::process::Stdio;
 use std::sync::Arc;
 use std::sync::LazyLock;
 use std::time::Duration;
@@ -120,7 +121,6 @@ impl ExtensionManager {
     /// Add a new MCP extension based on the provided client type
     // TODO IMPORTANT need to ensure this times out if the extension command is broken!
     pub async fn add_extension(&mut self, config: ExtensionConfig) -> ExtensionResult<()> {
-        // TODO: not anyhow
         let config_name = config.key().to_string();
         let sanitized_name = normalize(config_name.clone());
 
@@ -183,8 +183,6 @@ impl ExtensionManager {
 
         let client: Box<dyn McpClientTrait> = match &config {
             ExtensionConfig::Sse { uri, timeout, .. } => {
-                // let all_envs: HashMap<String, String> =
-                //     merge_environments(envs, env_keys, &sanitized_name).await?;
                 let transport = SseClientTransport::start(uri.to_string())
                     .await
                     .map_err(|e| ExtensionError::ClientCreationError(e.to_string()))?;
@@ -199,7 +197,6 @@ impl ExtensionManager {
                 )
             }
             ExtensionConfig::StreamableHttp { uri, timeout, .. } => {
-                // let all_envs = merge_environments(envs, env_keys, &sanitized_name).await?;
                 let transport = StreamableHttpClientTransport::from_uri(uri.to_string());
                 Box::new(
                     McpClient::connect(
@@ -220,10 +217,11 @@ impl ExtensionManager {
                 ..
             } => {
                 let all_envs = merge_environments(envs, env_keys, &sanitized_name).await?;
-                let transport = TokioChildProcess::new(Command::new(cmd).configure(|command| {
-                    command.args(args).envs(all_envs);
-                }))
-                .map_err(|e| ExtensionError::ClientCreationError(e.to_string()))?;
+                let command = Command::new(cmd).configure(|command| {
+                    command.args(args).envs(all_envs).stderr(Stdio::piped());
+                });
+                let transport = TokioChildProcess::new(command)
+                    .map_err(|e| ExtensionError::ClientCreationError(e.to_string()))?;
                 Box::new(
                     McpClient::connect(
                         transport,

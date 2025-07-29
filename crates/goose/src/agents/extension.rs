@@ -32,11 +32,8 @@ pub enum ExtensionError {
     ClientCreationError(String),
 }
 
-impl<T> From<ClientInitializeError<T>> for ExtensionError
-where
-    T: std::fmt::Display + std::fmt::Debug + Send + Sync + 'static,
-{
-    fn from(err: ClientInitializeError<T>) -> Self {
+impl From<ClientInitializeError> for ExtensionError {
+    fn from(err: ClientInitializeError) -> Self {
         ExtensionError::ClientCreationError(err.to_string())
     }
 }

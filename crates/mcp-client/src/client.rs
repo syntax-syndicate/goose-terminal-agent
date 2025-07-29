@@ -122,7 +122,7 @@ impl McpClient {
     pub async fn connect<T, E, A>(
         transport: T,
         timeout: std::time::Duration,
-    ) -> Result<Self, ClientInitializeError<E>>
+    ) -> Result<Self, ClientInitializeError>
     where
         T: IntoTransport<RoleClient, E, A>,
         E: std::error::Error + From<std::io::Error> + Send + Sync + 'static,
