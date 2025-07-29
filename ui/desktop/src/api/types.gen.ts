@@ -9,9 +9,7 @@ export type AddSubRecipesResponse = {
 };
 
 export type Annotations = {
-    audience?: Array<{
-        [key: string]: unknown;
-    }>;
+    audience?: Array<Role>;
     priority?: number;
     timestamp?: string;
 };
@@ -43,11 +41,20 @@ export type ConfigResponse = {
 };
 
 export type Content = {
-    annotations?: {
-        [key: string]: unknown;
-    } | {
-        [key: string]: unknown;
-    };
+    text: string;
+    type: string;
+} | {
+    data: string;
+    mimeType: string;
+    type: string;
+} | {
+    resource: ResourceContents;
+    type: string;
+} | {
+    annotations?: Annotations;
+    data: string;
+    mimeType: string;
+    type: string;
 };
 
 export type ContextLengthExceeded = {
@@ -111,14 +118,8 @@ export type DecodeRecipeResponse = {
 };
 
 export type EmbeddedResource = {
-    annotations?: {
-        [key: string]: unknown;
-    } | {
-        [key: string]: unknown;
-    };
-    resource: {
-        [key: string]: unknown;
-    };
+    annotations?: Annotations;
+    resource: ResourceContents;
 };
 
 export type EncodeRecipeRequest = {
@@ -264,11 +265,7 @@ export type FrontendToolRequest = {
 };
 
 export type ImageContent = {
-    annotations?: {
-        [key: string]: unknown;
-    } | {
-        [key: string]: unknown;
-    };
+    annotations?: Annotations;
     data: string;
     mimeType: string;
 };
@@ -682,11 +679,7 @@ export type SummarizationRequested = {
 };
 
 export type TextContent = {
-    annotations?: {
-        [key: string]: unknown;
-    } | {
-        [key: string]: unknown;
-    };
+    annotations?: Annotations;
     text: string;
 };
 
@@ -696,11 +689,7 @@ export type ThinkingContent = {
 };
 
 export type Tool = {
-    annotations?: {
-        [key: string]: unknown;
-    } | {
-        [key: string]: unknown;
-    };
+    annotations?: ToolAnnotations;
     description?: string;
     inputSchema: {
         [key: string]: unknown;
