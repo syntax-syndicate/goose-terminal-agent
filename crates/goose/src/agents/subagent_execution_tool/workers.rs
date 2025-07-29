@@ -11,7 +11,8 @@ async fn receive_task(state: &SharedState) -> Option<Task> {
 pub fn spawn_worker(
     state: Arc<SharedState>,
     worker_id: usize,
-    task_config: TaskConfig) -> tokio::task::JoinHandle<()> {
+    task_config: TaskConfig,
+) -> tokio::task::JoinHandle<()> {
     state.increment_active_workers();
 
     tokio::spawn(async move {

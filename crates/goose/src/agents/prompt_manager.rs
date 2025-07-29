@@ -69,7 +69,8 @@ impl PromptManager {
         frontend_instructions: Option<String>,
         suggest_disable_extensions_prompt: Value,
         model_name: Option<&str>,
-        tool_selection_strategy: Option<RouterToolSelectionStrategy>) -> String {
+        tool_selection_strategy: Option<RouterToolSelectionStrategy>,
+    ) -> String {
         let mut context: HashMap<&str, Value> = HashMap::new();
         let mut extensions_info = extensions_info.clone();
 
@@ -78,7 +79,8 @@ impl PromptManager {
             extensions_info.push(ExtensionInfo::new(
                 "frontend",
                 &frontend_instructions,
-                false));
+                false,
+            ));
         }
 
         context.insert("extensions", serde_json::to_value(extensions_info).unwrap());
@@ -87,28 +89,32 @@ impl PromptManager {
             Some(RouterToolSelectionStrategy::Vector) => {
                 context.insert(
                     "tool_selection_strategy",
-                    Value::String(vector_search_tool_prompt()));
+                    Value::String(vector_search_tool_prompt()),
+                );
             }
             Some(RouterToolSelectionStrategy::Llm) => {
                 context.insert(
                     "tool_selection_strategy",
-                    Value::String(llm_search_tool_prompt()));
+                    Value::String(llm_search_tool_prompt()),
+                );
             }
             None => {}
         }
 
         context.insert(
             "current_date_time",
-            Value::String(self.current_date_timestamp.clone()));
+            Value::String(self.current_date_timestamp.clone()),
+        );
 
         // Add the suggestion about disabling extensions if flag is true
         context.insert(
             "suggest_disable",
-            Value::String(suggest_disable_extensions_prompt.to_string()));
+            Value::String(suggest_disable_extensions_prompt.to_string()),
+        );
 
         // First check the global store, and only if it's not available, fall back to the provided model_name
         let model_to_use: Option<String> =
-            get_current_model().or_else(|| model_name.map(|s| s.to_string()));
+            get_current_model().or_else(|| model_name.map(|s| s, None));
 
         // Conditionally load the override prompt or the global system prompt
         let base_prompt = if let Some(override_prompt) = &self.system_prompt_override {
@@ -136,7 +142,8 @@ impl PromptManager {
         if goose_mode == "chat" {
             system_prompt_extras.push(
                 "Right now you are in the chat only mode, no access to any tool use and system."
-                    .to_string());
+                    .to_string(),
+            );
         } else {
             system_prompt_extras
                 .push("Right now you are *NOT* in the chat only mode and have access to tool use and system.".to_string());

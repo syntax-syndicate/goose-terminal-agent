@@ -5,8 +5,10 @@ use crate::providers::utils::{
     sanitize_function_name, ImageFormat,
 };
 use anyhow::{anyhow, Error};
-use mcp_core::{ToolCall};
-use rmcp::model::{AnnotateAble, Content, RawContent, ResourceContents, Role, Tool, ErrorData, ErrorCode};
+use mcp_core::ToolCall;
+use rmcp::model::{
+    AnnotateAble, Content, ErrorCode, ErrorData, RawContent, ResourceContents, Role, Tool,
+};
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 
@@ -342,20 +344,21 @@ pub fn response_to_message(response: &Value) -> anyhow::Result<Message> {
                     let error = ErrorData::new(ErrorCode::RESOURCE_NOT_FOUND, format!(
                         "The provided function name '{}' had invalid characters, it must match this regex [a-zA-Z0-9_-]+",
                         function_name
-                    , None));
+                    ), None);
                     content.push(MessageContent::tool_request(id, Err(error)));
                 } else {
                     match safely_parse_json(&arguments_str) {
                         Ok(params) => {
                             content.push(MessageContent::tool_request(
                                 id,
-                                Ok(ToolCall::new(&function_name, params))));
+                                Ok(ToolCall::new(&function_name, params)),
+                            ));
                         }
                         Err(e) => {
                             let error = ErrorData::new(ErrorCode::INVALID_PARAMS, format!(
                                 "Could not interpret tool use parameters for id {}: {}. Raw arguments: '{}'",
                                 id, e, arguments_str
-                            , None));
+                            ), None);
                             content.push(MessageContent::tool_request(id, Err(error)));
                         }
                     }
@@ -367,7 +370,8 @@ pub fn response_to_message(response: &Value) -> anyhow::Result<Message> {
     Ok(Message::new(
         Role::Assistant,
         chrono::Utc::now().timestamp(),
-        content))
+        content,
+    ))
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -458,7 +462,8 @@ pub fn create_request(
     system: &str,
     messages: &[Message],
     tools: &[Tool],
-    image_format: &ImageFormat) -> anyhow::Result<Value, Error> {
+    image_format: &ImageFormat,
+) -> anyhow::Result<Value, Error> {
     if model_config.model_name.starts_with("o1-mini") {
         return Err(anyhow!(
             "o1-mini model is not currently supported since Goose uses tool calling and o1-mini does not support it. Please use o1 or o3 models instead."
@@ -479,11 +484,12 @@ pub fn create_request(
         match *last_part {
             "low" | "medium" | "high" => {
                 let base_name = parts[..parts.len() - 1].join("-");
-                (base_name, Some(last_part.to_string()))
+                (base_name, Some(last_part, None))
             }
             _ => (
                 model_config.model_name.to_string(),
-                Some("medium".to_string())),
+                Some("medium".to_string()),
+            ),
         }
     } else {
         // For non-O family models, use the model name as is and no reasoning effort
@@ -541,14 +547,16 @@ pub fn create_request(
         let max_completion_tokens = model_config.max_tokens.unwrap_or(8192);
         payload.as_object_mut().unwrap().insert(
             "max_tokens".to_string(),
-            json!(max_completion_tokens + budget_tokens));
+            json!(max_completion_tokens + budget_tokens),
+        );
 
         payload.as_object_mut().unwrap().insert(
             "thinking".to_string(),
             json!({
                 "type": "enabled",
                 "budget_tokens": budget_tokens
-            }));
+            }),
+        );
 
         // Temperature is fixed to 2 when using claude 3.7 thinking with Databricks
         payload
@@ -710,7 +718,8 @@ mod tests {
                     }
                 },
                 "required": ["input"]
-            }));
+            }),
+        );
 
         let spec = format_tools(&[tool])?;
 
@@ -727,7 +736,8 @@ mod tests {
             Message::user().with_text("How are you?"),
             Message::assistant().with_tool_request(
                 "tool1",
-                Ok(ToolCall::new("example", json!({"param1": "value1"})))),
+                Ok(ToolCall::new("example", json!({"param1": "value1"}))),
+            ),
         ];
 
         // Get the ID from the tool request to use in the response
@@ -760,7 +770,8 @@ mod tests {
     fn test_format_messages_multiple_content() -> anyhow::Result<()> {
         let mut messages = vec![Message::assistant().with_tool_request(
             "tool1",
-            Ok(ToolCall::new("example", json!({"param1": "value1"}))))];
+            Ok(ToolCall::new("example", json!({"param1": "value1"}))),
+        )];
 
         // Get the ID from the tool request to use in the response
         let tool_id = if let MessageContent::ToolRequest(request) = &messages[0].content[0] {
@@ -798,7 +809,8 @@ mod tests {
                     }
                 },
                 "required": ["input"]
-            }));
+            }),
+        );
 
         let tool2 = Tool::new(
             "test_tool",
@@ -812,7 +824,8 @@ mod tests {
                     }
                 },
                 "required": ["input"]
-            }));
+            }),
+        );
 
         let result = format_tools(&[tool1, tool2]);
         assert!(result.is_err());

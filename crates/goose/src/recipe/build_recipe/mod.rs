@@ -20,7 +20,8 @@ pub enum RecipeError {
 pub fn render_recipe_template<F>(
     recipe_file: RecipeFile,
     params: Vec<(String, String)>,
-    user_prompt_fn: Option<F>) -> Result<(String, Vec<String>)>
+    user_prompt_fn: Option<F>,
+) -> Result<(String, Vec<String>)>
 where
     F: Fn(&str, &str) -> Result<String, anyhow::Error>,
 {
@@ -48,7 +49,8 @@ where
 
 pub fn validate_recipe_parameters(
     recipe_file_content: &str,
-    recipe_dir_str: &str) -> Result<Option<Vec<RecipeParameter>>> {
+    recipe_dir_str: &str,
+) -> Result<Option<Vec<RecipeParameter>>> {
     let (raw_recipe, template_variables) =
         parse_recipe_content(recipe_file_content, recipe_dir_str.to_string())?;
     let recipe_parameters = raw_recipe.parameters;
@@ -60,7 +62,8 @@ pub fn validate_recipe_parameters(
 pub fn build_recipe_from_template<F>(
     recipe_file: RecipeFile,
     params: Vec<(String, String)>,
-    user_prompt_fn: Option<F>) -> Result<Recipe, RecipeError>
+    user_prompt_fn: Option<F>,
+) -> Result<Recipe, RecipeError>
 where
     F: Fn(&str, &str) -> Result<String, anyhow::Error>,
 {
@@ -92,7 +95,8 @@ where
 
 fn validate_parameters_in_template(
     recipe_parameters: &Option<Vec<RecipeParameter>>,
-    template_variables: &HashSet<String>) -> Result<()> {
+    template_variables: &HashSet<String>,
+) -> Result<()> {
     let mut template_variables = template_variables.clone();
     template_variables.remove(BUILT_IN_RECIPE_DIR_PARAM);
 
@@ -163,14 +167,16 @@ pub fn apply_values_to_parameters<F>(
     user_params: &[(String, String)],
     recipe_parameters: Option<Vec<RecipeParameter>>,
     recipe_parent_dir: &str,
-    user_prompt_fn: Option<F>) -> Result<(HashMap<String, String>, Vec<String>)>
+    user_prompt_fn: Option<F>,
+) -> Result<(HashMap<String, String>, Vec<String>)>
 where
     F: Fn(&str, &str) -> Result<String, anyhow::Error>,
 {
     let mut param_map: HashMap<String, String> = user_params.iter().cloned().collect();
     param_map.insert(
         BUILT_IN_RECIPE_DIR_PARAM.to_string(),
-        recipe_parent_dir.to_string());
+        recipe_parent_dir.to_string(),
+    );
     let mut missing_params: Vec<String> = Vec::new();
     for param in recipe_parameters.unwrap_or_default() {
         if !param_map.contains_key(&param.key) {

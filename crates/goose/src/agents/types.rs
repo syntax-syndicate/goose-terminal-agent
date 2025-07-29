@@ -1,6 +1,6 @@
 use crate::session;
-use rmcp::model::{Content, ErrorData};
 use rmcp::model::Tool;
+use rmcp::model::{Content, ErrorData};
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 use std::sync::Arc;
@@ -50,7 +50,8 @@ impl RetryConfig {
         if let Some(on_failure_timeout) = self.on_failure_timeout_seconds {
             if on_failure_timeout == 0 {
                 return Err(
-                    "on_failure_timeout_seconds must be greater than 0 if specified".to_string());
+                    "on_failure_timeout_seconds must be greater than 0 if specified".to_string(),
+                );
             }
         }
 

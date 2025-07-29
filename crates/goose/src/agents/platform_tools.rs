@@ -54,7 +54,8 @@ pub fn list_resources_tool() -> Tool {
             "properties": {
                 "extension_name": {"type": "string", "description": "Optional extension name"}
             }
-        }))
+        }),
+    )
     .annotate(ToolAnnotations {
         title: Some("List resources".to_string()),
         read_only_hint: Some(true),

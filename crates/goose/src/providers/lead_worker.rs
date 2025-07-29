@@ -35,7 +35,8 @@ impl LeadWorkerProvider {
     pub fn new(
         lead_provider: Arc<dyn Provider>,
         worker_provider: Arc<dyn Provider>,
-        lead_turns: Option<usize>) -> Self {
+        lead_turns: Option<usize>,
+    ) -> Self {
         Self {
             lead_provider,
             worker_provider,
@@ -62,7 +63,8 @@ impl LeadWorkerProvider {
         worker_provider: Arc<dyn Provider>,
         lead_turns: usize,
         failure_threshold: usize,
-        fallback_turns: usize) -> Self {
+        fallback_turns: usize,
+    ) -> Self {
         Self {
             lead_provider,
             worker_provider,
@@ -119,7 +121,8 @@ impl LeadWorkerProvider {
     /// Handle the result of a completion attempt and update failure tracking
     async fn handle_completion_result(
         &self,
-        result: &Result<(Message, ProviderUsage), ProviderError>) {
+        result: &Result<(Message, ProviderUsage), ProviderError>,
+    ) {
         match result {
             Ok((message, _usage)) => {
                 // Check for task-level failures in the response
@@ -327,7 +330,8 @@ impl Provider for LeadWorkerProvider {
         &self,
         system: &str,
         messages: &[Message],
-        tools: &[Tool]) -> Result<(Message, ProviderUsage), ProviderError> {
+        tools: &[Tool],
+    ) -> Result<(Message, ProviderUsage), ProviderError> {
         // Get the active provider
         let provider = self.get_active_provider().await;
 
@@ -436,7 +440,8 @@ impl Provider for LeadWorkerProvider {
             self.worker_provider.create_embeddings(texts).await
         } else {
             Err(ProviderError::ExecutionError(
-                "Neither lead nor worker provider supports embeddings".to_string()))
+                "Neither lead nor worker provider supports embeddings".to_string(),
+            ))
         }
     }
 
@@ -474,7 +479,8 @@ mod tests {
             &self,
             _system: &str,
             _messages: &[Message],
-            _tools: &[Tool]) -> Result<(Message, ProviderUsage), ProviderError> {
+            _tools: &[Tool],
+        ) -> Result<(Message, ProviderUsage), ProviderError> {
             Ok((
                 Message::new(
                     Role::Assistant,
@@ -483,8 +489,11 @@ mod tests {
                         RawTextContent {
                             text: format!("Response from {}", self.name),
                         }
-                        .no_annotation())]),
-                ProviderUsage::new(self.name.clone(), Usage::default())))
+                        .no_annotation(),
+                    )],
+                ),
+                ProviderUsage::new(self.name.clone(), Usage::default()),
+            ))
         }
     }
 
@@ -630,10 +639,12 @@ mod tests {
             &self,
             _system: &str,
             _messages: &[Message],
-            _tools: &[Tool]) -> Result<(Message, ProviderUsage), ProviderError> {
+            _tools: &[Tool],
+        ) -> Result<(Message, ProviderUsage), ProviderError> {
             if self.should_fail {
                 Err(ProviderError::ExecutionError(
-                    "Simulated failure".to_string()))
+                    "Simulated failure".to_string(),
+                ))
             } else {
                 Ok((
                     Message::new(
@@ -643,8 +654,11 @@ mod tests {
                             RawTextContent {
                                 text: format!("Response from {}", self.name),
                             }
-                            .no_annotation())]),
-                    ProviderUsage::new(self.name.clone(), Usage::default())))
+                            .no_annotation(),
+                        )],
+                    ),
+                    ProviderUsage::new(self.name.clone(), Usage::default()),
+                ))
             }
         }
     }

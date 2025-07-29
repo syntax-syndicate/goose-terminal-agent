@@ -38,7 +38,8 @@ impl TaskConfig {
                 env::var(GOOSE_SUBAGENT_MAX_TURNS_ENV_VAR)
                     .ok()
                     .and_then(|val| val.parse::<usize>().ok())
-                    .unwrap_or(DEFAULT_SUBAGENT_MAX_TURNS)),
+                    .unwrap_or(DEFAULT_SUBAGENT_MAX_TURNS),
+            ),
         }
     }
 

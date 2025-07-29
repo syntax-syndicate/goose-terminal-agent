@@ -6,7 +6,7 @@ use crate::providers::utils::{is_valid_function_name, sanitize_function_name};
 use anyhow::Result;
 use mcp_core::tool::ToolCall;
 use rand::{distributions::Alphanumeric, Rng};
-use rmcp::model::{AnnotateAble, RawContent, Role, Tool, ErrorData, ErrorCode};
+use rmcp::model::{AnnotateAble, ErrorCode, ErrorData, RawContent, Role, Tool};
 
 use serde_json::{json, Map, Value};
 use std::ops::Deref;
@@ -40,7 +40,8 @@ pub fn format_messages(messages: &[Message]) -> Vec<Value> {
                             let mut function_call_part = Map::new();
                             function_call_part.insert(
                                 "name".to_string(),
-                                json!(sanitize_function_name(&tool_call.name)));
+                                json!(sanitize_function_name(&tool_call.name)),
+                            );
                             if tool_call.arguments.is_object()
                                 && !tool_call.arguments.as_object().unwrap().is_empty()
                             {
@@ -93,7 +94,8 @@ pub fn format_messages(messages: &[Message]) -> Vec<Value> {
                                             raw_embedded_resource
                                                 .clone()
                                                 .no_annotation()
-                                                .get_text()),
+                                                .get_text(),
+                                        ),
                                         _ => None,
                                     })
                                     .collect::<Vec<_>>()
@@ -140,7 +142,8 @@ pub fn format_tools(tools: &[Tool]) -> Vec<Value> {
             {
                 parameters.insert(
                     "parameters".to_string(),
-                    process_map(tool_input_schema, None));
+                    process_map(tool_input_schema, None),
+                );
             }
             json!(parameters)
         })
@@ -239,7 +242,7 @@ pub fn response_to_message(response: Value) -> Result<Message> {
 
     for part in parts {
         if let Some(text) = part.get("text").and_then(|v| v.as_str()) {
-            content.push(MessageContent::text(text.to_string()));
+            content.push(MessageContent::text(text, None));
         } else if let Some(function_call) = part.get("functionCall") {
             let id: String = rand::thread_rng()
                 .sample_iter(&Alphanumeric)
@@ -261,7 +264,8 @@ pub fn response_to_message(response: Value) -> Result<Message> {
                 if let Some(params) = parameters {
                     content.push(MessageContent::tool_request(
                         id,
-                        Ok(ToolCall::new(&name, params.clone()))));
+                        Ok(ToolCall::new(&name, params.clone())),
+                    ));
                 }
             }
         }
@@ -300,16 +304,19 @@ pub fn create_request(
     model_config: &ModelConfig,
     system: &str,
     messages: &[Message],
-    tools: &[Tool]) -> Result<Value> {
+    tools: &[Tool],
+) -> Result<Value> {
     let mut payload = Map::new();
     payload.insert(
         "system_instruction".to_string(),
-        json!({"parts": [{"text": system}]}));
+        json!({"parts": [{"text": system}]}),
+    );
     payload.insert("contents".to_string(), json!(format_messages(messages)));
     if !tools.is_empty() {
         payload.insert(
             "tools".to_string(),
-            json!({"functionDeclarations": format_tools(tools)}));
+            json!({"functionDeclarations": format_tools(tools)}),
+        );
     }
     let mut generation_config = Map::new();
     if let Some(temp) = model_config.temperature {
@@ -340,7 +347,8 @@ mod tests {
         Message::new(
             Role::User,
             0,
-            vec![MessageContent::tool_request(id.to_string(), Ok(tool_call))])
+            vec![MessageContent::tool_request(id.to_string(), Ok(tool_call))],
+        )
     }
 
     fn set_up_tool_confirmation_message(id: &str, tool_call: ToolCall) -> Message {
@@ -351,7 +359,9 @@ mod tests {
                 id.to_string(),
                 tool_call.name.clone(),
                 tool_call.arguments.clone(),
-                Some("Goose would like to call the above tool. Allow? (y/n):".to_string()))])
+                Some("Goose would like to call the above tool. Allow? (y/n):".to_string()),
+            )],
+        )
     }
 
     fn set_up_tool_response_message(id: &str, tool_response: Vec<Content>) -> Message {
@@ -360,7 +370,9 @@ mod tests {
             0,
             vec![MessageContent::tool_response(
                 id.to_string(),
-                Ok(tool_response))])
+                Ok(tool_response),
+            )],
+        )
     }
 
     #[test]
@@ -401,7 +413,8 @@ mod tests {
             set_up_tool_request_message("id", ToolCall::new("tool_name", arguments.clone())),
             set_up_tool_confirmation_message(
                 "id2",
-                ToolCall::new("tool_name_2", arguments.clone())),
+                ToolCall::new("tool_name_2", arguments.clone()),
+            ),
         ];
         let payload = format_messages(&messages);
         assert_eq!(payload.len(), 1);
@@ -678,7 +691,8 @@ mod tests {
         let tools = vec![Tool::new(
             Cow::Borrowed("tool1"),
             Cow::Borrowed("description1"),
-            Arc::new(object(schema)))];
+            Arc::new(object(schema)),
+        )];
         let result = format_tools(&tools);
         assert_eq!(result.len(), 1);
         assert_eq!(result[0]["name"], "tool1");
@@ -733,7 +747,10 @@ mod tests {
         assert_eq!(message.role, Role::Assistant);
         assert_eq!(message.content.len(), 1);
         if let Err(error) = &message.content[0].as_tool_request().unwrap().tool_call {
-            assert!(matches!(error, mcp_core::ErrorData::new(ErrorCode::RESOURCE_NOT_FOUND, _, None, None)));
+            assert!(matches!(
+                error,
+                mcp_core::ErrorData::new(ErrorCode::RESOURCE_NOT_FOUND, _, None, None)
+            ));
         } else {
             panic!("Expected tool request error");
         }

@@ -101,7 +101,7 @@ mod tests {
         let sub_recipes = recipe_info.sub_recipes;
         let response = recipe_info.final_output_response;
 
-        assert_eq!(input_config.contents, Some("test_prompt".to_string()));
+        assert_eq!(input_config.contents, Some("test_prompt", None));
         assert_eq!(
             input_config.additional_system_prompt,
             Some("test_instructions my_value".to_string())
@@ -110,8 +110,8 @@ mod tests {
 
         assert!(settings.is_some());
         let settings = settings.unwrap();
-        assert_eq!(settings.goose_provider, Some("test_provider".to_string()));
-        assert_eq!(settings.goose_model, Some("test_model".to_string()));
+        assert_eq!(settings.goose_provider, Some("test_provider", None));
+        assert_eq!(settings.goose_model, Some("test_model", None));
         assert_eq!(settings.temperature, Some(0.7));
 
         assert!(sub_recipes.is_some());
@@ -165,7 +165,7 @@ mod tests {
         let sub_recipes = recipe_info.sub_recipes;
         let response = recipe_info.final_output_response;
 
-        assert_eq!(input_config.contents, Some("test_prompt".to_string()));
+        assert_eq!(input_config.contents, Some("test_prompt", None));
         assert_eq!(
             input_config.additional_system_prompt,
             Some("test_instructions my_value".to_string())
@@ -174,8 +174,8 @@ mod tests {
 
         assert!(settings.is_some());
         let settings = settings.unwrap();
-        assert_eq!(settings.goose_provider, Some("test_provider".to_string()));
-        assert_eq!(settings.goose_model, Some("test_model".to_string()));
+        assert_eq!(settings.goose_provider, Some("test_provider", None));
+        assert_eq!(settings.goose_model, Some("test_model", None));
         assert_eq!(settings.temperature, Some(0.7));
 
         assert!(sub_recipes.is_some());

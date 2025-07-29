@@ -133,7 +133,8 @@ impl GeminiCliProvider {
         &self,
         system: &str,
         messages: &[Message],
-        _tools: &[Tool]) -> Result<Vec<String>, ProviderError> {
+        _tools: &[Tool],
+    ) -> Result<Vec<String>, ProviderError> {
         // Create a simple prompt combining system + conversation
         let mut full_prompt = String::new();
 
@@ -186,7 +187,7 @@ impl GeminiCliProvider {
         let stdout = child
             .stdout
             .take()
-            .ok_or_else(|| ProviderError::RequestFailed("Failed to capture stdout".to_string()))?;
+            .ok_or_else(|| ProviderError::RequestFailed("Failed to capture stdout", None))?;
 
         let mut reader = BufReader::new(stdout);
         let mut lines = Vec::new();
@@ -237,13 +238,15 @@ impl GeminiCliProvider {
 
         if response_text.trim().is_empty() {
             return Err(ProviderError::RequestFailed(
-                "Empty response from gemini command".to_string()));
+                "Empty response from gemini command".to_string(),
+            ));
         }
 
         let message = Message::new(
             Role::Assistant,
             chrono::Utc::now().timestamp(),
-            vec![MessageContent::text(response_text)]);
+            vec![MessageContent::text(response_text)],
+        );
 
         let usage = Usage::default(); // No usage info available for gemini CLI
 
@@ -253,7 +256,8 @@ impl GeminiCliProvider {
     /// Generate a simple session description without calling subprocess
     fn generate_simple_session_description(
         &self,
-        messages: &[Message]) -> Result<(Message, ProviderUsage), ProviderError> {
+        messages: &[Message],
+    ) -> Result<(Message, ProviderUsage), ProviderError> {
         // Extract the first user message text
         let description = messages
             .iter()
@@ -283,13 +287,15 @@ impl GeminiCliProvider {
         let message = Message::new(
             Role::Assistant,
             chrono::Utc::now().timestamp(),
-            vec![MessageContent::text(description.clone())]);
+            vec![MessageContent::text(description.clone())],
+        );
 
         let usage = Usage::default();
 
         Ok((
             message,
-            ProviderUsage::new(self.model.model_name.clone(), usage)))
+            ProviderUsage::new(self.model.model_name.clone(), usage),
+        ))
     }
 }
 
@@ -320,7 +326,8 @@ impl Provider for GeminiCliProvider {
         &self,
         system: &str,
         messages: &[Message],
-        tools: &[Tool]) -> Result<(Message, ProviderUsage), ProviderError> {
+        tools: &[Tool],
+    ) -> Result<(Message, ProviderUsage), ProviderError> {
         // Check if this is a session description request (short system prompt asking for 4 words or less)
         if system.contains("four words or less") || system.contains("4 words or less") {
             return self.generate_simple_session_description(messages);
@@ -347,7 +354,8 @@ impl Provider for GeminiCliProvider {
 
         Ok((
             message,
-            ProviderUsage::new(self.model.model_name.clone(), usage)))
+            ProviderUsage::new(self.model.model_name.clone(), usage),
+        ))
     }
 }
 

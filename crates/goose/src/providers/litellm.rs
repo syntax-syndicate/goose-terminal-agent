@@ -165,10 +165,12 @@ impl Provider for LiteLLMProvider {
                     "LITELLM_BASE_PATH",
                     true,
                     false,
-                    Some("v1/chat/completions")),
+                    Some("v1/chat/completions"),
+                ),
                 ConfigKey::new("LITELLM_CUSTOM_HEADERS", false, true, None),
                 ConfigKey::new("LITELLM_TIMEOUT", false, false, Some("600")),
-            ])
+            ],
+        )
     }
 
     fn get_model_config(&self) -> ModelConfig {
@@ -180,13 +182,15 @@ impl Provider for LiteLLMProvider {
         &self,
         system: &str,
         messages: &[Message],
-        tools: &[Tool]) -> Result<(Message, ProviderUsage), ProviderError> {
+        tools: &[Tool],
+    ) -> Result<(Message, ProviderUsage), ProviderError> {
         let mut payload = super::formats::openai::create_request(
             &self.model,
             system,
             messages,
             tools,
-            &ImageFormat::OpenAi)?;
+            &ImageFormat::OpenAi,
+        )?;
 
         if self.supports_cache_control() {
             payload = update_request_for_cache_control(&payload);

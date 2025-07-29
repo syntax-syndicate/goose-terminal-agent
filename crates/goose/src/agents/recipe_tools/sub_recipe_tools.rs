@@ -52,7 +52,8 @@ fn extract_task_parameters(params: &Value) -> Vec<Value> {
 
 fn create_tasks_from_params(
     sub_recipe: &SubRecipe,
-    command_params: &[std::collections::HashMap<String, String>]) -> Vec<Task> {
+    command_params: &[std::collections::HashMap<String, String>],
+) -> Vec<Task> {
     let tasks: Vec<Task> = command_params
         .iter()
         .map(|task_command_param| {
@@ -91,7 +92,8 @@ fn create_task_execution_payload(tasks: &[Task], sub_recipe: &SubRecipe) -> Valu
 pub async fn create_sub_recipe_task(
     sub_recipe: &SubRecipe,
     params: Value,
-    tasks_manager: &TasksManager) -> Result<String> {
+    tasks_manager: &TasksManager,
+) -> Result<String> {
     let task_params_array = extract_task_parameters(&params);
     let command_params = prepare_command_params(sub_recipe, task_params_array.clone())?;
     let tasks = create_tasks_from_params(sub_recipe, &command_params);
@@ -104,7 +106,8 @@ pub async fn create_sub_recipe_task(
 }
 
 fn get_sub_recipe_parameter_definition(
-    sub_recipe: &SubRecipe) -> Result<Option<Vec<RecipeParameter>>> {
+    sub_recipe: &SubRecipe,
+) -> Result<Option<Vec<RecipeParameter>>> {
     let content = fs::read_to_string(sub_recipe.path.clone())
         .map_err(|e| anyhow::anyhow!("Failed to read recipe file {}: {}", sub_recipe.path, e))?;
     let recipe = Recipe::from_content(&content)?;
@@ -164,7 +167,8 @@ fn get_input_schema(sub_recipe: &SubRecipe) -> Result<Value> {
                 json!({
                     "type": param.input_type.to_string(),
                     "description": param.description.clone(),
-                }));
+                }),
+            );
             if !matches!(param.requirement, RecipeParameterRequirement::Optional) {
                 param_required.push(param.key);
             }

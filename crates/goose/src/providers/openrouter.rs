@@ -114,15 +114,16 @@ impl OpenRouterProvider {
             // Check for context length errors in the error message
             if error_code == 400 && error_message.contains("maximum context length") {
                 return Err(ProviderError::ContextLengthExceeded(
-                    error_message.to_string()));
+                    error_message.to_string(),
+                ));
             }
 
             // Return appropriate error based on the OpenRouter error code
             match error_code {
-                401 | 403 => return Err(ProviderError::Authentication(error_message.to_string())),
-                429 => return Err(ProviderError::RateLimitExceeded(error_message.to_string())),
-                500 | 503 => return Err(ProviderError::ServerError(error_message.to_string())),
-                _ => return Err(ProviderError::RequestFailed(error_message.to_string())),
+                401 | 403 => return Err(ProviderError::Authentication(error_message, None)),
+                429 => return Err(ProviderError::RateLimitExceeded(error_message, None)),
+                500 | 503 => return Err(ProviderError::ServerError(error_message, None)),
+                _ => return Err(ProviderError::RequestFailed(error_message, None)),
             }
         }
 
@@ -208,13 +209,15 @@ fn create_request_based_on_model(
     provider: &OpenRouterProvider,
     system: &str,
     messages: &[Message],
-    tools: &[Tool]) -> anyhow::Result<Value, Error> {
+    tools: &[Tool],
+) -> anyhow::Result<Value, Error> {
     let mut payload = create_request(
         &provider.model,
         system,
         messages,
         tools,
-        &super::utils::ImageFormat::OpenAi)?;
+        &super::utils::ImageFormat::OpenAi,
+    )?;
 
     if provider.supports_cache_control() {
         payload = update_request_for_anthropic(&payload);
@@ -239,8 +242,10 @@ impl Provider for OpenRouterProvider {
                     "OPENROUTER_HOST",
                     false,
                     false,
-                    Some("https://openrouter.ai")),
-            ])
+                    Some("https://openrouter.ai"),
+                ),
+            ],
+        )
     }
 
     fn get_model_config(&self) -> ModelConfig {
@@ -255,7 +260,8 @@ impl Provider for OpenRouterProvider {
         &self,
         system: &str,
         messages: &[Message],
-        tools: &[Tool]) -> Result<(Message, ProviderUsage), ProviderError> {
+        tools: &[Tool],
+    ) -> Result<(Message, ProviderUsage), ProviderError> {
         // Create the base payload
         let payload = create_request_based_on_model(self, system, messages, tools)?;
 

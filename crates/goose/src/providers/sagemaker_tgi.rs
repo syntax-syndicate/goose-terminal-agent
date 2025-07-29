@@ -45,7 +45,7 @@ impl SageMakerTgiProvider {
             if let Ok(map) = res {
                 map.into_iter()
                     .filter(|(key, _)| key.starts_with("AWS_"))
-                    .filter_map(|(key, value)| value.as_str().map(|s| (key, s.to_string())))
+                    .filter_map(|(key, value)| value.as_str().map(|s| (key, s, None)))
                     .for_each(|(key, s)| std::env::set_var(key, s));
             }
         };
@@ -60,7 +60,8 @@ impl SageMakerTgiProvider {
             aws_config
                 .credentials_provider()
                 .unwrap()
-                .provide_credentials())?;
+                .provide_credentials(),
+        )?;
 
         // Create client with longer timeout for model initialization
         let timeout_config = aws_config::timeout::TimeoutConfig::builder()
@@ -168,7 +169,7 @@ impl SageMakerTgiProvider {
         let response_body = response
             .body
             .as_ref()
-            .ok_or_else(|| ProviderError::RequestFailed("Empty response body".to_string()))?;
+            .ok_or_else(|| ProviderError::RequestFailed("Empty response body", None))?;
         let response_text = std::str::from_utf8(response_body.as_ref()).map_err(|e| {
             ProviderError::RequestFailed(format!("Failed to decode response: {}", e))
         })?;
@@ -182,11 +183,12 @@ impl SageMakerTgiProvider {
         // Handle standard TGI response: [{"generated_text": "..."}]
         let response_array = response
             .as_array()
-            .ok_or_else(|| ProviderError::RequestFailed("Expected array response".to_string()))?;
+            .ok_or_else(|| ProviderError::RequestFailed("Expected array response", None))?;
 
         if response_array.is_empty() {
             return Err(ProviderError::RequestFailed(
-                "Empty response array".to_string()));
+                "Empty response array".to_string(),
+            ));
         }
 
         let first_result = &response_array[0];
@@ -203,7 +205,8 @@ impl SageMakerTgiProvider {
         Ok(Message::new(
             Role::Assistant,
             Utc::now().timestamp(),
-            vec![MessageContent::text(clean_text)]))
+            vec![MessageContent::text(clean_text)],
+        ))
     }
 
     /// Strip HTML tags from text to ensure clean output
@@ -287,7 +290,8 @@ impl Provider for SageMakerTgiProvider {
         &self,
         system: &str,
         messages: &[Message],
-        tools: &[Tool]) -> Result<(Message, ProviderUsage), ProviderError> {
+        tools: &[Tool],
+    ) -> Result<(Message, ProviderUsage), ProviderError> {
         let model_name = &self.model.model_name;
 
         let request_payload = self.create_tgi_request(system, messages).map_err(|e| {
@@ -326,7 +330,8 @@ impl Provider for SageMakerTgiProvider {
                         &self.model,
                         &debug_payload,
                         &serde_json::to_value(&message).unwrap_or_default(),
-                        &usage);
+                        &usage,
+                    );
 
                     let provider_usage = ProviderUsage::new(model_name.to_string(), usage);
                     return Ok((message, provider_usage));

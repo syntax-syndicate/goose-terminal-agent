@@ -15,12 +15,14 @@ pub async fn process_task(
     task: &Task,
     task_execution_tracker: Arc<TaskExecutionTracker>,
     task_config: TaskConfig,
-    cancellation_token: CancellationToken) -> TaskResult {
+    cancellation_token: CancellationToken,
+) -> TaskResult {
     match get_task_result(
         task.clone(),
         task_execution_tracker,
         task_config,
-        cancellation_token)
+        cancellation_token,
+    )
     .await
     {
         Ok(data) => TaskResult {
@@ -42,14 +44,16 @@ async fn get_task_result(
     task: Task,
     task_execution_tracker: Arc<TaskExecutionTracker>,
     task_config: TaskConfig,
-    cancellation_token: CancellationToken) -> Result<Value, String> {
+    cancellation_token: CancellationToken,
+) -> Result<Value, String> {
     if task.task_type == "text_instruction" {
         // Handle text_instruction tasks using subagent system
         handle_text_instruction_task(
             task,
             task_execution_tracker,
             task_config,
-            cancellation_token)
+            cancellation_token,
+        )
         .await
     } else {
         // Handle sub_recipe tasks using command execution
@@ -59,7 +63,8 @@ async fn get_task_result(
             &output_identifier,
             &task.id,
             task_execution_tracker,
-            cancellation_token)
+            cancellation_token,
+        )
         .await?;
 
         if success {
@@ -74,7 +79,8 @@ async fn handle_text_instruction_task(
     task: Task,
     task_execution_tracker: Arc<TaskExecutionTracker>,
     task_config: TaskConfig,
-    cancellation_token: CancellationToken) -> Result<Value, String> {
+    cancellation_token: CancellationToken,
+) -> Result<Value, String> {
     let text_instruction = task
         .get_text_instruction()
         .ok_or_else(|| format!("Task {}: Missing text_instruction", task.id))?;
@@ -139,7 +145,8 @@ async fn run_command(
     output_identifier: &str,
     task_id: &str,
     task_execution_tracker: Arc<TaskExecutionTracker>,
-    cancellation_token: CancellationToken) -> Result<(String, String, bool), String> {
+    cancellation_token: CancellationToken,
+) -> Result<(String, String, bool), String> {
     let mut child = command
         .spawn()
         .map_err(|e| format!("Failed to spawn goose: {}", e))?;
@@ -152,13 +159,15 @@ async fn run_command(
         output_identifier,
         false,
         task_id,
-        task_execution_tracker.clone());
+        task_execution_tracker.clone(),
+    );
     let stderr_task = spawn_output_reader(
         stderr,
         output_identifier,
         true,
         task_id,
-        task_execution_tracker.clone());
+        task_execution_tracker.clone(),
+    );
 
     let result = tokio::select! {
         _ = cancellation_token.cancelled() => {
@@ -186,7 +195,8 @@ fn spawn_output_reader(
     output_identifier: &str,
     is_stderr: bool,
     task_id: &str,
-    task_execution_tracker: Arc<TaskExecutionTracker>) -> tokio::task::JoinHandle<String> {
+    task_execution_tracker: Arc<TaskExecutionTracker>,
+) -> tokio::task::JoinHandle<String> {
     let output_identifier = output_identifier.to_string();
     let task_id = task_id.to_string();
     tokio::spawn(async move {

@@ -169,7 +169,8 @@ pub fn create_langfuse_observer() -> Option<ObservationLayer> {
     let base_url = env::var("LANGFUSE_URL").unwrap_or_else(|_| DEFAULT_LANGFUSE_URL.to_string());
 
     let batch_manager = Arc::new(Mutex::new(LangfuseBatchManager::new(
-        public_key, secret_key, base_url)));
+        public_key, secret_key, base_url,
+    )));
 
     if !cfg!(test) {
         LangfuseBatchManager::spawn_sender(batch_manager.clone());
@@ -278,7 +279,8 @@ mod tests {
         let manager = LangfuseBatchManager::new(
             "test-public".to_string(),
             "test-secret".to_string(),
-            "http://test.local".to_string());
+            "http://test.local".to_string(),
+        );
 
         assert_eq!(manager.public_key, "test-public");
         assert_eq!(manager.secret_key, "test-secret");
@@ -292,7 +294,8 @@ mod tests {
         let mut manager = LangfuseBatchManager::new(
             "test-public".to_string(),
             "test-secret".to_string(),
-            "http://test.local".to_string());
+            "http://test.local".to_string(),
+        );
 
         manager.add_event("test-event", create_test_event());
 
@@ -314,13 +317,15 @@ mod tests {
                 json!({
                     "successes": [{"id": "1", "status": 200}],
                     "errors": []
-                }))
+                }),
+            )
             .await;
 
         let mut manager = LangfuseBatchManager::new(
             "test-public".to_string(),
             "test-secret".to_string(),
-            fixture.mock_server_uri());
+            fixture.mock_server_uri(),
+        );
 
         manager.add_event("test-event", create_test_event());
 
@@ -339,13 +344,15 @@ mod tests {
                 json!({
                     "successes": [{"id": "1", "status": 200}],
                     "errors": [{"id": "2", "status": 400, "message": "Invalid data"}]
-                }))
+                }),
+            )
             .await;
 
         let mut manager = LangfuseBatchManager::new(
             "test-public".to_string(),
             "test-secret".to_string(),
-            fixture.mock_server_uri());
+            fixture.mock_server_uri(),
+        );
 
         manager.add_event("test-event", create_test_event());
 
@@ -364,13 +371,15 @@ mod tests {
                 json!({
                     "successes": [],
                     "errors": [{"id": "1", "status": 400, "message": "Invalid data"}]
-                }))
+                }),
+            )
             .await;
 
         let mut manager = LangfuseBatchManager::new(
             "test-public".to_string(),
             "test-secret".to_string(),
-            fixture.mock_server_uri());
+            fixture.mock_server_uri(),
+        );
 
         manager.add_event("test-event", create_test_event());
 
@@ -473,13 +482,15 @@ mod tests {
                 json!({
                     "successes": [{"id": "1", "status": 200}],
                     "errors": []
-                }))
+                }),
+            )
             .await;
 
         let manager = Arc::new(Mutex::new(LangfuseBatchManager::new(
             "test-public".to_string(),
             "test-secret".to_string(),
-            fixture.mock_server_uri())));
+            fixture.mock_server_uri(),
+        )));
 
         manager
             .lock()

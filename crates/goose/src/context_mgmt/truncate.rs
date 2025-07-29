@@ -15,7 +15,8 @@ fn handle_oversized_messages(
     messages: &[Message],
     token_counts: &[usize],
     context_limit: usize,
-    strategy: &dyn TruncationStrategy) -> Result<(Vec<Message>, Vec<usize>), anyhow::Error> {
+    strategy: &dyn TruncationStrategy,
+) -> Result<(Vec<Message>, Vec<usize>), anyhow::Error> {
     let mut truncated_messages = Vec::new();
     let mut truncated_token_counts = Vec::new();
     let mut any_truncated = false;
@@ -62,7 +63,8 @@ fn handle_oversized_messages(
             &truncated_messages,
             &truncated_token_counts,
             context_limit,
-            strategy);
+            strategy,
+        );
     }
 
     Ok((truncated_messages, truncated_token_counts))
@@ -177,7 +179,8 @@ pub fn truncate_messages(
     messages: &[Message],
     token_counts: &[usize],
     context_limit: usize,
-    strategy: &dyn TruncationStrategy) -> Result<(Vec<Message>, Vec<usize>), anyhow::Error> {
+    strategy: &dyn TruncationStrategy,
+) -> Result<(Vec<Message>, Vec<usize>), anyhow::Error> {
     let mut messages = messages.to_owned();
     let mut token_counts = token_counts.to_owned();
 
@@ -316,7 +319,8 @@ pub trait TruncationStrategy {
         &self,
         messages: &[Message],
         token_counts: &[usize],
-        context_limit: usize) -> Result<HashSet<usize>>;
+        context_limit: usize,
+    ) -> Result<HashSet<usize>>;
 }
 
 /// Strategy to truncate messages by removing the oldest first
@@ -327,7 +331,8 @@ impl TruncationStrategy for OldestFirstTruncation {
         &self,
         messages: &[Message],
         token_counts: &[usize],
-        context_limit: usize) -> Result<HashSet<usize>> {
+        context_limit: usize,
+    ) -> Result<HashSet<usize>> {
         let mut indices_to_remove = HashSet::new();
         let mut total_tokens: usize = token_counts.iter().sum();
         let mut tool_ids_to_remove = HashSet::new();
@@ -348,7 +353,7 @@ impl TruncationStrategy for OldestFirstTruncation {
             // If it's a ToolRequest or ToolResponse, mark its pair for removal
             if message.is_tool_call() || message.is_tool_response() {
                 message.get_tool_ids().iter().for_each(|id| {
-                    tool_ids_to_remove.insert((i, id.to_string()));
+                    tool_ids_to_remove.insert((i, id, None));
                 });
             }
         }
@@ -395,7 +400,8 @@ mod tests {
     fn assistant_tool_request(id: &str, tool_call: ToolCall, tokens: usize) -> (Message, usize) {
         (
             Message::assistant().with_tool_request(id, Ok(tool_call)),
-            tokens)
+            tokens,
+        )
     }
 
     // Helper function to create a tool response message with a specified token count
@@ -407,7 +413,8 @@ mod tests {
     fn large_tool_response(id: &str, large_text: String, tokens: usize) -> (Message, usize) {
         (
             Message::user().with_tool_response(id, Ok(vec![Content::text(large_text)])),
-            tokens)
+            tokens,
+        )
     }
 
     // Helper function to create messages with alternating user and assistant
@@ -415,7 +422,8 @@ mod tests {
     fn create_messages_with_counts(
         num_pairs: usize,
         tokens: usize,
-        remove_last: bool) -> (Vec<Message>, Vec<usize>) {
+        remove_last: bool,
+    ) -> (Vec<Message>, Vec<usize>) {
         let mut messages: Vec<Message> = (0..num_pairs)
             .flat_map(|i| {
                 vec![
@@ -443,7 +451,8 @@ mod tests {
             assistant_tool_request(
                 "tool1",
                 ToolCall::new("read_file", json!({"path": "large_file.txt"})),
-                20)
+                20,
+            )
             .0,
             large_tool_response("tool1", large_content, 100000).0, // Massive tool response
             user_text(2, 10).0,
@@ -455,7 +464,8 @@ mod tests {
             &messages,
             &token_counts,
             context_limit,
-            &OldestFirstTruncation);
+            &OldestFirstTruncation,
+        );
 
         // Should succeed by truncating the large content
         assert!(
@@ -491,7 +501,8 @@ mod tests {
             &messages,
             &token_counts,
             context_limit,
-            &OldestFirstTruncation)?;
+            &OldestFirstTruncation,
+        )?;
 
         assert_eq!(result.0, messages);
         assert_eq!(result.1, token_counts);
@@ -510,7 +521,8 @@ mod tests {
             user_tool_response(
                 "tool1",
                 vec![Content::text("File contents".to_string())],
-                10)
+                10,
+            )
             .0,
             assistant_text(2, 25).0, // Assistant processes file contents
             user_text(3, 10).0,      // User follow-up
@@ -518,7 +530,8 @@ mod tests {
             user_tool_response(
                 "tool2",
                 vec![Content::text("Query results".to_string())],
-                20)
+                20,
+            )
             .0,
             assistant_text(4, 35).0, // Assistant analyzes query results
             user_text(5, 5).0,       // Final user confirmation
@@ -531,7 +544,8 @@ mod tests {
             &messages,
             &token_counts,
             context_limit,
-            &OldestFirstTruncation)?;
+            &OldestFirstTruncation,
+        )?;
         let (truncated_messages, truncated_counts) = result;
 
         // Verify that tool pairs are kept together and the conversation remains coherent
@@ -571,7 +585,8 @@ mod tests {
             &messages,
             &token_counts,
             context_limit,
-            &OldestFirstTruncation)?;
+            &OldestFirstTruncation,
+        )?;
         let (mut messages, mut token_counts) = result;
 
         assert_eq!(messages.len(), 4); // No truncation needed
@@ -585,7 +600,8 @@ mod tests {
             &messages,
             &token_counts,
             context_limit,
-            &OldestFirstTruncation)?;
+            &OldestFirstTruncation,
+        )?;
         let (messages, token_counts) = result;
 
         assert!(token_counts.iter().sum::<usize>() <= context_limit);
@@ -623,7 +639,8 @@ mod tests {
             &messages,
             &token_counts,
             context_limit,
-            &OldestFirstTruncation)?;
+            &OldestFirstTruncation,
+        )?;
         let (truncated_messages, _) = result;
 
         // Verify that remaining tool chains are complete
@@ -668,7 +685,8 @@ mod tests {
             &messages,
             &token_counts,
             context_limit,
-            &OldestFirstTruncation)?;
+            &OldestFirstTruncation,
+        )?;
         let (messages, token_counts) = result;
 
         // Verify the conversation still makes sense
@@ -687,7 +705,8 @@ mod tests {
             &messages,
             &token_counts,
             5, // Impossibly small context
-            &OldestFirstTruncation);
+            &OldestFirstTruncation,
+        );
         assert!(result.is_err());
 
         // Test unmatched token counts

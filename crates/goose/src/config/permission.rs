@@ -133,7 +133,8 @@ impl PermissionManager {
     pub fn update_smart_approve_permission(
         &mut self,
         principal_name: &str,
-        level: PermissionLevel) {
+        level: PermissionLevel,
+    ) {
         self.update_permission(SMART_APPROVE_PERMISSION, principal_name, level)
     }
 
@@ -278,9 +279,9 @@ mod tests {
 
         // Ensure it's removed from other levels
         let config = manager.permission_map.get(USER_PERMISSION).unwrap();
-        assert!(!config.always_allow.contains(&"tool7".to_string()));
-        assert!(!config.ask_before.contains(&"tool7".to_string()));
-        assert!(config.never_allow.contains(&"tool7".to_string()));
+        assert!(!config.always_allow.contains(&"tool7", None));
+        assert!(!config.ask_before.contains(&"tool7", None));
+        assert!(config.never_allow.contains(&"tool7", None));
     }
 
     #[test]
@@ -296,12 +297,10 @@ mod tests {
         let config = manager.permission_map.get(USER_PERMISSION).unwrap();
 
         // Verify entries with "prefix" are removed
-        assert!(!config.always_allow.contains(&"prefix__tool1".to_string()));
-        assert!(!config.ask_before.contains(&"prefix__tool3".to_string()));
+        assert!(!config.always_allow.contains(&"prefix__tool1", None));
+        assert!(!config.ask_before.contains(&"prefix__tool3", None));
 
         // Verify other entries remain
-        assert!(config
-            .always_allow
-            .contains(&"nonprefix__tool2".to_string()));
+        assert!(config.always_allow.contains(&"nonprefix__tool2", None));
     }
 }

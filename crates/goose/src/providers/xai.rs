@@ -137,7 +137,8 @@ impl Provider for XaiProvider {
             vec![
                 ConfigKey::new("XAI_API_KEY", true, true, None),
                 ConfigKey::new("XAI_HOST", false, false, Some(XAI_API_HOST)),
-            ])
+            ],
+        )
     }
 
     fn get_model_config(&self) -> ModelConfig {
@@ -152,13 +153,15 @@ impl Provider for XaiProvider {
         &self,
         system: &str,
         messages: &[Message],
-        tools: &[Tool]) -> anyhow::Result<(Message, ProviderUsage), ProviderError> {
+        tools: &[Tool],
+    ) -> anyhow::Result<(Message, ProviderUsage), ProviderError> {
         let payload = create_request(
             &self.model,
             system,
             messages,
             tools,
-            &super::utils::ImageFormat::OpenAi)?;
+            &super::utils::ImageFormat::OpenAi,
+        )?;
 
         let response = self.post(&payload).await?;
 

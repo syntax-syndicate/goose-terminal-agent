@@ -15,12 +15,13 @@ impl ToolRouterIndexManager {
         selector: &Arc<Box<dyn RouterToolSelector>>,
         extension_manager: &ExtensionManager,
         extension_name: &str,
-        action: &str) -> Result<()> {
+        action: &str,
+    ) -> Result<()> {
         match action {
             "add" => {
                 // Get tools for specific extension
                 let tools = extension_manager
-                    .get_prefixed_tools(Some(extension_name.to_string()))
+                    .get_prefixed_tools(Some(extension_name, None))
                     .await?;
 
                 if !tools.is_empty() {
@@ -46,7 +47,7 @@ impl ToolRouterIndexManager {
             "remove" => {
                 // Remove all tools for this extension
                 let tools = extension_manager
-                    .get_prefixed_tools(Some(extension_name.to_string()))
+                    .get_prefixed_tools(Some(extension_name, None))
                     .await?;
 
                 for tool in &tools {
@@ -77,7 +78,8 @@ impl ToolRouterIndexManager {
     /// Indexes platform tools (search_available_extensions, manage_extensions, etc.)
     pub async fn index_platform_tools(
         selector: &Arc<Box<dyn RouterToolSelector>>,
-        extension_manager: &ExtensionManager) -> Result<()> {
+        extension_manager: &ExtensionManager,
+    ) -> Result<()> {
         let mut tools = Vec::new();
 
         // Add the standard platform tools

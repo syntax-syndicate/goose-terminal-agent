@@ -455,13 +455,13 @@ pub async fn init_config(
     let config = Config::global();
 
     if config.exists() {
-        return Ok(Json("Config already exists".to_string()));
+        return Ok(Json("Config already exists", None));
     }
 
     // Use the shared function to load init-config.yaml
     match goose::config::base::load_init_config_from_workspace() {
         Ok(init_values) => match config.save_values(init_values) {
-            Ok(_) => Ok(Json("Config initialized successfully".to_string())),
+            Ok(_) => Ok(Json("Config initialized successfully", None)),
             Err(_) => Err(StatusCode::INTERNAL_SERVER_ERROR),
         },
         Err(_) => Ok(Json(
@@ -495,7 +495,7 @@ pub async fn upsert_permissions(
         );
     }
 
-    Ok(Json("Permissions updated successfully".to_string()))
+    Ok(Json("Permissions updated successfully", None))
 }
 
 #[utoipa::path(
@@ -557,7 +557,7 @@ pub async fn recover_config(
         Ok(values) => {
             let recovered_keys: Vec<String> = values.keys().cloned().collect();
             if recovered_keys.is_empty() {
-                Ok(Json("Config recovery completed, but no data was recoverable. Starting with empty configuration.".to_string()))
+                Ok(Json("Config recovery completed, but no data was recoverable. Starting with empty configuration.", None))
             } else {
                 Ok(Json(format!(
                     "Config recovery completed. Recovered {} keys: {}",
@@ -594,12 +594,12 @@ pub async fn validate_config(
     let config_path = config_dir.join("config.yaml");
 
     if !config_path.exists() {
-        return Ok(Json("Config file does not exist".to_string()));
+        return Ok(Json("Config file does not exist", None));
     }
 
     match std::fs::read_to_string(&config_path) {
         Ok(content) => match serde_yaml::from_str::<serde_yaml::Value>(&content) {
-            Ok(_) => Ok(Json("Config file is valid".to_string())),
+            Ok(_) => Ok(Json("Config file is valid", None)),
             Err(e) => {
                 tracing::warn!("Config validation failed: {}", e);
                 Err(StatusCode::UNPROCESSABLE_ENTITY)

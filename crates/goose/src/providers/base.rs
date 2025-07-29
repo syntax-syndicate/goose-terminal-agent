@@ -64,7 +64,8 @@ impl ModelInfo {
         name: impl Into<String>,
         context_limit: usize,
         input_cost: f64,
-        output_cost: f64) -> Self {
+        output_cost: f64,
+    ) -> Self {
         Self {
             name: name.into(),
             context_limit,
@@ -104,7 +105,8 @@ impl ProviderMetadata {
         default_model: &str,
         model_names: Vec<&str>,
         model_doc_link: &str,
-        config_keys: Vec<ConfigKey>) -> Self {
+        config_keys: Vec<ConfigKey>,
+    ) -> Self {
         Self {
             name: name.to_string(),
             display_name: display_name.to_string(),
@@ -134,7 +136,8 @@ impl ProviderMetadata {
         default_model: &str,
         models: Vec<ModelInfo>,
         model_doc_link: &str,
-        config_keys: Vec<ConfigKey>) -> Self {
+        config_keys: Vec<ConfigKey>,
+    ) -> Self {
         Self {
             name: name.to_string(),
             display_name: display_name.to_string(),
@@ -231,7 +234,8 @@ impl Usage {
     pub fn new(
         input_tokens: Option<i32>,
         output_tokens: Option<i32>,
-        total_tokens: Option<i32>) -> Self {
+        total_tokens: Option<i32>,
+    ) -> Self {
         Self {
             input_tokens,
             output_tokens,
@@ -276,7 +280,8 @@ pub trait Provider: Send + Sync {
         &self,
         system: &str,
         messages: &[Message],
-        tools: &[Tool]) -> Result<(Message, ProviderUsage), ProviderError>;
+        tools: &[Tool],
+    ) -> Result<(Message, ProviderUsage), ProviderError>;
 
     /// Get the model config from the provider
     fn get_model_config(&self) -> ModelConfig;
@@ -299,7 +304,8 @@ pub trait Provider: Send + Sync {
     /// Create embeddings if supported. Default implementation returns an error.
     async fn create_embeddings(&self, _texts: Vec<String>) -> Result<Vec<Vec<f32>>, ProviderError> {
         Err(ProviderError::ExecutionError(
-            "This provider does not support embeddings".to_string()))
+            "This provider does not support embeddings".to_string(),
+        ))
     }
 
     /// Check if this provider is a LeadWorkerProvider
@@ -312,9 +318,11 @@ pub trait Provider: Send + Sync {
         &self,
         _system: &str,
         _messages: &[Message],
-        _tools: &[Tool]) -> Result<MessageStream, ProviderError> {
+        _tools: &[Tool],
+    ) -> Result<MessageStream, ProviderError> {
         Err(ProviderError::NotImplemented(
-            "streaming not implemented".to_string()))
+            "streaming not implemented".to_string(),
+        ))
     }
 
     fn supports_streaming(&self) -> bool {
@@ -428,14 +436,14 @@ mod tests {
 
         // Get the model and verify
         let model = get_current_model();
-        assert_eq!(model, Some("gpt-4o".to_string()));
+        assert_eq!(model, Some("gpt-4o", None));
 
         // Change the model
         set_current_model("claude-3.5-sonnet");
 
         // Get the updated model and verify
         let model = get_current_model();
-        assert_eq!(model, Some("claude-3.5-sonnet".to_string()));
+        assert_eq!(model, Some("claude-3.5-sonnet", None));
     }
 
     #[test]
@@ -449,7 +457,8 @@ mod tests {
             "gpt-4o",
             test_models,
             "https://example.com",
-            vec![]);
+            vec![],
+        );
 
         let model_info: HashMap<String, usize> = metadata
             .known_models
@@ -513,6 +522,6 @@ mod tests {
         assert_eq!(info.context_limit, 128000);
         assert_eq!(info.input_token_cost, Some(0.0000025));
         assert_eq!(info.output_token_cost, Some(0.00001));
-        assert_eq!(info.currency, Some("$".to_string()));
+        assert_eq!(info.currency, Some("$", None));
     }
 }

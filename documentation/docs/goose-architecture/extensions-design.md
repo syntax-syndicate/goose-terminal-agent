@@ -90,7 +90,7 @@ impl FileSystem {
         let full_path = self.root_path.join(path);
         let content = tokio::fs::read_to_string(full_path)
             .await
-            .map_err(|e| ToolError::ExecutionError(e.to_string()))?;
+            .map_err(|e| ToolError::ExecutionError(e, None))?;
             
         Ok(json!({ "content": content }))
     }

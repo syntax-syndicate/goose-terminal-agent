@@ -45,7 +45,9 @@ use crate::scheduler_trait::SchedulerTrait;
 use crate::tool_monitor::{ToolCall, ToolMonitor};
 use crate::utils::is_token_cancelled;
 use regex::Regex;
-use rmcp::model::{Content, ErrorData, ErrorCode, GetPromptResult, Prompt, ServerNotification, Tool};
+use rmcp::model::{
+    Content, ErrorCode, ErrorData, GetPromptResult, Prompt, ServerNotification, Tool,
+};
 use serde_json::Value;
 use tokio::sync::{mpsc, Mutex, RwLock};
 use tokio_util::sync::CancellationToken;
@@ -98,7 +100,8 @@ pub enum ToolStreamItem<T> {
     Result(T),
 }
 
-pub type ToolStream = Pin<Box<dyn Stream<Item = ToolStreamItem<Result<Vec<Content>, ErrorData>>> + Send>>;
+pub type ToolStream =
+    Pin<Box<dyn Stream<Item = ToolStreamItem<Result<Vec<Content>, ErrorData>>> + Send>>;
 
 // tool_stream combines a stream of ServerNotifications with a future representing the
 // final result of the tool call. MCP notifications are not request-scoped, but
@@ -192,7 +195,8 @@ impl Agent {
         &self,
         messages: &mut Vec<Message>,
         session: &Option<SessionConfig>,
-        initial_messages: &[Message]) -> Result<bool> {
+        initial_messages: &[Message],
+    ) -> Result<bool> {
         let result = self
             .retry_manager
             .handle_retry_logic(messages, session, initial_messages, &self.final_output_tool)
@@ -267,7 +271,8 @@ impl Agent {
         &self,
         tool_call: mcp_core::tool::ToolCall,
         request_id: String,
-        cancellation_token: Option<CancellationToken>) -> (String, Result<ToolCallResult, ErrorData>) {
+        cancellation_token: Option<CancellationToken>,
+    ) -> (String, Result<ToolCallResult, ErrorData>) {
         // Check if this tool call should be allowed based on repetition monitoring
         if let Some(monitor) = self.tool_monitor.lock().await.as_mut() {
             let tool_call_info = ToolCall::new(tool_call.name.clone(), tool_call.arguments.clone());
@@ -278,7 +283,9 @@ impl Agent {
                     Err(ErrorData::new(
                         ErrorCode::INTERNAL_ERROR,
                         "Tool call rejected: exceeded maximum allowed repetitions".to_string(),
-                        None)));
+                        None,
+                    )),
+                );
             }
         }
 
@@ -319,7 +326,9 @@ impl Agent {
                     Err(ErrorData::new(
                         ErrorCode::INTERNAL_ERROR,
                         "Final output tool not defined".to_string(),
-                        None)))
+                        None,
+                    )),
+                )
             };
         }
 
@@ -330,7 +339,8 @@ impl Agent {
                 .dispatch_sub_recipe_tool_call(
                     &tool_call.name,
                     tool_call.arguments.clone(),
-                    &self.tasks_manager)
+                    &self.tasks_manager,
+                )
                 .await
         } else if tool_call.name == SUBAGENT_EXECUTE_TASK_TOOL_NAME {
             let provider = self.provider().await.ok();
@@ -340,7 +350,8 @@ impl Agent {
                 tool_call.arguments.clone(),
                 task_config,
                 &self.tasks_manager,
-                cancellation_token)
+                cancellation_token,
+            )
             .await
         } else if tool_call.name == DYNAMIC_TASK_TOOL_NAME_PREFIX {
             create_dynamic_task(tool_call.arguments.clone(), &self.tasks_manager).await
@@ -349,12 +360,14 @@ impl Agent {
             ToolCallResult::from(
                 extension_manager
                     .read_resource(tool_call.arguments.clone())
-                    .await)
+                    .await,
+            )
         } else if tool_call.name == PLATFORM_LIST_RESOURCES_TOOL_NAME {
             ToolCallResult::from(
                 extension_manager
                     .list_resources(tool_call.arguments.clone())
-                    .await)
+                    .await,
+            )
         } else if tool_call.name == PLATFORM_SEARCH_AVAILABLE_EXTENSIONS_TOOL_NAME {
             ToolCallResult::from(extension_manager.search_available_extensions().await)
         } else if self.is_frontend_tool(&tool_call.name).await {
@@ -362,7 +375,8 @@ impl Agent {
             ToolCallResult::from(Err(ErrorData::new(
                 ErrorCode::INTERNAL_ERROR,
                 "Frontend tool execution required".to_string(),
-                None)))
+                None,
+            )))
         } else if tool_call.name == ROUTER_VECTOR_SEARCH_TOOL_NAME
             || tool_call.name == ROUTER_LLM_SEARCH_TOOL_NAME
         {
@@ -376,7 +390,9 @@ impl Agent {
                             Err(ErrorData::new(
                                 ErrorCode::INTERNAL_ERROR,
                                 format!("Failed to select tools: {}", e),
-                                None)))
+                                None,
+                            )),
+                        )
                     }
                 },
                 None => {
@@ -385,7 +401,9 @@ impl Agent {
                         Err(ErrorData::new(
                             ErrorCode::INTERNAL_ERROR,
                             "No tool selector available".to_string(),
-                            None)))
+                            None,
+                        )),
+                    )
                 }
             };
 
@@ -411,7 +429,8 @@ impl Agent {
                 ToolCallResult::from(Err(ErrorData::new(
                     ErrorCode::INTERNAL_ERROR,
                     e.to_string(),
-                    None)))
+                    None,
+                )))
             })
         };
 
@@ -422,15 +441,18 @@ impl Agent {
                 result: Box::new(
                     result
                         .result
-                        .map(super::large_response_handler::process_tool_response)),
-            }))
+                        .map(super::large_response_handler::process_tool_response),
+                ),
+            }),
+        )
     }
 
     pub(super) async fn manage_extensions(
         &self,
         action: String,
         extension_name: String,
-        request_id: String) -> (String, Result<Vec<Content>, ErrorData>) {
+        request_id: String,
+    ) -> (String, Result<Vec<Content>, ErrorData>) {
         let mut extension_manager = self.extension_manager.write().await;
 
         let selector = self.router_tool_selector.lock().await.clone();
@@ -443,7 +465,8 @@ impl Agent {
                     &selector,
                     &extension_manager,
                     &extension_name,
-                    selector_action)
+                    selector_action,
+                )
                 .await
                 {
                     return (
@@ -451,7 +474,9 @@ impl Agent {
                         Err(ErrorData::new(
                             ErrorCode::INTERNAL_ERROR,
                             format!("Failed to update vector index: {}", e),
-                            None)));
+                            None,
+                        )),
+                    );
                 }
             }
         }
@@ -477,8 +502,13 @@ impl Agent {
                     request_id,
                     Err(ErrorData::new(
                         ErrorCode::INVALID_PARAMS,
-                        format!("Extension '{}' not found. Please check the extension name and try again.", extension_name),
-                        None)))
+                        format!(
+                        "Extension '{}' not found. Please check the extension name and try again.",
+                        extension_name
+                    ),
+                        None,
+                    )),
+                )
             }
             Err(e) => {
                 return (
@@ -486,7 +516,9 @@ impl Agent {
                     Err(ErrorData::new(
                         ErrorCode::INTERNAL_ERROR,
                         format!("Failed to get extension config: {}", e),
-                        None)))
+                        None,
+                    )),
+                )
             }
         };
 
@@ -513,7 +545,8 @@ impl Agent {
                         &selector,
                         &extension_manager,
                         &extension_name,
-                        vector_action)
+                        vector_action,
+                    )
                     .await
                     {
                         return (
@@ -521,7 +554,9 @@ impl Agent {
                             Err(ErrorData::new(
                                 ErrorCode::INTERNAL_ERROR,
                                 format!("Failed to update vector index: {}", e),
-                                None)));
+                                None,
+                            )),
+                        );
                     }
                 }
             }
@@ -572,7 +607,8 @@ impl Agent {
                     &selector,
                     &extension_manager,
                     &extension.name(),
-                    "add")
+                    "add",
+                )
                 .await
                 {
                     return Err(ExtensionError::SetupError(format!(
@@ -629,7 +665,8 @@ impl Agent {
 
     pub async fn list_tools_for_router(
         &self,
-        strategy: Option<RouterToolSelectionStrategy>) -> Vec<Tool> {
+        strategy: Option<RouterToolSelectionStrategy>,
+    ) -> Vec<Tool> {
         let mut prefixed_tools = vec![];
         match strategy {
             Some(RouterToolSelectionStrategy::Vector) => {
@@ -677,7 +714,8 @@ impl Agent {
                     &selector,
                     &extension_manager,
                     name,
-                    "remove")
+                    "remove",
+                )
                 .await?;
             }
         }
@@ -697,7 +735,8 @@ impl Agent {
     pub async fn handle_confirmation(
         &self,
         request_id: String,
-        confirmation: PermissionConfirmation) {
+        confirmation: PermissionConfirmation,
+    ) {
         if let Err(e) = self.confirmation_tx.send((request_id, confirmation)).await {
             error!("Failed to send confirmation: {}", e);
         }
@@ -708,7 +747,8 @@ impl Agent {
         &self,
         unfixed_messages: &[Message],
         session: Option<SessionConfig>,
-        cancel_token: Option<CancellationToken>) -> Result<BoxStream<'_, Result<AgentEvent>>> {
+        cancel_token: Option<CancellationToken>,
+    ) -> Result<BoxStream<'_, Result<AgentEvent>>> {
         let (mut messages, issues) =
             ConversationFixer::fix_conversation(Vec::from(unfixed_messages));
         if !issues.is_empty() {
@@ -1065,7 +1105,8 @@ impl Agent {
     pub async fn update_router_tool_selector(
         &self,
         provider: Option<Arc<dyn Provider>>,
-        reindex_all: Option<bool>) -> Result<()> {
+        reindex_all: Option<bool>,
+    ) -> Result<()> {
         let config = Config::global();
         let _extension_manager = self.extension_manager.read().await;
         let provider = match provider {
@@ -1111,7 +1152,8 @@ impl Agent {
                     &selector,
                     &extension_manager,
                     &extension_name,
-                    "add")
+                    "add",
+                )
                 .await
                 {
                     error!(
@@ -1178,7 +1220,8 @@ impl Agent {
                         .map(|d| d.as_ref())
                         .unwrap_or_default(),
                     get_parameter_names(&tool),
-                    None)
+                    None,
+                )
             })
             .collect();
 
@@ -1208,7 +1251,8 @@ impl Agent {
             self.frontend_instructions.lock().await.clone(),
             extension_manager.suggest_disable_extensions_prompt().await,
             Some(model_name),
-            None);
+            None,
+        );
 
         let recipe_prompt = prompt_manager.get_recipe_prompt().await;
         let tools = extension_manager.get_prefixed_tools(None).await?;

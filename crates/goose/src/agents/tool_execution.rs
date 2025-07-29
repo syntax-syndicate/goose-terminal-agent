@@ -53,7 +53,8 @@ impl Agent {
         tool_futures: Arc<Mutex<Vec<(String, ToolStream)>>>,
         permission_manager: &'a mut PermissionManager,
         message_tool_response: Arc<Mutex<Message>>,
-        cancellation_token: Option<CancellationToken>) -> BoxStream<'a, anyhow::Result<Message>> {
+        cancellation_token: Option<CancellationToken>,
+    ) -> BoxStream<'a, anyhow::Result<Message>> {
         try_stream! {
             for request in tool_requests {
                 if let Ok(tool_call) = request.tool_call.clone() {
@@ -61,7 +62,7 @@ impl Agent {
                         request.id.clone(),
                         tool_call.name.clone(),
                         tool_call.arguments.clone(),
-                        Some("Goose would like to call the above tool. Allow? (y/n):".to_string()));
+                        Some("Goose would like to call the above tool. Allow? (y/n):", None));
                     yield confirmation;
 
                     let mut rx = self.confirmation_rx.lock().await;
@@ -101,7 +102,8 @@ impl Agent {
     pub(crate) fn handle_frontend_tool_requests<'a>(
         &'a self,
         tool_requests: &'a [ToolRequest],
-        message_tool_response: Arc<Mutex<Message>>) -> BoxStream<'a, anyhow::Result<Message>> {
+        message_tool_response: Arc<Mutex<Message>>,
+    ) -> BoxStream<'a, anyhow::Result<Message>> {
         try_stream! {
             for request in tool_requests {
                 if let Ok(tool_call) = request.tool_call.clone() {

@@ -6,7 +6,8 @@ use crate::recipe::SubRecipe;
 
 pub fn prepare_command_params(
     sub_recipe: &SubRecipe,
-    params_from_tool_call: Vec<Value>) -> Result<Vec<HashMap<String, String>>> {
+    params_from_tool_call: Vec<Value>,
+) -> Result<Vec<HashMap<String, String>>> {
     let base_params = sub_recipe.values.clone().unwrap_or_default();
 
     if params_from_tool_call.is_empty() {

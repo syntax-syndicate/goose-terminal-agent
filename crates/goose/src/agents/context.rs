@@ -26,7 +26,8 @@ impl Agent {
             messages,
             &token_counts,
             target_context_limit,
-            &OldestFirstTruncation)?;
+            &OldestFirstTruncation,
+        )?;
 
         // Only add an assistant message if we have room for it and it won't cause another overflow
         let assistant_message = Message::assistant().with_text("I had run into a context length exceeded error so I truncated some of the oldest messages in our conversation.");
@@ -65,7 +66,8 @@ impl Agent {
         // Add an assistant message to the summarized messages to ensure the assistant's response is included in the context.
         if new_messages.len() == 1 {
             let assistant_message = Message::assistant().with_text(
-                "I had run into a context length exceeded error so I summarized our conversation.");
+                "I had run into a context length exceeded error so I summarized our conversation.",
+            );
             let assistant_tokens =
                 token_counter.count_chat_tokens("", &[assistant_message.clone()], &[]);
 

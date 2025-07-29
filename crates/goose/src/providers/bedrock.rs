@@ -47,7 +47,7 @@ impl BedrockProvider {
             if let Ok(map) = res {
                 map.into_iter()
                     .filter(|(key, _)| key.starts_with("AWS_"))
-                    .filter_map(|(key, value)| value.as_str().map(|s| (key, s.to_string())))
+                    .filter_map(|(key, value)| value.as_str().map(|s| (key, s, None)))
                     .for_each(|(key, s)| std::env::set_var(key, s));
             }
         };
@@ -62,7 +62,8 @@ impl BedrockProvider {
             sdk_config
                 .credentials_provider()
                 .unwrap()
-                .provide_credentials())?;
+                .provide_credentials(),
+        )?;
         let client = Client::new(&sdk_config);
 
         Ok(Self { client, model })
@@ -101,19 +102,21 @@ impl Provider for BedrockProvider {
         &self,
         system: &str,
         messages: &[Message],
-        tools: &[Tool]) -> Result<(Message, ProviderUsage), ProviderError> {
+        tools: &[Tool],
+    ) -> Result<(Message, ProviderUsage), ProviderError> {
         let model_name = &self.model.model_name;
 
         let mut request = self
             .client
             .converse()
-            .system(bedrock::SystemContentBlock::Text(system.to_string()))
+            .system(bedrock::SystemContentBlock::Text(system, None))
             .model_id(model_name.to_string())
             .set_messages(Some(
                 messages
                     .iter()
                     .map(to_bedrock_message)
-                    .collect::<Result<_>>()?));
+                    .collect::<Result<_>>()?,
+            ));
 
         if !tools.is_empty() {
             request = request.tool_config(to_bedrock_tool_config(tools)?);
@@ -153,13 +156,15 @@ impl Provider for BedrockProvider {
                                 &self.model,
                                 &debug_payload,
                                 &serde_json::to_value(&message).unwrap_or_default(),
-                                &usage);
+                                &usage,
+                            );
 
                             let provider_usage = ProviderUsage::new(model_name.to_string(), usage);
                             Ok((message, provider_usage))
                         }
                         _ => Err(ProviderError::RequestFailed(
-                            "No output from Bedrock".to_string())),
+                            "No output from Bedrock".to_string(),
+                        )),
                     };
                 }
                 Err(err) => {

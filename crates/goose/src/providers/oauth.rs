@@ -142,7 +142,8 @@ impl OAuthFlow {
         endpoints: OidcEndpoints,
         client_id: String,
         redirect_url: String,
-        scopes: Vec<String>) -> Self {
+        scopes: Vec<String>,
+    ) -> Self {
         Self {
             endpoints,
             client_id,
@@ -172,7 +173,8 @@ impl OAuthFlow {
     fn extract_token_data(
         &self,
         token_response: &Value,
-        old_refresh_token: Option<&str>) -> Result<TokenData> {
+        old_refresh_token: Option<&str>,
+    ) -> Result<TokenData> {
         // Extract access token (required)
         let access_token = token_response
             .get("access_token")
@@ -185,7 +187,7 @@ impl OAuthFlow {
             .get("refresh_token")
             .and_then(|v| v.as_str())
             .map(|s| s.to_string())
-            .or_else(|| old_refresh_token.map(|s| s.to_string()));
+            .or_else(|| old_refresh_token.map(|s| s, None));
 
         // Handle token expiration
         let expires_at =
@@ -310,7 +312,8 @@ impl OAuthFlow {
                                 if sender.send(code).is_ok() {
                                     // Use the improved HTML response
                                     return Html(
-                                        "<h2>Login Success</h2><p>You can close this window</p>");
+                                        "<h2>Login Success</h2><p>You can close this window</p>",
+                                    );
                                 }
                             }
                             Html("<h2>Error</h2><p>Authentication already completed.</p>")
@@ -321,7 +324,8 @@ impl OAuthFlow {
                         Html("<h2>Error</h2><p>Authentication failed.</p>")
                     }
                 }
-            }));
+            }),
+        );
 
         // Start the server to accept the oauth code
         let redirect_url = Url::parse(&self.redirect_url)?;
@@ -347,7 +351,8 @@ impl OAuthFlow {
         // Wait for the authorization code with a timeout
         let code = tokio::time::timeout(
             std::time::Duration::from_secs(60), // 1 minute timeout
-            rx)
+            rx,
+        )
         .await
         .map_err(|_| anyhow::anyhow!("Authentication timed out"))??;
 
@@ -363,7 +368,8 @@ pub(crate) async fn get_oauth_token_async(
     host: &str,
     client_id: &str,
     redirect_url: &str,
-    scopes: &[String]) -> Result<String> {
+    scopes: &[String],
+) -> Result<String> {
     // Acquire the global mutex to ensure only one OAuth flow runs at a time
     let _guard = OAUTH_MUTEX.lock().await;
 
@@ -395,7 +401,8 @@ pub(crate) async fn get_oauth_token_async(
                         endpoints,
                         client_id.to_string(),
                         redirect_url.to_string(),
-                        scopes.to_vec());
+                        scopes.to_vec(),
+                    );
 
                     // Try to refresh the token
                     match flow.refresh_token(&refresh_token).await {
@@ -432,7 +439,8 @@ pub(crate) async fn get_oauth_token_async(
         endpoints,
         client_id.to_string(),
         redirect_url.to_string(),
-        scopes.to_vec());
+        scopes.to_vec(),
+    );
 
     // Execute the OAuth flow and get token
     let token = flow.execute().await?;
@@ -481,7 +489,8 @@ mod tests {
         let cache = TokenCache::new(
             "https://example.com",
             "test-client",
-            &["scope1".to_string()]);
+            &["scope1".to_string()],
+        );
 
         // Test with expiration time
         let token_data = TokenData {
@@ -528,7 +537,8 @@ mod tests {
             endpoints,
             "test-client".to_string(),
             "http://localhost:8020".to_string(),
-            vec!["all-apis".to_string()]);
+            vec!["all-apis".to_string()],
+        );
 
         // Test with expires_in (traditional OAuth)
         let token_response = serde_json::json!({

@@ -1,5 +1,5 @@
-use rmcp::model::{Content, ErrorData, ErrorCode};
 use rmcp::model::Tool;
+use rmcp::model::{Content, ErrorCode, ErrorData};
 use serde_json::Value;
 use std::collections::HashMap;
 
@@ -55,7 +55,8 @@ impl SubRecipeManager {
         &self,
         tool_name: &str,
         params: Value,
-        tasks_manager: &TasksManager) -> ToolCallResult {
+        tasks_manager: &TasksManager,
+    ) -> ToolCallResult {
         let result = self
             .call_sub_recipe_tool(tool_name, params, tasks_manager)
             .await;
@@ -64,7 +65,8 @@ impl SubRecipeManager {
             Err(e) => ToolCallResult::from(Err(ErrorData::new(
                 ErrorCode::INTERNAL_ERROR,
                 e.to_string(),
-                None))),
+                None,
+            ))),
         }
     }
 
@@ -72,7 +74,8 @@ impl SubRecipeManager {
         &self,
         tool_name: &str,
         params: Value,
-        tasks_manager: &TasksManager) -> Result<Vec<Content>, ErrorData> {
+        tasks_manager: &TasksManager,
+    ) -> Result<Vec<Content>, ErrorData> {
         let sub_recipe = self.sub_recipes.get(tool_name).ok_or_else(|| {
             let sub_recipe_name = tool_name
                 .strip_prefix(SUB_RECIPE_TASK_TOOL_NAME_PREFIX)
@@ -81,14 +84,16 @@ impl SubRecipeManager {
                     ErrorData::new(
                         ErrorCode::INVALID_PARAMS,
                         format!("Invalid sub-recipe tool name format: {}", tool_name),
-                        None)
+                        None,
+                    )
                 })
                 .unwrap();
 
             ErrorData::new(
                 ErrorCode::INVALID_PARAMS,
                 format!("Sub-recipe '{}' not found", sub_recipe_name),
-                None)
+                None,
+            )
         })?;
         let output = create_sub_recipe_task(sub_recipe, params, tasks_manager)
             .await
@@ -96,7 +101,8 @@ impl SubRecipeManager {
                 ErrorData::new(
                     ErrorCode::INTERNAL_ERROR,
                     format!("Sub-recipe task createion failed: {}", e),
-                    None)
+                    None,
+                )
             })?;
         Ok(vec![Content::text(output)])
     }

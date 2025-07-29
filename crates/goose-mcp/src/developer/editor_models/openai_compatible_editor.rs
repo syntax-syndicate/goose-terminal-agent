@@ -26,7 +26,8 @@ impl EditorModelImpl for OpenAICompatibleEditor {
         &self,
         original_code: &str,
         _old_str: &str,
-        update_snippet: &str) -> Result<String, String> {
+        update_snippet: &str,
+    ) -> Result<String, String> {
         eprintln!("Calling OpenAI-compatible Editor API");
 
         // Construct the full URL

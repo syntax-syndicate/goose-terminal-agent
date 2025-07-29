@@ -58,7 +58,8 @@ impl SnowflakeProvider {
         }
         if host.is_err() {
             return Err(ConfigError::NotFound(
-                "Did not find SNOWFLAKE_HOST in either config file or keyring".to_string())
+                "Did not find SNOWFLAKE_HOST in either config file or keyring".to_string(),
+            )
             .into());
         }
 
@@ -80,7 +81,8 @@ impl SnowflakeProvider {
 
         if token.is_err() {
             return Err(ConfigError::NotFound(
-                "Did not find SNOWFLAKE_TOKEN in either config file or keyring".to_string())
+                "Did not find SNOWFLAKE_TOKEN in either config file or keyring".to_string(),
+            )
             .into());
         }
 
@@ -338,7 +340,7 @@ impl SnowflakeProvider {
                     "context limit",
                 ];
                 if check_phrases.iter().any(|c| payload_str.contains(c)) {
-                    return Err(ProviderError::ContextLengthExceeded("Request exceeds maximum context length. Please reduce the number of messages or content size.".to_string()));
+                    return Err(ProviderError::ContextLengthExceeded("Request exceeds maximum context length. Please reduce the number of messages or content size.", None));
                 }
 
                 // Try to parse a clean error message from the response
@@ -368,11 +370,13 @@ impl SnowflakeProvider {
                 )))
             }
             StatusCode::TOO_MANY_REQUESTS => Err(ProviderError::RateLimitExceeded(
-                "Rate limit exceeded. Please try again later.".to_string())),
+                "Rate limit exceeded. Please try again later.".to_string(),
+            )),
             StatusCode::INTERNAL_SERVER_ERROR | StatusCode::SERVICE_UNAVAILABLE => {
                 Err(ProviderError::ServerError(
                     "Snowflake service is temporarily unavailable. Please try again later."
-                        .to_string()))
+                        .to_string(),
+                ))
             }
             _ => {
                 tracing::debug!(
@@ -402,7 +406,8 @@ impl Provider for SnowflakeProvider {
             vec![
                 ConfigKey::new("SNOWFLAKE_HOST", true, false, None),
                 ConfigKey::new("SNOWFLAKE_TOKEN", true, true, None),
-            ])
+            ],
+        )
     }
 
     fn get_model_config(&self) -> ModelConfig {
@@ -417,7 +422,8 @@ impl Provider for SnowflakeProvider {
         &self,
         system: &str,
         messages: &[Message],
-        tools: &[Tool]) -> Result<(Message, ProviderUsage), ProviderError> {
+        tools: &[Tool],
+    ) -> Result<(Message, ProviderUsage), ProviderError> {
         let payload = create_request(&self.model, system, messages, tools)?;
 
         let response = self.post(&payload).await?;

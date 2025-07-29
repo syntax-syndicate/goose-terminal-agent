@@ -149,7 +149,8 @@ impl PricingCache {
             if let Some((provider, model_name)) = parse_model_id(&model_id) {
                 if let (Some(input_cost), Some(output_cost)) = (
                     convert_pricing(&model.pricing.prompt),
-                    convert_pricing(&model.pricing.completion)) {
+                    convert_pricing(&model.pricing.completion),
+                ) {
                     let provider_lower = provider.to_lowercase();
                     let provider_models = structured_pricing.entry(provider_lower).or_default();
 
@@ -159,7 +160,8 @@ impl PricingCache {
                             input_cost,
                             output_cost,
                             context_length: model.context_length,
-                        });
+                        },
+                    );
                 }
             }
         }
@@ -352,7 +354,7 @@ pub fn parse_model_id(model_id: &str) -> Option<(String, String)> {
             "huggingface" => "huggingface",
             _ => parts[0],
         };
-        Some((provider.to_string(), parts[1].to_string()))
+        Some((provider.to_string(), parts[1], None))
     } else {
         None
     }
@@ -372,18 +374,18 @@ mod tests {
     fn test_parse_model_id() {
         assert_eq!(
             parse_model_id("anthropic/claude-3.5-sonnet"),
-            Some(("anthropic".to_string(), "claude-3.5-sonnet".to_string()))
+            Some(("anthropic".to_string(), "claude-3.5-sonnet", None))
         );
         assert_eq!(
             parse_model_id("openai/gpt-4"),
-            Some(("openai".to_string(), "gpt-4".to_string()))
+            Some(("openai".to_string(), "gpt-4", None))
         );
         assert_eq!(parse_model_id("invalid-format"), None);
 
         // Test the specific model causing issues
         assert_eq!(
             parse_model_id("anthropic/claude-sonnet-4"),
-            Some(("anthropic".to_string(), "claude-sonnet-4".to_string()))
+            Some(("anthropic".to_string(), "claude-sonnet-4", None))
         );
     }
 

@@ -80,7 +80,8 @@ impl TaskExecutionNotificationEvent {
         if let serde_json::Value::Object(ref mut map) = event_data {
             map.insert(
                 "type".to_string(),
-                serde_json::Value::String("task_execution".to_string()));
+                serde_json::Value::String("task_execution".to_string()),
+            );
         }
 
         event_data
@@ -93,7 +94,8 @@ impl TaskExecutionStats {
         pending: usize,
         running: usize,
         completed: usize,
-        failed: usize) -> Self {
+        failed: usize,
+    ) -> Self {
         Self {
             total,
             pending,
@@ -129,7 +131,8 @@ mod tests {
     fn test_line_output_event_serialization() {
         let event = TaskExecutionNotificationEvent::line_output(
             "task-1".to_string(),
-            "Hello World".to_string());
+            "Hello World".to_string(),
+        );
 
         let notification_data = event.to_notification_data();
         assert_eq!(notification_data["type"], "task_execution");
@@ -166,7 +169,8 @@ mod tests {
     fn test_event_roundtrip_serialization() {
         let original_event = TaskExecutionNotificationEvent::line_output(
             "task-1".to_string(),
-            "Test output".to_string());
+            "Test output".to_string(),
+        );
 
         // Serialize to JSON
         let json_data = original_event.to_notification_data();
@@ -189,7 +193,8 @@ mod tests {
                 TaskExecutionNotificationEvent::LineOutput {
                     task_id: id2,
                     output: out2,
-                }) => {
+                },
+            ) => {
                 assert_eq!(id1, id2);
                 assert_eq!(out1, out2);
             }

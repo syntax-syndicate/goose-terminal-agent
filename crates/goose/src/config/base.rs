@@ -173,7 +173,8 @@ impl Config {
     /// to manage multiple configuration files.
     pub fn new_with_file_secrets<P1: AsRef<Path>, P2: AsRef<Path>>(
         config_path: P1,
-        secrets_path: P2) -> Result<Self, ConfigError> {
+        secrets_path: P2,
+    ) -> Result<Self, ConfigError> {
         Ok(Config {
             config_path: config_path.as_ref().to_path_buf(),
             secrets: SecretStorage::File {
@@ -225,7 +226,8 @@ impl Config {
     // Helper method to create and save default config with consistent logging
     fn create_and_save_default_config(
         &self,
-        default_config: HashMap<String, Value>) -> Result<HashMap<String, Value>, ConfigError> {
+        default_config: HashMap<String, Value>,
+    ) -> Result<HashMap<String, Value>, ConfigError> {
         // Try to write the default config to disk
         match self.save_values(default_config.clone()) {
             Ok(_) => {
@@ -336,7 +338,7 @@ impl Config {
             }
         }
 
-        Err(ConfigError::NotFound("No valid backup found".to_string()))
+        Err(ConfigError::NotFound("No valid backup found", None))
     }
 
     // Get list of backup file paths in order of preference
@@ -377,8 +379,7 @@ impl Config {
 
         // Ensure the directory exists
         if let Some(parent) = self.config_path.parent() {
-            std::fs::create_dir_all(parent)
-                .map_err(|e| ConfigError::DirectoryError(e.to_string()))?;
+            std::fs::create_dir_all(parent).map_err(|e| ConfigError::DirectoryError(e, None))?;
         }
 
         // Write to a temporary file first for atomic operation
@@ -393,7 +394,7 @@ impl Config {
 
             // Acquire an exclusive lock
             file.lock_exclusive()
-                .map_err(|e| ConfigError::LockError(e.to_string()))?;
+                .map_err(|e| ConfigError::LockError(e, None))?;
 
             // Write the contents using the same file handle
             file.write_all(yaml_value.as_bytes())?;
@@ -487,7 +488,7 @@ impl Config {
                         Ok(values)
                     }
                     Err(keyring::Error::NoEntry) => Ok(HashMap::new()),
-                    Err(e) => Err(ConfigError::KeyringError(e.to_string())),
+                    Err(e) => Err(ConfigError::KeyringError(e, None)),
                 }
             }
             SecretStorage::File { path } => {
@@ -565,7 +566,7 @@ impl Config {
         // Then check our stored values
         values
             .get(key)
-            .ok_or_else(|| ConfigError::NotFound(key.to_string()))
+            .ok_or_else(|| ConfigError::NotFound(key, None))
             .and_then(|v| Ok(serde_json::from_value(v.clone())?))
     }
 
@@ -641,7 +642,7 @@ impl Config {
         let values = self.load_secrets()?;
         values
             .get(key)
-            .ok_or_else(|| ConfigError::NotFound(key.to_string()))
+            .ok_or_else(|| ConfigError::NotFound(key, None))
             .and_then(|v| Ok(serde_json::from_value(v.clone())?))
     }
 
@@ -728,14 +729,16 @@ pub fn load_init_config_from_workspace() -> Result<HashMap<String, Value>, Confi
         Err(_) => {
             return Err(ConfigError::FileError(std::io::Error::new(
                 std::io::ErrorKind::NotFound,
-                "Could not determine executable path")))
+                "Could not determine executable path",
+            )))
         }
     };
 
     let init_config_path = workspace_root.join("init-config.yaml");
     if !init_config_path.exists() {
         return Err(ConfigError::NotFound(
-            "init-config.yaml not found".to_string()));
+            "init-config.yaml not found".to_string(),
+        ));
     }
 
     let init_content = std::fs::read_to_string(&init_config_path)?;
@@ -750,7 +753,7 @@ pub fn load_init_config_from_workspace() -> Result<HashMap<String, Value>, Confi
             }
             Err(e) => {
                 tracing::warn!("Failed to parse init-config.yaml: {}", e);
-                return Err(ConfigError::DeserializeError(e.to_string()));
+                return Err(ConfigError::DeserializeError(e, None));
             }
         };
 
@@ -769,7 +772,7 @@ mod tests {
         match entry.delete_credential() {
             Ok(_) => Ok(()),
             Err(keyring::Error::NoEntry) => Ok(()),
-            Err(e) => Err(ConfigError::KeyringError(e.to_string())),
+            Err(e) => Err(ConfigError::KeyringError(e, None)),
         }
     }
 
@@ -779,7 +782,7 @@ mod tests {
         let config = Config::new(temp_file.path(), TEST_KEYRING_SERVICE)?;
 
         // Set a simple string value
-        config.set_param("test_key", Value::String("test_value".to_string()))?;
+        config.set_param("test_key", Value::String("test_value", None))?;
 
         // Test simple string retrieval
         let value: String = config.get_param("test_key")?;
@@ -810,7 +813,8 @@ mod tests {
             serde_json::json!({
                 "field1": "hello",
                 "field2": 42
-            }))?;
+            }),
+        )?;
 
         let value: TestStruct = config.get_param("complex_key")?;
         assert_eq!(value.field1, "hello");
@@ -833,7 +837,7 @@ mod tests {
         let temp_file = NamedTempFile::new().unwrap();
         let config = Config::new(temp_file.path(), TEST_KEYRING_SERVICE)?;
 
-        config.set_param("key1", Value::String("value1".to_string()))?;
+        config.set_param("key1", Value::String("value1", None))?;
         config.set_param("key2", Value::Number(42.into()))?;
 
         // Read the file directly to check YAML formatting
@@ -849,7 +853,7 @@ mod tests {
         let temp_file = NamedTempFile::new().unwrap();
         let config = Config::new(temp_file.path(), TEST_KEYRING_SERVICE)?;
 
-        config.set_param("key", Value::String("value".to_string()))?;
+        config.set_param("key", Value::String("value", None))?;
 
         let value: String = config.get_param("key")?;
         assert_eq!(value, "value");
@@ -868,7 +872,7 @@ mod tests {
         let secrets_file = NamedTempFile::new().unwrap();
         let config = Config::new_with_file_secrets(config_file.path(), secrets_file.path())?;
 
-        config.set_secret("key", Value::String("value".to_string()))?;
+        config.set_secret("key", Value::String("value", None))?;
 
         let value: String = config.get_secret("key")?;
         assert_eq!(value, "value");
@@ -889,7 +893,7 @@ mod tests {
         let config = Config::new(temp_file.path(), TEST_KEYRING_SERVICE)?;
 
         // Test setting and getting a simple secret
-        config.set_secret("api_key", Value::String("secret123".to_string()))?;
+        config.set_secret("api_key", Value::String("secret123", None))?;
         let value: String = config.get_secret("api_key")?;
         assert_eq!(value, "secret123");
 
@@ -916,8 +920,8 @@ mod tests {
         let config = Config::new(temp_file.path(), TEST_KEYRING_SERVICE)?;
 
         // Set multiple secrets
-        config.set_secret("key1", Value::String("secret1".to_string()))?;
-        config.set_secret("key2", Value::String("secret2".to_string()))?;
+        config.set_secret("key1", Value::String("secret1", None))?;
+        config.set_secret("key2", Value::String("secret2", None))?;
 
         // Verify both exist
         let value1: String = config.get_secret("key1")?;
@@ -1015,7 +1019,7 @@ mod tests {
         let config = Config::new(temp_file.path(), TEST_KEYRING_SERVICE)?;
 
         // Create a valid config first
-        config.set_param("key1", Value::String("value1".to_string()))?;
+        config.set_param("key1", Value::String("value1", None))?;
 
         // Verify the backup was created by the first write
         let backup_paths = config.get_backup_paths();
@@ -1119,7 +1123,7 @@ mod tests {
         let config = Config::new(config_path, TEST_KEYRING_SERVICE)?;
 
         // First, create a config with some data
-        config.set_param("test_key_backup", Value::String("backup_value".to_string()))?;
+        config.set_param("test_key_backup", Value::String("backup_value", None))?;
         config.set_param("another_key", Value::Number(42.into()))?;
 
         // Verify the backup was created
@@ -1163,7 +1167,7 @@ mod tests {
         let config = Config::new(temp_file.path(), TEST_KEYRING_SERVICE)?;
 
         // Set initial values
-        config.set_param("key1", Value::String("value1".to_string()))?;
+        config.set_param("key1", Value::String("value1", None))?;
 
         // Verify the config file exists and is valid
         assert!(temp_file.path().exists());

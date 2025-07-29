@@ -9,7 +9,7 @@ use crate::{
 };
 use anyhow::anyhow;
 use chrono::{DateTime, Utc};
-use rmcp::model::{Tool, ErrorData, ErrorCode};
+use rmcp::model::{ErrorCode, ErrorData, Tool};
 use serde::{Deserialize, Serialize};
 // use serde_json::{self};
 use std::{collections::HashMap, sync::Arc};
@@ -129,7 +129,8 @@ impl SubAgent {
     pub async fn reply_subagent(
         &self,
         message: String,
-        task_config: TaskConfig) -> Result<Vec<Message>, anyhow::Error> {
+        task_config: TaskConfig,
+    ) -> Result<Vec<Message>, anyhow::Error> {
         debug!("Processing message for subagent {}", self.id);
 
         // Get provider from task config
@@ -180,7 +181,8 @@ impl SubAgent {
                 &system_prompt,
                 &messages,
                 &tools,
-                &toolshim_tools)
+                &toolshim_tools,
+            )
             .await
             {
                 Ok((response, _usage)) => {
@@ -203,7 +205,7 @@ impl SubAgent {
                         messages.push(response.clone());
 
                         // Set status back to ready
-                        self.set_status(SubAgentStatus::Completed("Completed!".to_string()))
+                        self.set_status(SubAgentStatus::Completed("Completed!", None))
                             .await;
                         break;
                     }
@@ -223,7 +225,11 @@ impl SubAgent {
                                 .await
                             {
                                 Ok(result) => result.result.await,
-                                Err(e) => Err(ErrorData::new(ErrorCode::INTERNAL_ERROR, e.to_string(), None)),
+                                Err(e) => Err(ErrorData::new(
+                                    ErrorCode::INTERNAL_ERROR,
+                                    e.to_string(),
+                                    None,
+                                )),
                             };
 
                             match tool_result {
@@ -237,7 +243,12 @@ impl SubAgent {
                                     // Create a user message with the tool error
                                     let tool_error_message = Message::user().with_tool_response(
                                         request.id.clone(),
-                                        Err(ErrorData::new(ErrorCode::INTERNAL_ERROR, e.message.clone(), None)));
+                                        Err(ErrorData::new(
+                                            ErrorCode::INTERNAL_ERROR,
+                                            e.message.clone(),
+                                            None,
+                                        )),
+                                    );
                                     messages.push(tool_error_message);
                                 }
                             }
@@ -248,13 +259,14 @@ impl SubAgent {
                 }
                 Err(ProviderError::ContextLengthExceeded(_)) => {
                     self.set_status(SubAgentStatus::Completed(
-                        "Context length exceeded".to_string()))
+                        "Context length exceeded".to_string(),
+                    ))
                     .await;
                     last_error = Some(anyhow::anyhow!("Context length exceeded"));
                     break;
                 }
                 Err(ProviderError::RateLimitExceeded(_)) => {
-                    self.set_status(SubAgentStatus::Completed("Rate limit exceeded".to_string()))
+                    self.set_status(SubAgentStatus::Completed("Rate limit exceeded", None))
                         .await;
                     last_error = Some(anyhow::anyhow!("Rate limit exceeded"));
                     break;
@@ -316,14 +328,16 @@ impl SubAgent {
         // Add basic context
         context.insert(
             "current_date_time",
-            serde_json::Value::String(Utc::now().format("%Y-%m-%d %H:%M:%S UTC").to_string()));
+            serde_json::Value::String(Utc::now().format("%Y-%m-%d %H:%M:%S UTC").to_string()),
+        );
         context.insert("subagent_id", serde_json::Value::String(self.id.clone()));
 
         // Add max turns if configured
         if let Some(max_turns) = self.config.max_turns {
             context.insert(
                 "max_turns",
-                serde_json::Value::Number(serde_json::Number::from(max_turns)));
+                serde_json::Value::Number(serde_json::Number::from(max_turns)),
+            );
         }
 
         // Add available tools with descriptions for better context
@@ -344,12 +358,14 @@ impl SubAgent {
                 "None".to_string()
             } else {
                 tools_with_descriptions.join(", ")
-            }));
+            }),
+        );
 
         // Add tool count for context
         context.insert(
             "tool_count",
-            serde_json::Value::Number(serde_json::Number::from(available_tools.len())));
+            serde_json::Value::Number(serde_json::Number::from(available_tools.len())),
+        );
 
         // Render the subagent system prompt template
         let system_prompt = render_global_file("subagent_system.md", &context)

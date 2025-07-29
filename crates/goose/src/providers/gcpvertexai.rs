@@ -257,7 +257,7 @@ impl GcpVertexAIProvider {
             .get_param("GCP_LOCATION")
             .ok()
             .filter(|location: &String| !location.trim().is_empty())
-            .unwrap_or_else(|| Iowa.to_string()))
+            .unwrap_or_else(|| Iowa, None))
     }
 
     /// Retrieves an authentication token for API requests.
@@ -266,7 +266,7 @@ impl GcpVertexAIProvider {
             .get_token()
             .await
             .map(|token| format!("Bearer {}", token.token_value))
-            .map_err(|e| GcpVertexAIError::AuthError(e.to_string()))
+            .map_err(|e| GcpVertexAIError::AuthError(e, None))
     }
 
     /// Constructs the appropriate API endpoint URL for a given provider.
@@ -277,7 +277,8 @@ impl GcpVertexAIProvider {
     fn build_request_url(
         &self,
         provider: ModelProvider,
-        location: &str) -> Result<Url, GcpVertexAIError> {
+        location: &str,
+    ) -> Result<Url, GcpVertexAIError> {
         // Create host URL for the specified location
         let host_url = if self.location == location {
             &self.host
@@ -286,8 +287,7 @@ impl GcpVertexAIProvider {
             &self.host.replace(&self.location, location)
         };
 
-        let base_url =
-            Url::parse(host_url).map_err(|e| GcpVertexAIError::InvalidUrl(e.to_string()))?;
+        let base_url = Url::parse(host_url).map_err(|e| GcpVertexAIError::InvalidUrl(e, None))?;
 
         // Determine endpoint based on provider type
         let endpoint = match provider {
@@ -307,7 +307,7 @@ impl GcpVertexAIProvider {
 
         base_url
             .join(&path)
-            .map_err(|e| GcpVertexAIError::InvalidUrl(e.to_string()))
+            .map_err(|e| GcpVertexAIError::InvalidUrl(e, None))
     }
 
     /// Makes an authenticated POST request to the Vertex AI API at a specific location.
@@ -321,10 +321,11 @@ impl GcpVertexAIProvider {
         &self,
         payload: &Value,
         context: &RequestContext,
-        location: &str) -> Result<Value, ProviderError> {
+        location: &str,
+    ) -> Result<Value, ProviderError> {
         let url = self
             .build_request_url(context.provider(), location)
-            .map_err(|e| ProviderError::RequestFailed(e.to_string()))?;
+            .map_err(|e| ProviderError::RequestFailed(e, None))?;
 
         // Initialize separate counters for different error types
         let mut rate_limit_attempts = 0;
@@ -336,7 +337,7 @@ impl GcpVertexAIProvider {
             let auth_header = self
                 .get_auth_header()
                 .await
-                .map_err(|e| ProviderError::Authentication(e.to_string()))?;
+                .map_err(|e| ProviderError::Authentication(e, None))?;
 
             // Make the request
             let response = self
@@ -346,7 +347,7 @@ impl GcpVertexAIProvider {
                 .header("Authorization", auth_header)
                 .send()
                 .await
-                .map_err(|e| ProviderError::RequestFailed(e.to_string()))?;
+                .map_err(|e| ProviderError::RequestFailed(e, None))?;
 
             let status = response.status();
 
@@ -471,7 +472,8 @@ impl GcpVertexAIProvider {
     async fn post(
         &self,
         payload: &Value,
-        context: &RequestContext) -> Result<Value, ProviderError> {
+        context: &RequestContext,
+    ) -> Result<Value, ProviderError> {
         // Try with user-specified location first
         let result = self
             .post_with_location(payload, context, &self.location)
@@ -554,33 +556,40 @@ impl Provider for GcpVertexAIProvider {
                     "GCP_MAX_RATE_LIMIT_RETRIES",
                     false,
                     false,
-                    Some(&DEFAULT_MAX_RETRIES.to_string())),
+                    Some(&DEFAULT_MAX_RETRIES.to_string()),
+                ),
                 ConfigKey::new(
                     "GCP_MAX_OVERLOADED_RETRIES",
                     false,
                     false,
-                    Some(&DEFAULT_MAX_RETRIES.to_string())),
+                    Some(&DEFAULT_MAX_RETRIES.to_string()),
+                ),
                 ConfigKey::new(
                     "GCP_MAX_RETRIES",
                     false,
                     false,
-                    Some(&DEFAULT_MAX_RETRIES.to_string())),
+                    Some(&DEFAULT_MAX_RETRIES.to_string()),
+                ),
                 ConfigKey::new(
                     "GCP_INITIAL_RETRY_INTERVAL_MS",
                     false,
                     false,
-                    Some(&DEFAULT_INITIAL_RETRY_INTERVAL_MS.to_string())),
+                    Some(&DEFAULT_INITIAL_RETRY_INTERVAL_MS.to_string()),
+                ),
                 ConfigKey::new(
                     "GCP_BACKOFF_MULTIPLIER",
                     false,
                     false,
-                    Some(&DEFAULT_BACKOFF_MULTIPLIER.to_string())),
+                    Some(&DEFAULT_BACKOFF_MULTIPLIER.to_string()),
+                ),
                 ConfigKey::new(
                     "GCP_MAX_RETRY_INTERVAL_MS",
                     false,
                     false,
-                    Some(&DEFAULT_MAX_RETRY_INTERVAL_MS.to_string())),
-            ])
+                    Some(&DEFAULT_MAX_RETRY_INTERVAL_MS.to_string()),
+                ),
+            ],
+        )
     }
 
     /// Completes a model interaction by sending a request and processing the response.
@@ -597,7 +606,8 @@ impl Provider for GcpVertexAIProvider {
         &self,
         system: &str,
         messages: &[Message],
-        tools: &[Tool]) -> Result<(Message, ProviderUsage), ProviderError> {
+        tools: &[Tool],
+    ) -> Result<(Message, ProviderUsage), ProviderError> {
         // Create request and context
         let (request, context) = create_request(&self.model, system, messages, tools)?;
 
@@ -732,9 +742,9 @@ mod tests {
             .iter()
             .map(|m| m.name.clone())
             .collect();
-        assert!(model_names.contains(&"claude-3-5-sonnet-v2@20241022".to_string()));
-        assert!(model_names.contains(&"gemini-1.5-pro-002".to_string()));
-        assert!(model_names.contains(&"gemini-2.5-pro".to_string()));
+        assert!(model_names.contains(&"claude-3-5-sonnet-v2@20241022", None));
+        assert!(model_names.contains(&"gemini-1.5-pro-002", None));
+        assert!(model_names.contains(&"gemini-2.5-pro", None));
         // Should contain the original 2 config keys plus 6 new retry-related ones
         assert_eq!(metadata.config_keys.len(), 8);
     }

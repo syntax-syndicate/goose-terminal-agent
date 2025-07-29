@@ -105,7 +105,7 @@ impl AnthropicProvider {
                     tracing::debug!("Bad Request Error: {error:?}");
                     error_msg = error.get("message").and_then(|m| m.as_str()).unwrap_or("Unknown error").to_string();
                     if error_msg.to_lowercase().contains("too long") || error_msg.to_lowercase().contains("too many") {
-                        return Err(ProviderError::ContextLengthExceeded(error_msg.to_string()));
+                        return Err(ProviderError::ContextLengthExceeded(error_msg, None));
                     }
                 }}
                 tracing::debug!(
@@ -157,8 +157,10 @@ impl Provider for AnthropicProvider {
                     "ANTHROPIC_HOST",
                     true,
                     false,
-                    Some("https://api.anthropic.com")),
-            ])
+                    Some("https://api.anthropic.com"),
+                ),
+            ],
+        )
     }
 
     fn get_model_config(&self) -> ModelConfig {
@@ -173,7 +175,8 @@ impl Provider for AnthropicProvider {
         &self,
         system: &str,
         messages: &[Message],
-        tools: &[Tool]) -> Result<(Message, ProviderUsage), ProviderError> {
+        tools: &[Tool],
+    ) -> Result<(Message, ProviderUsage), ProviderError> {
         let payload = create_request(&self.model, system, messages, tools)?;
 
         let mut headers = reqwest::header::HeaderMap::new();
@@ -190,7 +193,8 @@ impl Provider for AnthropicProvider {
             // https://docs.anthropic.com/en/docs/build-with-claude/tool-use/token-efficient-tool-use
             headers.insert(
                 "anthropic-beta",
-                "token-efficient-tools-2025-02-19".parse().unwrap());
+                "token-efficient-tools-2025-02-19".parse().unwrap(),
+            );
         }
 
         // Make request
@@ -248,7 +252,8 @@ impl Provider for AnthropicProvider {
         &self,
         system: &str,
         messages: &[Message],
-        tools: &[Tool]) -> Result<MessageStream, ProviderError> {
+        tools: &[Tool],
+    ) -> Result<MessageStream, ProviderError> {
         let mut payload = create_request(&self.model, system, messages, tools)?;
 
         // Add stream parameter
@@ -271,7 +276,8 @@ impl Provider for AnthropicProvider {
             // https://docs.anthropic.com/en/docs/build-with-claude/tool-use/token-efficient-tool-use
             headers.insert(
                 "anthropic-beta",
-                "token-efficient-tools-2025-02-19".parse().unwrap());
+                "token-efficient-tools-2025-02-19".parse().unwrap(),
+            );
         }
 
         let base_url = url::Url::parse(&self.host)

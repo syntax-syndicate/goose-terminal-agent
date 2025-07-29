@@ -17,12 +17,14 @@ pub async fn execute_tasks(
     notifier: Sender<ServerNotification>,
     task_config: TaskConfig,
     tasks_manager: &TasksManager,
-    cancellation_token: Option<CancellationToken>) -> Result<Value, String> {
+    cancellation_token: Option<CancellationToken>,
+) -> Result<Value, String> {
     let task_ids: Vec<String> = serde_json::from_value(
         input
             .get("task_ids")
             .ok_or("Missing task_ids field")?
-            .clone())
+            .clone(),
+    )
     .map_err(|e| format!("Failed to parse task_ids: {}", e))?;
 
     let tasks = tasks_manager.get_tasks(&task_ids).await?;
@@ -52,7 +54,8 @@ pub async fn execute_tasks(
                     tasks,
                     notifier.clone(),
                     task_config,
-                    cancellation_token)
+                    cancellation_token,
+                )
                 .await;
                 handle_response(response)
             }
@@ -90,7 +93,8 @@ fn format_failed_task_error(result: &TaskResult) -> String {
 fn format_error_summary(
     failed_count: usize,
     total_count: usize,
-    failed_tasks: Vec<String>) -> String {
+    failed_tasks: Vec<String>,
+) -> String {
     format!(
         "{}/{} tasks failed:\n{}",
         failed_count,
@@ -105,7 +109,8 @@ fn handle_response(response: ExecutionResponse) -> Result<Value, String> {
         let error_summary = format_error_summary(
             response.stats.failed,
             response.stats.total_tasks,
-            failed_tasks);
+            failed_tasks,
+        );
         return Err(error_summary);
     }
     serde_json::to_value(response).map_err(|e| format!("Failed to serialize response: {}", e))

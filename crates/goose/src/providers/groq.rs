@@ -115,7 +115,8 @@ impl Provider for GroqProvider {
             vec![
                 ConfigKey::new("GROQ_API_KEY", true, true, None),
                 ConfigKey::new("GROQ_HOST", false, false, Some(GROQ_API_HOST)),
-            ])
+            ],
+        )
     }
 
     fn get_model_config(&self) -> ModelConfig {
@@ -130,13 +131,15 @@ impl Provider for GroqProvider {
         &self,
         system: &str,
         messages: &[Message],
-        tools: &[Tool]) -> anyhow::Result<(Message, ProviderUsage), ProviderError> {
+        tools: &[Tool],
+    ) -> anyhow::Result<(Message, ProviderUsage), ProviderError> {
         let payload = create_request(
             &self.model,
             system,
             messages,
             tools,
-            &super::utils::ImageFormat::OpenAi)?;
+            &super::utils::ImageFormat::OpenAi,
+        )?;
 
         let response = self.post(&payload).await?;
 
@@ -179,7 +182,7 @@ impl Provider for GroqProvider {
                 .get("message")
                 .and_then(|v| v.as_str())
                 .unwrap_or("unknown error");
-            return Err(ProviderError::Authentication(msg.to_string()));
+            return Err(ProviderError::Authentication(msg, None));
         }
 
         // Extract model names

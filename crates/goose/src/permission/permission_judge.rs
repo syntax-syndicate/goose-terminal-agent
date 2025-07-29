@@ -5,7 +5,7 @@ use crate::message::{Message, MessageContent, ToolRequest};
 use crate::providers::base::Provider;
 use chrono::Utc;
 use indoc::indoc;
-use rmcp::model::{Tool, ToolAnnotations, ErrorData, ErrorCode};
+use rmcp::model::{ErrorCode, ErrorData, Tool, ToolAnnotations};
 use rmcp::object;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -108,7 +108,8 @@ fn extract_read_only_tools(response: &Message) -> Option<Vec<String>> {
                                 read_only_tools
                                     .iter()
                                     .filter_map(|tool| tool.as_str().map(String::from))
-                                    .collect());
+                                    .collect(),
+                            );
                         }
                     }
                 }
@@ -121,7 +122,8 @@ fn extract_read_only_tools(response: &Message) -> Option<Vec<String>> {
 /// Executes the read-only tools detection and returns the list of tools with read-only operations.
 pub async fn detect_read_only_tools(
     provider: Arc<dyn Provider>,
-    tool_requests: Vec<&ToolRequest>) -> Vec<String> {
+    tool_requests: Vec<&ToolRequest>,
+) -> Vec<String> {
     if tool_requests.is_empty() {
         return vec![];
     }
@@ -157,7 +159,8 @@ pub async fn check_tool_permissions(
     tools_with_readonly_annotation: HashSet<String>,
     tools_without_annotation: HashSet<String>,
     permission_manager: &mut PermissionManager,
-    provider: Arc<dyn Provider>) -> (PermissionCheckResult, Vec<String>) {
+    provider: Arc<dyn Provider>,
+) -> (PermissionCheckResult, Vec<String>) {
     let mut approved = vec![];
     let mut needs_approval = vec![];
     let mut denied = vec![];
@@ -228,12 +231,14 @@ pub async fn check_tool_permissions(
                     approved.push(request.clone());
                     permission_manager.update_smart_approve_permission(
                         &tool_call.name,
-                        PermissionLevel::AlwaysAllow);
+                        PermissionLevel::AlwaysAllow,
+                    );
                 } else {
                     needs_approval.push(request.clone());
                     permission_manager.update_smart_approve_permission(
                         &tool_call.name,
-                        PermissionLevel::AskBefore);
+                        PermissionLevel::AskBefore,
+                    );
                 }
             }
         }
@@ -245,7 +250,8 @@ pub async fn check_tool_permissions(
             needs_approval,
             denied,
         },
-        extension_request_ids)
+        extension_request_ids,
+    )
 }
 
 #[cfg(test)]
@@ -256,8 +262,8 @@ mod tests {
     use crate::providers::base::{Provider, ProviderMetadata, ProviderUsage, Usage};
     use crate::providers::errors::ProviderError;
     use chrono::Utc;
-    use mcp_core::{ToolCall};
-    use rmcp::model::{Role, Tool, ErrorData, ErrorCode};
+    use mcp_core::ToolCall;
+    use rmcp::model::{ErrorCode, ErrorData, Role, Tool};
     use serde_json::json;
     use tempfile::NamedTempFile;
 
@@ -280,7 +286,8 @@ mod tests {
             &self,
             _system: &str,
             _messages: &[Message],
-            _tools: &[Tool]) -> anyhow::Result<(Message, ProviderUsage), ProviderError> {
+            _tools: &[Tool],
+        ) -> anyhow::Result<(Message, ProviderUsage), ProviderError> {
             Ok((
                 Message::new(
                     Role::Assistant,
@@ -293,8 +300,10 @@ mod tests {
                                 "read_only_tools": ["file_reader", "data_fetcher"]
                             }),
                         }),
-                    })]),
-                ProviderUsage::new("mock".to_string(), Usage::default())))
+                    })],
+                ),
+                ProviderUsage::new("mock".to_string(), Usage::default()),
+            ))
         }
     }
 
@@ -352,7 +361,8 @@ mod tests {
                         "read_only_tools": ["file_reader", "data_fetcher"]
                     }),
                 }),
-            })]);
+            })],
+        );
 
         let result = extract_read_only_tools(&message);
         assert!(result.is_some());
@@ -433,7 +443,8 @@ mod tests {
             tools_with_readonly_annotation,
             tools_without_annotation,
             &mut permission_manager,
-            provider)
+            provider,
+        )
         .await;
 
         // Validate the result
@@ -491,7 +502,8 @@ mod tests {
             tools_with_readonly_annotation,
             tools_without_annotation,
             &mut permission_manager,
-            provider)
+            provider,
+        )
         .await;
 
         // Validate the result

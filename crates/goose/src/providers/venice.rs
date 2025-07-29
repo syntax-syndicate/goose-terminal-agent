@@ -235,13 +235,16 @@ impl Provider for VeniceProvider {
                     "VENICE_BASE_PATH",
                     true,
                     false,
-                    Some(VENICE_DEFAULT_BASE_PATH)),
+                    Some(VENICE_DEFAULT_BASE_PATH),
+                ),
                 ConfigKey::new(
                     "VENICE_MODELS_PATH",
                     true,
                     false,
-                    Some(VENICE_DEFAULT_MODELS_PATH)),
-            ])
+                    Some(VENICE_DEFAULT_MODELS_PATH),
+                ),
+            ],
+        )
     }
 
     fn get_model_config(&self) -> ModelConfig {
@@ -278,7 +281,7 @@ impl Provider for VeniceProvider {
 
         let mut models = json["data"]
             .as_array()
-            .ok_or_else(|| ProviderError::RequestFailed("No data field in JSON".to_string()))?
+            .ok_or_else(|| ProviderError::RequestFailed("No data field in JSON", None))?
             .iter()
             .filter_map(|model| {
                 let id = model["id"].as_str()?.to_owned();
@@ -304,7 +307,8 @@ impl Provider for VeniceProvider {
         &self,
         _system: &str,
         messages: &[Message],
-        tools: &[Tool]) -> Result<(Message, ProviderUsage), ProviderError> {
+        tools: &[Tool],
+    ) -> Result<(Message, ProviderUsage), ProviderError> {
         // Create properly formatted messages for Venice API
         let mut formatted_messages = Vec::new();
 
@@ -525,7 +529,9 @@ impl Provider for VeniceProvider {
                     message,
                     ProviderUsage::new(
                         strip_flags(&self.model.model_name).to_string(),
-                        Usage::default())));
+                        Usage::default(),
+                    ),
+                ));
             }
         }
 
@@ -553,7 +559,8 @@ impl Provider for VeniceProvider {
 
         Ok((
             Message::new(Role::Assistant, Utc::now().timestamp(), content),
-            ProviderUsage::new(strip_flags(&self.model.model_name).to_string(), usage)))
+            ProviderUsage::new(strip_flags(&self.model.model_name).to_string(), usage),
+        ))
     }
 }
 

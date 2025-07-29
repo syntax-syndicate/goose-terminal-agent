@@ -48,7 +48,8 @@ impl ExtensionConfigManager {
                             bundled: Some(true),
                             description: Some(DEFAULT_EXTENSION_DESCRIPTION.to_string()),
                         },
-                    })]);
+                    },
+                )]);
                 config.set_param("extensions", serde_json::to_value(&defaults)?)?;
                 defaults
             }

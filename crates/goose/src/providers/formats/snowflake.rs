@@ -310,7 +310,8 @@ pub fn create_request(
     model_config: &ModelConfig,
     system: &str,
     messages: &[Message],
-    tools: &[Tool]) -> Result<Value> {
+    tools: &[Tool],
+) -> Result<Value> {
     let mut snowflake_messages = format_messages(messages);
     let system_spec = format_system(system);
 
@@ -468,7 +469,8 @@ mod tests {
                             "description": "The mathematical expression to evaluate"
                         }
                     }
-                })),
+                }),
+            ),
             Tool::new(
                 "weather",
                 "Get weather information",
@@ -480,7 +482,8 @@ mod tests {
                             "description": "The location to get weather for"
                         }
                     }
-                })),
+                }),
+            ),
         ];
 
         let spec = format_tools(&tools);
@@ -562,7 +565,8 @@ data: {"id":"a9537c2c-2017-4906-9817-2456168d89fa","model":"claude-3-5-sonnet","
                     }
                 },
                 "required": ["symbol"]
-            }))];
+            }),
+        )];
 
         let request = create_request(&model_config, system, &messages, &tools)?;
 
@@ -658,7 +662,8 @@ data: {"id":"a9537c2c-2017-4906-9817-2456168d89fa","model":"claude-3-5-sonnet","
         let tools = vec![Tool::new(
             "test_tool",
             "Test tool",
-            object!({"type": "object", "properties": {}}))];
+            object!({"type": "object", "properties": {}}),
+        )];
 
         let request = create_request(&model_config, system, &messages, &tools)?;
 

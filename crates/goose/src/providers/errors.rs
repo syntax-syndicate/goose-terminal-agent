@@ -107,14 +107,14 @@ where
         where
             E: de::Error,
         {
-            Ok(Some(value.to_string()))
+            Ok(Some(value, None))
         }
 
         fn visit_u64<E>(self, value: u64) -> Result<Self::Value, E>
         where
             E: de::Error,
         {
-            Ok(Some(value.to_string()))
+            Ok(Some(value, None))
         }
 
         fn visit_none<E>(self) -> Result<Self::Value, E>

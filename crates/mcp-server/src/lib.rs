@@ -79,14 +79,16 @@ where
                         // Validate basic JSON-RPC structure
                         if !value.is_object() {
                             return Poll::Ready(Some(Err(TransportError::InvalidMessage(
-                                "Message must be a JSON object".into()))));
+                                "Message must be a JSON object".into(),
+                            ))));
                         }
                         let obj = value.as_object().unwrap(); // Safe due to check above
 
                         // Check jsonrpc version field
                         if !obj.contains_key("jsonrpc") || obj["jsonrpc"] != "2.0" {
                             return Poll::Ready(Some(Err(TransportError::InvalidMessage(
-                                "Missing or invalid jsonrpc version".into()))));
+                                "Missing or invalid jsonrpc version".into(),
+                            ))));
                         }
 
                         // Now try to parse as proper message
@@ -184,7 +186,8 @@ where
 
                                     // Return an error response instead of a regular response
                                     return Err(ServerError::Transport(TransportError::Protocol(
-                                        error_msg)));
+                                        error_msg,
+                                    )));
                                 }
                             };
 
@@ -193,7 +196,8 @@ where
                                 Err(e) => {
                                     tracing::error!(error = %e, "Failed to spawn transport task");
                                     return Err(ServerError::Transport(TransportError::Io(
-                                        e.into())));
+                                        e.into(),
+                                    )));
                                 }
                             };
 

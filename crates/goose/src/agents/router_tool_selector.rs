@@ -1,4 +1,4 @@
-use rmcp::model::{Content, Tool, ErrorData, ErrorCode};
+use rmcp::model::{Content, ErrorCode, ErrorData, Tool};
 
 use anyhow::{Context, Result};
 use async_trait::async_trait;
@@ -73,7 +73,13 @@ impl RouterToolSelector for VectorToolSelector {
         let query = params
             .get("query")
             .and_then(|v| v.as_str())
-            .ok_or_else(|| ErrorData::new(ErrorCode::INVALID_PARAMS, "Missing 'query' parameter".to_string(), None))?;
+            .ok_or_else(|| {
+                ErrorData::new(
+                    ErrorCode::INVALID_PARAMS,
+                    "Missing 'query' parameter".to_string(),
+                    None,
+                )
+            })?;
 
         let k = params.get("k").and_then(|v| v.as_u64()).unwrap_or(5) as usize;
 
@@ -82,7 +88,11 @@ impl RouterToolSelector for VectorToolSelector {
 
         // Check if provider supports embeddings
         if !self.embedding_provider.supports_embeddings() {
-            return Err(ErrorData::new(ErrorCode::INTERNAL_ERROR, "Embedding provider does not support embeddings".to_string(), None));
+            return Err(ErrorData::new(
+                ErrorCode::INTERNAL_ERROR,
+                "Embedding provider does not support embeddings".to_string(),
+                None,
+            ));
         }
 
         let embeddings = self
@@ -90,19 +100,32 @@ impl RouterToolSelector for VectorToolSelector {
             .create_embeddings(vec![query.to_string()])
             .await
             .map_err(|e| {
-                ErrorData::new(ErrorCode::INTERNAL_ERROR, format!("Failed to generate query embedding: {}", e), None)
+                ErrorData::new(
+                    ErrorCode::INTERNAL_ERROR,
+                    format!("Failed to generate query embedding: {}", e),
+                    None,
+                )
             })?;
 
-        let query_embedding = embeddings
-            .into_iter()
-            .next()
-            .ok_or_else(|| ErrorData::new(ErrorCode::INTERNAL_ERROR, "No embedding returned".to_string(), None))?;
+        let query_embedding = embeddings.into_iter().next().ok_or_else(|| {
+            ErrorData::new(
+                ErrorCode::INTERNAL_ERROR,
+                "No embedding returned".to_string(),
+                None,
+            )
+        })?;
 
         let vector_db = self.vector_db.read().await;
         let tools = vector_db
             .search_tools(query_embedding, k, extension_name)
             .await
-            .map_err(|e| ErrorData::new(ErrorCode::INTERNAL_ERROR, format!("Failed to search tools: {}", e), None))?;
+            .map_err(|e| {
+                ErrorData::new(
+                    ErrorCode::INTERNAL_ERROR,
+                    format!("Failed to search tools: {}", e),
+                    None,
+                )
+            })?;
 
         let selected_tools: Vec<Content> = tools
             .into_iter()
@@ -140,7 +163,8 @@ impl RouterToolSelector for VectorToolSelector {
             return Err(ErrorData::new(
                 ErrorCode::INTERNAL_ERROR,
                 "Embedding provider does not support embeddings".to_string(),
-                None));
+                None,
+            ));
         }
 
         let embeddings = self
@@ -148,7 +172,11 @@ impl RouterToolSelector for VectorToolSelector {
             .create_embeddings(texts_to_embed)
             .await
             .map_err(|e| {
-                ErrorData::new(ErrorCode::INTERNAL_ERROR, format!("Failed to generate tool embeddings: {}", e), None)
+                ErrorData::new(
+                    ErrorCode::INTERNAL_ERROR,
+                    format!("Failed to generate tool embeddings: {}", e),
+                    None,
+                )
             })?;
 
         // Create tool records
@@ -183,7 +211,11 @@ impl RouterToolSelector for VectorToolSelector {
                 .search_tools(record.vector.clone(), 1, Some(&record.extension_name))
                 .await
                 .map_err(|e| {
-                    ErrorData::new(ErrorCode::INTERNAL_ERROR, format!("Failed to search for existing tools: {}", e), None)
+                    ErrorData::new(
+                        ErrorCode::INTERNAL_ERROR,
+                        format!("Failed to search for existing tools: {}", e),
+                        None,
+                    )
                 })?;
 
             // Only add if no exact match found
@@ -197,10 +229,13 @@ impl RouterToolSelector for VectorToolSelector {
 
         // Only index if there are new tools to add
         if !new_tool_records.is_empty() {
-            vector_db
-                .index_tools(new_tool_records)
-                .await
-                .map_err(|e| ErrorData::new(ErrorCode::INTERNAL_ERROR, format!("Failed to index tools: {}", e), None))?;
+            vector_db.index_tools(new_tool_records).await.map_err(|e| {
+                ErrorData::new(
+                    ErrorCode::INTERNAL_ERROR,
+                    format!("Failed to index tools: {}", e),
+                    None,
+                )
+            })?;
         }
 
         Ok(())
@@ -209,7 +244,11 @@ impl RouterToolSelector for VectorToolSelector {
     async fn remove_tool(&self, tool_name: &str) -> Result<(), ErrorData> {
         let vector_db = self.vector_db.read().await;
         vector_db.remove_tool(tool_name).await.map_err(|e| {
-            ErrorData::new(ErrorCode::INTERNAL_ERROR, format!("Failed to remove tool {}: {}", tool_name, e), None)
+            ErrorData::new(
+                ErrorCode::INTERNAL_ERROR,
+                format!("Failed to remove tool {}: {}", tool_name, e),
+                None,
+            )
         })?;
         Ok(())
     }
@@ -255,7 +294,13 @@ impl RouterToolSelector for LLMToolSelector {
         let query = params
             .get("query")
             .and_then(|v| v.as_str())
-            .ok_or_else(|| ErrorData::new(ErrorCode::INVALID_PARAMS, "Missing 'query' parameter".to_string(), None))?;
+            .ok_or_else(|| {
+                ErrorData::new(
+                    ErrorCode::INVALID_PARAMS,
+                    "Missing 'query' parameter".to_string(),
+                    None,
+                )
+            })?;
 
         let extension_name = params
             .get("extension_name")
@@ -273,7 +318,8 @@ impl RouterToolSelector for LLMToolSelector {
                     .values()
                     .cloned()
                     .collect::<Vec<String>>()
-                    .join("\n"))
+                    .join("\n"),
+            )
         };
 
         if let Some(tools) = relevant_tools {
@@ -287,7 +333,13 @@ impl RouterToolSelector for LLMToolSelector {
                 .llm_provider
                 .complete(&prompt, &[system_message], &[])
                 .await
-                .map_err(|e| ErrorData::new(ErrorCode::INTERNAL_ERROR, format!("Failed to search tools: {}", e), None))?;
+                .map_err(|e| {
+                    ErrorData::new(
+                        ErrorCode::INTERNAL_ERROR,
+                        format!("Failed to search tools: {}", e),
+                        None,
+                    )
+                })?;
 
             // Extract just the message content from the response
             let (message, _usage) = response;
@@ -297,7 +349,7 @@ impl RouterToolSelector for LLMToolSelector {
             let tool_entries: Vec<Content> = text
                 .split("\n\n")
                 .filter(|entry| entry.trim().starts_with("Tool:"))
-                .map(|entry| Content::text(entry.trim().to_string()))
+                .map(|entry| Content::text(entry.trim(), None))
                 .collect();
 
             Ok(tool_entries)
@@ -366,7 +418,8 @@ impl RouterToolSelector for LLMToolSelector {
 pub async fn create_tool_selector(
     strategy: Option<RouterToolSelectionStrategy>,
     provider: Arc<dyn Provider>,
-    table_name: Option<String>) -> Result<Box<dyn RouterToolSelector>> {
+    table_name: Option<String>,
+) -> Result<Box<dyn RouterToolSelector>> {
     match strategy {
         Some(RouterToolSelectionStrategy::Vector) => {
             let selector = VectorToolSelector::new(provider, table_name.unwrap()).await?;

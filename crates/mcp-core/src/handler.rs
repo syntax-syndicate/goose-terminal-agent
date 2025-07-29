@@ -1,4 +1,3 @@
-
 use serde::{Deserialize, Serialize};
 #[allow(unused_imports)] // this is used in schema below
 use serde_json::json;

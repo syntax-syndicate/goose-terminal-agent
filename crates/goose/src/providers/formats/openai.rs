@@ -8,8 +8,10 @@ use crate::providers::utils::{
 use anyhow::{anyhow, Error};
 use async_stream::try_stream;
 use futures::Stream;
-use mcp_core::{ToolCall};
-use rmcp::model::{AnnotateAble, Content, RawContent, ResourceContents, Role, Tool, ErrorData, ErrorCode};
+use mcp_core::ToolCall;
+use rmcp::model::{
+    AnnotateAble, Content, ErrorCode, ErrorData, RawContent, ResourceContents, Role, Tool,
+};
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use std::ops::Deref;
@@ -309,7 +311,8 @@ pub fn response_to_message(response: &Value) -> anyhow::Result<Message> {
                         Ok(params) => {
                             content.push(MessageContent::tool_request(
                                 id,
-                                Ok(ToolCall::new(&function_name, params))));
+                                Ok(ToolCall::new(&function_name, params)),
+                            ));
                         }
                         Err(e) => {
                             let error = ErrorData::new(ErrorCode::INVALID_PARAMS, format!(
@@ -327,7 +330,8 @@ pub fn response_to_message(response: &Value) -> anyhow::Result<Message> {
     Ok(Message::new(
         Role::Assistant,
         chrono::Utc::now().timestamp(),
-        content))
+        content,
+    ))
 }
 
 pub fn get_usage(usage: &Value) -> Usage {
@@ -404,7 +408,8 @@ fn strip_data_prefix(line: &str) -> Option<&str> {
 }
 
 pub fn response_to_streaming_message<S>(
-    mut stream: S) -> impl Stream<Item = anyhow::Result<(Option<Message>, Option<ProviderUsage>)>> + 'static
+    mut stream: S,
+) -> impl Stream<Item = anyhow::Result<(Option<Message>, Option<ProviderUsage>)>> + 'static
 where
     S: Stream<Item = anyhow::Result<String>> + Unpin + Send + 'static,
 {
@@ -538,7 +543,8 @@ pub fn create_request(
     system: &str,
     messages: &[Message],
     tools: &[Tool],
-    image_format: &ImageFormat) -> anyhow::Result<Value, Error> {
+    image_format: &ImageFormat,
+) -> anyhow::Result<Value, Error> {
     if model_config.model_name.starts_with("o1-mini") {
         return Err(anyhow!(
             "o1-mini model is not currently supported since Goose uses tool calling and o1-mini does not support it. Please use o1 or o3 models instead."
@@ -555,11 +561,12 @@ pub fn create_request(
         match *last_part {
             "low" | "medium" | "high" => {
                 let base_name = parts[..parts.len() - 1].join("-");
-                (base_name, Some(last_part.to_string()))
+                (base_name, Some(last_part, None))
             }
             _ => (
                 model_config.model_name.to_string(),
-                Some("medium".to_string())),
+                Some("medium".to_string()),
+            ),
         }
     } else {
         // For non-O family models, use the model name as is and no reasoning effort
@@ -756,7 +763,8 @@ mod tests {
                     }
                 },
                 "required": ["input"]
-            }));
+            }),
+        );
 
         let spec = format_tools(&[tool])?;
 
@@ -773,7 +781,8 @@ mod tests {
             Message::user().with_text("How are you?"),
             Message::assistant().with_tool_request(
                 "tool1",
-                Ok(ToolCall::new("example", json!({"param1": "value1"})))),
+                Ok(ToolCall::new("example", json!({"param1": "value1"}))),
+            ),
         ];
 
         // Get the ID from the tool request to use in the response
@@ -806,7 +815,8 @@ mod tests {
     fn test_format_messages_multiple_content() -> anyhow::Result<()> {
         let mut messages = vec![Message::assistant().with_tool_request(
             "tool1",
-            Ok(ToolCall::new("example", json!({"param1": "value1"}))))];
+            Ok(ToolCall::new("example", json!({"param1": "value1"}))),
+        )];
 
         // Get the ID from the tool request to use in the response
         let tool_id = if let MessageContent::ToolRequest(request) = &messages[0].content[0] {
@@ -844,7 +854,8 @@ mod tests {
                     }
                 },
                 "required": ["input"]
-            }));
+            }),
+        );
 
         let tool2 = Tool::new(
             "test_tool",
@@ -858,7 +869,8 @@ mod tests {
                     }
                 },
                 "required": ["input"]
-            }));
+            }),
+        );
 
         let result = format_tools(&[tool1, tool2]);
         assert!(result.is_err());
@@ -1138,8 +1150,7 @@ data: {"model":"us.anthropic.claude-sonnet-4-20250514-v1:0","choices":[{"delta":
 data: [DONE]
 "#;
 
-        let response_stream =
-            tokio_stream::iter(response_lines.lines().map(|line| Ok(line.to_string())));
+        let response_stream = tokio_stream::iter(response_lines.lines().map(|line| Ok(line, None)));
         let messages = response_to_streaming_message(response_stream);
         pin!(messages);
 

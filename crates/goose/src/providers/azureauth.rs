@@ -140,7 +140,8 @@ impl AzureAuth {
 
         if !output.status.success() {
             return Err(AuthError::TokenExchange(
-                String::from_utf8_lossy(&output.stderr).to_string()));
+                String::from_utf8_lossy(&output.stderr).to_string(),
+            ));
         }
 
         let token_response: TokenResponse = serde_json::from_slice(&output.stdout)
@@ -156,7 +157,8 @@ impl AzureAuth {
                 token_response
                     .expires_on
                     .saturating_sub(chrono::Utc::now().timestamp() as u64)
-                    .saturating_sub(30));
+                    .saturating_sub(30),
+            );
 
         *token_guard = Some(CachedToken {
             token: auth_token.clone(),

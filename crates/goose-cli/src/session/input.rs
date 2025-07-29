@@ -71,13 +71,13 @@ pub fn get_input(
                 InputResult::Exit
             });
         }
-        return Ok(InputResult::Message(trimmed.to_string()));
+        return Ok(InputResult::Message(trimmed, None));
     }
 
     // Handle slash commands
     match handle_slash_command(&input) {
         Some(result) => Ok(result),
-        None => Ok(InputResult::Message(input.trim().to_string())),
+        None => Ok(InputResult::Message(input.trim(), None)),
     }
 }
 
@@ -146,11 +146,9 @@ fn handle_slash_command(input: &str) -> Option<InputResult> {
             s[CMD_EXTENSION.len()..].to_string(),
         )),
         s if s.starts_with(CMD_BUILTIN) => {
-            Some(InputResult::AddBuiltin(s[CMD_BUILTIN.len()..].to_string()))
+            Some(InputResult::AddBuiltin(s[CMD_BUILTIN.len()..], None))
         }
-        s if s.starts_with(CMD_MODE) => {
-            Some(InputResult::GooseMode(s[CMD_MODE.len()..].to_string()))
-        }
+        s if s.starts_with(CMD_MODE) => Some(InputResult::GooseMode(s[CMD_MODE.len()..], None)),
         s if s.starts_with(CMD_PLAN) => parse_plan_command(s[CMD_PLAN.len()..].trim().to_string()),
         s if s == CMD_ENDPLAN => Some(InputResult::EndPlan),
         s if s == CMD_CLEAR => Some(InputResult::Clear),
@@ -182,7 +180,7 @@ fn parse_recipe_command(s: &str) -> Option<InputResult> {
     }
 
     // Return the filepath for validation in the handler
-    Some(InputResult::Recipe(Some(filepath.to_string())))
+    Some(InputResult::Recipe(Some(filepath, None)))
 }
 
 fn parse_prompts_command(args: &str) -> Option<InputResult> {
@@ -339,7 +337,7 @@ mod tests {
         if let Some(InputResult::ListPrompts(extension)) =
             handle_slash_command("/prompts --extension test")
         {
-            assert_eq!(extension, Some("test".to_string()));
+            assert_eq!(extension, Some("test", None));
         } else {
             panic!("Expected ListPrompts with extension");
         }
@@ -365,8 +363,8 @@ mod tests {
             assert_eq!(opts.name, "test-prompt");
             assert!(!opts.info);
             assert_eq!(opts.arguments.len(), 2);
-            assert_eq!(opts.arguments.get("arg1"), Some(&"val1".to_string()));
-            assert_eq!(opts.arguments.get("arg2"), Some(&"val2".to_string()));
+            assert_eq!(opts.arguments.get("arg1"), Some(&"val1", None));
+            assert_eq!(opts.arguments.get("arg2"), Some(&"val2", None));
         } else {
             panic!("Expected PromptCommand");
         }
@@ -434,7 +432,7 @@ mod tests {
         ) {
             assert_eq!(opts.name, "test-prompt");
             assert_eq!(opts.arguments.len(), 2);
-            assert_eq!(opts.arguments.get("simple"), Some(&"value".to_string()));
+            assert_eq!(opts.arguments.get("simple"), Some(&"value", None));
             assert_eq!(
                 opts.arguments.get("quoted"),
                 Some(&r#"value with "nested" quotes"#.to_string())
@@ -453,7 +451,7 @@ mod tests {
         {
             assert_eq!(opts.name, "test-prompt");
             assert_eq!(opts.arguments.len(), 1);
-            assert_eq!(opts.arguments.get("valid"), Some(&"value".to_string()));
+            assert_eq!(opts.arguments.get("valid"), Some(&"value", None));
             // Invalid arguments are ignored but logged
         } else {
             panic!("Expected PromptCommand");
@@ -491,7 +489,7 @@ mod tests {
         if let Some(InputResult::Recipe(filepath)) =
             handle_slash_command("/recipe /path/to/file.yaml")
         {
-            assert_eq!(filepath, Some("/path/to/file.yaml".to_string()));
+            assert_eq!(filepath, Some("/path/to/file.yaml", None));
         } else {
             panic!("Expected recipe with filepath");
         }

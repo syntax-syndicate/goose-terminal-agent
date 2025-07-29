@@ -161,7 +161,8 @@ impl DatabricksProvider {
 
         if host.is_err() {
             return Err(ConfigError::NotFound(
-                "Did not find DATABRICKS_HOST in either config file or keyring".to_string())
+                "Did not find DATABRICKS_HOST in either config file or keyring".to_string(),
+            )
             .into());
         }
 
@@ -294,7 +295,8 @@ impl DatabricksProvider {
     async fn post_with_retry(
         &self,
         path: &str,
-        payload: &Value) -> Result<reqwest::Response, ProviderError> {
+        payload: &Value,
+    ) -> Result<reqwest::Response, ProviderError> {
         let base_url = Url::parse(&self.host)
             .map_err(|e| ProviderError::RequestFailed(format!("Invalid base URL: {e}")))?;
         let url = base_url.join(path).map_err(|e| {
@@ -424,7 +426,8 @@ impl Provider for DatabricksProvider {
             vec![
                 ConfigKey::new("DATABRICKS_HOST", true, false, None),
                 ConfigKey::new("DATABRICKS_TOKEN", false, true, None),
-            ])
+            ],
+        )
     }
 
     fn get_model_config(&self) -> ModelConfig {
@@ -439,7 +442,8 @@ impl Provider for DatabricksProvider {
         &self,
         system: &str,
         messages: &[Message],
-        tools: &[Tool]) -> Result<(Message, ProviderUsage), ProviderError> {
+        tools: &[Tool],
+    ) -> Result<(Message, ProviderUsage), ProviderError> {
         let mut payload = create_request(&self.model, system, messages, tools, &self.image_format)?;
         // Remove the model key which is part of the url with databricks
         payload
@@ -465,7 +469,8 @@ impl Provider for DatabricksProvider {
         &self,
         system: &str,
         messages: &[Message],
-        tools: &[Tool]) -> Result<MessageStream, ProviderError> {
+        tools: &[Tool],
+    ) -> Result<MessageStream, ProviderError> {
         let mut payload = create_request(&self.model, system, messages, tools, &self.image_format)?;
         // Remove the model key which is part of the url with databricks
         payload
@@ -481,7 +486,8 @@ impl Provider for DatabricksProvider {
         let response = self
             .post_with_retry(
                 format!("serving-endpoints/{}/invocations", self.model.model_name).as_str(),
-                &payload)
+                &payload,
+            )
             .await?;
 
         // Map reqwest error to io::Error
@@ -514,7 +520,7 @@ impl Provider for DatabricksProvider {
     async fn create_embeddings(&self, texts: Vec<String>) -> Result<Vec<Vec<f32>>, ProviderError> {
         EmbeddingCapable::create_embeddings(self, texts)
             .await
-            .map_err(|e| ProviderError::ExecutionError(e.to_string()))
+            .map_err(|e| ProviderError::ExecutionError(e, None))
     }
 
     async fn fetch_supported_models_async(&self) -> Result<Option<Vec<String>>, ProviderError> {

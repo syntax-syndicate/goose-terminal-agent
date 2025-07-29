@@ -2,7 +2,7 @@ use crate::agents::tool_execution::ToolCallResult;
 use crate::recipe::Response;
 use indoc::formatdoc;
 use mcp_core::ToolCall;
-use rmcp::model::{Content, Tool, ToolAnnotations, ErrorData, ErrorCode};
+use rmcp::model::{Content, ErrorCode, ErrorData, Tool, ToolAnnotations};
 use serde_json::Value;
 
 pub const FINAL_OUTPUT_TOOL_NAME: &str = "recipe__final_output";
@@ -67,7 +67,8 @@ impl FinalOutputTool {
                 .unwrap()
                 .as_object()
                 .unwrap()
-                .clone())
+                .clone(),
+        )
         .annotate(ToolAnnotations {
             title: Some("Final Output".to_string()),
             read_only_hint: Some(false),
@@ -123,18 +124,21 @@ impl FinalOutputTool {
                     Ok(parsed_value) => {
                         self.final_output = Some(Self::parsed_final_output_string(parsed_value));
                         ToolCallResult::from(Ok(vec![Content::text(
-                            "Final output successfully collected.".to_string())]))
+                            "Final output successfully collected.".to_string(),
+                        )]))
                     }
                     Err(error) => ToolCallResult::from(Err(ErrorData::new(
-                        ErrorCode::INVALID_PARAMS, error,
+                        ErrorCode::INVALID_PARAMS,
+                        error,
                         None,
-                    , None))),
+                    ))),
                 }
             }
             _ => ToolCallResult::from(Err(ErrorData::new(
                 ErrorCode::RESOURCE_NOT_FOUND,
                 format!("Unknown tool: {}", tool_call.name),
-                None))),
+                None,
+            ))),
         }
     }
 

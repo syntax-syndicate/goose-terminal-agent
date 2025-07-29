@@ -388,7 +388,7 @@ mod schedule_tool_tests {
                 jobs.remove(pos);
                 Ok(())
             } else {
-                Err(SchedulerError::JobNotFound(id.to_string()))
+                Err(SchedulerError::JobNotFound(id, None))
             }
         }
 
@@ -469,7 +469,7 @@ mod schedule_tool_tests {
     #[tokio::test]
     async fn test_schedule_management_tool_in_platform_tools() {
         let agent = Agent::new();
-        let tools = agent.list_tools(Some("platform".to_string())).await;
+        let tools = agent.list_tools(Some("platform", None)).await;
 
         // Check that the schedule management tool is included in platform tools
         let schedule_tool = tools
@@ -496,10 +496,10 @@ mod schedule_tool_tests {
                         .collect();
 
                     // Check that our session_content action is included
-                    assert!(actions.contains(&"session_content".to_string()));
-                    assert!(actions.contains(&"list".to_string()));
-                    assert!(actions.contains(&"create".to_string()));
-                    assert!(actions.contains(&"sessions".to_string()));
+                    assert!(actions.contains(&"session_content", None));
+                    assert!(actions.contains(&"list", None));
+                    assert!(actions.contains(&"create", None));
+                    assert!(actions.contains(&"sessions", None));
                 }
             }
         }
@@ -698,7 +698,7 @@ mod final_output_tool_tests {
                 _messages: &[Message],
                 _tools: &[Tool],
             ) -> Result<(Message, ProviderUsage), ProviderError> {
-                Err(ProviderError::NotImplemented("Not implemented".to_string()))
+                Err(ProviderError::NotImplemented("Not implemented", None))
             }
         }
 

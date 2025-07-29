@@ -55,7 +55,7 @@ pub async fn handle_status_openai_compat(response: Response) -> Result<Response,
         _ => {
             let body = response.json::<Value>().await;
             match (body, status) {
-                (Err(e), _) => Err(ProviderError::RequestFailed(e.to_string())),
+                (Err(e), _) => Err(ProviderError::RequestFailed(e, None)),
                 (Ok(body), StatusCode::UNAUTHORIZED | StatusCode::FORBIDDEN) => {
                     Err(ProviderError::Authentication(format!("Authentication failed. Please ensure your API keys are valid and have the required permissions. \
                         Status: {}. Response: {:?}", status, body)))
@@ -67,7 +67,7 @@ pub async fn handle_status_openai_compat(response: Response) -> Result<Response,
                     if let Ok(err_resp) = from_value::<OpenAIErrorResponse>(body) {
                         let err = err_resp.error;
                         if err.is_context_length_exceeded() {
-                            return Err(ProviderError::ContextLengthExceeded(err.message.unwrap_or("Unknown error".to_string())));
+                            return Err(ProviderError::ContextLengthExceeded(err.message.unwrap_or("Unknown error", None)));
                         }
                         return Err(ProviderError::RequestFailed(format!("{} (status {})", err, status.as_u16())));
                     }
@@ -165,7 +165,7 @@ pub async fn handle_response_google_compat(response: Response) -> Result<Value, 
                     error_msg = error.get("message").and_then(|m| m.as_str()).unwrap_or("Unknown error").to_string();
                     let error_status = error.get("status").and_then(|s| s.as_str()).unwrap_or("Unknown status");
                     if error_status == "INVALID_ARGUMENT" && error_msg.to_lowercase().contains("exceeds") {
-                        return Err(ProviderError::ContextLengthExceeded(error_msg.to_string()));
+                        return Err(ProviderError::ContextLengthExceeded(error_msg, None));
                     }
                 }
             }
@@ -263,7 +263,8 @@ pub fn load_image_file(path: &str) -> Result<ImageContent, ProviderError> {
     // Verify it's an image before proceeding
     if !is_image_file(path) {
         return Err(ProviderError::RequestFailed(
-            "File is not a valid image".to_string()));
+            "File is not a valid image".to_string(),
+        ));
     }
 
     // Read the file
@@ -277,12 +278,14 @@ pub fn load_image_file(path: &str) -> Result<ImageContent, ProviderError> {
             "jpg" | "jpeg" => "image/jpeg",
             _ => {
                 return Err(ProviderError::RequestFailed(
-                    "Unsupported image format".to_string()))
+                    "Unsupported image format".to_string(),
+                ))
             }
         },
         None => {
             return Err(ProviderError::RequestFailed(
-                "Unknown image format".to_string()))
+                "Unknown image format".to_string(),
+            ))
         }
     };
 
@@ -329,7 +332,8 @@ pub fn emit_debug_trace<T1, T2>(
     model_config: &ModelConfig,
     payload: &T1,
     response: &T2,
-    usage: &Usage) where
+    usage: &Usage,
+) where
     T1: ?Sized + Serialize,
     T2: ?Sized + Serialize,
 {
@@ -613,7 +617,8 @@ mod tests {
             (
                 404,
                 Some(StatusCode::INTERNAL_SERVER_ERROR),
-                StatusCode::INTERNAL_SERVER_ERROR),
+                StatusCode::INTERNAL_SERVER_ERROR,
+            ),
         ];
 
         for (error_code, status, expected_status) in test_cases {

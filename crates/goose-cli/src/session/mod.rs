@@ -36,7 +36,10 @@ use goose::providers::pricing::initialize_pricing_cache;
 use goose::session;
 use input::InputResult;
 use rand::{distributions::Alphanumeric, Rng};
-use rmcp::model::{JsonRpcMessage, JsonRpcNotification, ErrorData, ErrorCode, Notification, PromptMessage, ServerNotification};
+use rmcp::model::{
+    ErrorCode, ErrorData, JsonRpcMessage, JsonRpcNotification, Notification, PromptMessage,
+    ServerNotification,
+};
 use rustyline::EditMode;
 use serde_json::Value;
 use std::collections::HashMap;
@@ -608,7 +611,7 @@ impl Session {
                     }
 
                     config
-                        .set_param("GOOSE_MODE", Value::String(mode.to_string()))
+                        .set_param("GOOSE_MODE", Value::String(mode, None))
                         .unwrap();
                     output::goose_mode_message(&format!("Goose mode set to '{}'", mode));
                     continue;
@@ -800,7 +803,7 @@ impl Session {
                         config.get_param("GOOSE_MODE").unwrap_or("auto".to_string());
                     if curr_goose_mode != "auto" {
                         config
-                            .set_param("GOOSE_MODE", Value::String("auto".to_string()))
+                            .set_param("GOOSE_MODE", Value::String("auto", None))
                             .unwrap();
                     }
 
@@ -817,7 +820,7 @@ impl Session {
                     // Reset run & goose mode
                     if curr_goose_mode != "auto" {
                         config
-                            .set_param("GOOSE_MODE", Value::String(curr_goose_mode.to_string()))
+                            .set_param("GOOSE_MODE", Value::String(curr_goose_mode, None))
                             .unwrap();
                     }
                 } else {
@@ -1076,7 +1079,7 @@ impl Session {
                                                         msg.to_string()
                                                     }
                                                 };
-                                                (formatted, Some(subagent_id.to_string()), Some(notification_type.to_string()))
+                                                (formatted, Some(subagent_id.to_string()), Some(notification_type, None))
                                             } else if let Some(Value::String(output)) = o.get("output") {
                                                 // Fallback for other MCP notification types
                                                 (output.to_owned(), None, None)
@@ -1213,7 +1216,11 @@ impl Session {
             for (req_id, _) in &tool_requests {
                 response_message.content.push(MessageContent::tool_response(
                     req_id.clone(),
-                    Err(ErrorData::new(ErrorCode::INTERNAL_ERROR, notification.clone(), None)),
+                    Err(ErrorData::new(
+                        ErrorCode::INTERNAL_ERROR,
+                        notification.clone(),
+                        None,
+                    )),
                 ));
             }
             self.push_message(response_message);

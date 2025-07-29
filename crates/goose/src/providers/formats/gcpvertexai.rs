@@ -35,7 +35,7 @@ impl TryFrom<&str> for GcpLocation {
         match s {
             "us-central1" => Ok(Self::Iowa),
             "us-east5" => Ok(Self::Ohio),
-            _ => Err(ModelError::UnsupportedLocation(s.to_string())),
+            _ => Err(ModelError::UnsupportedLocation(s, None)),
         }
     }
 }
@@ -175,13 +175,9 @@ impl TryFrom<&str> for GcpVertexAIModel {
             "gemini-2.5-flash" => Ok(Self::Gemini(GeminiVersion::Flash25)),
             "gemini-2.5-pro" => Ok(Self::Gemini(GeminiVersion::Pro25)),
             // Generic models based on prefix matching
-            _ if s.starts_with("claude-") => {
-                Ok(Self::Claude(ClaudeVersion::Generic(s.to_string())))
-            }
-            _ if s.starts_with("gemini-") => {
-                Ok(Self::Gemini(GeminiVersion::Generic(s.to_string())))
-            }
-            _ => Err(ModelError::UnsupportedModel(s.to_string())),
+            _ if s.starts_with("claude-") => Ok(Self::Claude(ClaudeVersion::Generic(s, None))),
+            _ if s.starts_with("gemini-") => Ok(Self::Gemini(GeminiVersion::Generic(s, None))),
+            _ => Err(ModelError::UnsupportedModel(s, None)),
         }
     }
 }
@@ -254,19 +250,21 @@ fn create_anthropic_request(
     model_config: &ModelConfig,
     system: &str,
     messages: &[Message],
-    tools: &[Tool]) -> Result<Value> {
+    tools: &[Tool],
+) -> Result<Value> {
     let mut request = anthropic::create_request(model_config, system, messages, tools)?;
 
     let obj = request
         .as_object_mut()
-        .ok_or_else(|| ModelError::InvalidRequest("Request is not a JSON object".to_string()))?;
+        .ok_or_else(|| ModelError::InvalidRequest("Request is not a JSON object", None))?;
 
     // Note: We don't need to specify the model in the request body
     // The model is determined by the endpoint URL in GCP Vertex AI
     obj.remove("model");
     obj.insert(
         "anthropic_version".to_string(),
-        Value::String("vertex-2023-10-16".to_string()));
+        Value::String("vertex-2023-10-16".to_string()),
+    );
 
     Ok(request)
 }
@@ -285,7 +283,8 @@ fn create_google_request(
     model_config: &ModelConfig,
     system: &str,
     messages: &[Message],
-    tools: &[Tool]) -> Result<Value> {
+    tools: &[Tool],
+) -> Result<Value> {
     google::create_request(model_config, system, messages, tools)
 }
 
@@ -303,7 +302,8 @@ pub fn create_request(
     model_config: &ModelConfig,
     system: &str,
     messages: &[Message],
-    tools: &[Tool]) -> Result<(Value, RequestContext)> {
+    tools: &[Tool],
+) -> Result<(Value, RequestContext)> {
     let context = RequestContext::new(&model_config.model_name)?;
 
     let request = match &context.model {
@@ -399,13 +399,15 @@ mod tests {
             assert_eq!(
                 model.known_location(),
                 expected_location,
-                "Model {model_id} should have default location {expected_location:?}");
+                "Model {model_id} should have default location {expected_location:?}"
+            );
 
             let context = RequestContext::new(model_id)?;
             assert_eq!(
                 context.model.known_location(),
                 expected_location,
-                "RequestContext for {model_id} should have default location {expected_location:?}");
+                "RequestContext for {model_id} should have default location {expected_location:?}"
+            );
         }
 
         Ok(())

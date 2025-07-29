@@ -1,5 +1,5 @@
 use chrono::Utc;
-use rmcp::model::{Content, ErrorData, ErrorCode};
+use rmcp::model::{Content, ErrorCode, ErrorData};
 use std::fs::File;
 use std::io::Write;
 
@@ -7,7 +7,8 @@ const LARGE_TEXT_THRESHOLD: usize = 200_000;
 
 /// Process tool response and handle large text content
 pub fn process_tool_response(
-    response: Result<Vec<Content>, ErrorData>) -> Result<Vec<Content>, ErrorData> {
+    response: Result<Vec<Content>, ErrorData>,
+) -> Result<Vec<Content>, ErrorData> {
     match response {
         Ok(contents) => {
             let mut processed_contents = Vec::new();
@@ -77,7 +78,7 @@ fn write_large_text_to_file(content: &str) -> Result<String, std::io::Error> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use rmcp::model::{Content, ErrorData, ErrorCode};
+    use rmcp::model::{Content, ErrorCode, ErrorData};
     use std::fs;
     use std::path::Path;
 

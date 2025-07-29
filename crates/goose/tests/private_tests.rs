@@ -43,7 +43,7 @@ async fn test_schedule_tool_list_action() {
 
     // Verify the scheduler was called
     let calls = scheduler.get_calls().await;
-    assert!(calls.contains(&"list_scheduled_jobs".to_string()));
+    assert!(calls.contains(&"list_scheduled_jobs", None));
 }
 
 #[tokio::test]
@@ -69,7 +69,7 @@ async fn test_schedule_tool_list_action_empty() {
 
     // Verify the scheduler was called
     let calls = scheduler.get_calls().await;
-    assert!(calls.contains(&"list_scheduled_jobs".to_string()));
+    assert!(calls.contains(&"list_scheduled_jobs", None));
 }
 
 #[tokio::test]
@@ -103,7 +103,7 @@ async fn test_schedule_tool_list_action_error() {
 
     // Verify the scheduler was called
     let calls = scheduler.get_calls().await;
-    assert!(calls.contains(&"list_scheduled_jobs".to_string()));
+    assert!(calls.contains(&"list_scheduled_jobs", None));
 }
 
 #[tokio::test]
@@ -135,7 +135,7 @@ async fn test_schedule_tool_create_action() {
 
     // Verify the scheduler was called
     let calls = scheduler.get_calls().await;
-    assert!(calls.contains(&"add_scheduled_job".to_string()));
+    assert!(calls.contains(&"add_scheduled_job", None));
 }
 
 #[tokio::test]
@@ -262,7 +262,7 @@ async fn test_schedule_tool_create_action_scheduler_error() {
 
     // Verify the scheduler was called
     let calls = scheduler.get_calls().await;
-    assert!(calls.contains(&"add_scheduled_job".to_string()));
+    assert!(calls.contains(&"add_scheduled_job", None));
 }
 
 #[tokio::test]
@@ -294,7 +294,7 @@ async fn test_schedule_tool_run_now_action() {
 
     // Verify the scheduler was called
     let calls = scheduler.get_calls().await;
-    assert!(calls.contains(&"run_now".to_string()));
+    assert!(calls.contains(&"run_now", None));
 }
 
 #[tokio::test]
@@ -321,7 +321,7 @@ async fn test_schedule_tool_run_now_action_missing_job_id() {
 #[tokio::test]
 async fn test_schedule_tool_run_now_action_nonexistent_job() {
     let (agent, scheduler) = ScheduleToolTestBuilder::new()
-        .with_scheduler_behavior("run_now", MockBehavior::NotFound("nonexistent".to_string()))
+        .with_scheduler_behavior("run_now", MockBehavior::NotFound("nonexistent", None))
         .await
         .build()
         .await;
@@ -346,7 +346,7 @@ async fn test_schedule_tool_run_now_action_nonexistent_job() {
 
     // Verify the scheduler was called
     let calls = scheduler.get_calls().await;
-    assert!(calls.contains(&"run_now".to_string()));
+    assert!(calls.contains(&"run_now", None));
 }
 
 #[tokio::test]
@@ -376,7 +376,7 @@ async fn test_schedule_tool_pause_action() {
 
     // Verify the scheduler was called
     let calls = scheduler.get_calls().await;
-    assert!(calls.contains(&"pause_schedule".to_string()));
+    assert!(calls.contains(&"pause_schedule", None));
 }
 
 #[tokio::test]
@@ -431,7 +431,7 @@ async fn test_schedule_tool_pause_action_running_job() {
 
     // Verify the scheduler was called
     let calls = scheduler.get_calls().await;
-    assert!(calls.contains(&"pause_schedule".to_string()));
+    assert!(calls.contains(&"pause_schedule", None));
 }
 
 #[tokio::test]
@@ -463,7 +463,7 @@ async fn test_schedule_tool_unpause_action() {
 
     // Verify the scheduler was called
     let calls = scheduler.get_calls().await;
-    assert!(calls.contains(&"unpause_schedule".to_string()));
+    assert!(calls.contains(&"unpause_schedule", None));
 }
 
 #[tokio::test]
@@ -495,7 +495,7 @@ async fn test_schedule_tool_delete_action() {
 
     // Verify the scheduler was called
     let calls = scheduler.get_calls().await;
-    assert!(calls.contains(&"remove_scheduled_job".to_string()));
+    assert!(calls.contains(&"remove_scheduled_job", None));
 }
 
 #[tokio::test]
@@ -529,7 +529,7 @@ async fn test_schedule_tool_kill_action() {
 
     // Verify the scheduler was called
     let calls = scheduler.get_calls().await;
-    assert!(calls.contains(&"kill_running_job".to_string()));
+    assert!(calls.contains(&"kill_running_job", None));
 }
 
 #[tokio::test]
@@ -559,7 +559,7 @@ async fn test_schedule_tool_kill_action_not_running() {
 
     // Verify the scheduler was called
     let calls = scheduler.get_calls().await;
-    assert!(calls.contains(&"kill_running_job".to_string()));
+    assert!(calls.contains(&"kill_running_job", None));
 }
 
 #[tokio::test]
@@ -593,7 +593,7 @@ async fn test_schedule_tool_inspect_action_running() {
 
     // Verify the scheduler was called
     let calls = scheduler.get_calls().await;
-    assert!(calls.contains(&"get_running_job_info".to_string()));
+    assert!(calls.contains(&"get_running_job_info", None));
 }
 
 #[tokio::test]
@@ -625,7 +625,7 @@ async fn test_schedule_tool_inspect_action_not_running() {
 
     // Verify the scheduler was called
     let calls = scheduler.get_calls().await;
-    assert!(calls.contains(&"get_running_job_info".to_string()));
+    assert!(calls.contains(&"get_running_job_info", None));
 }
 
 #[tokio::test]
@@ -671,7 +671,7 @@ async fn test_schedule_tool_sessions_action() {
 
     // Verify the scheduler was called
     let calls = scheduler.get_calls().await;
-    assert!(calls.contains(&"sessions".to_string()));
+    assert!(calls.contains(&"sessions", None));
 }
 
 #[tokio::test]
@@ -714,7 +714,7 @@ async fn test_schedule_tool_sessions_action_with_limit() {
 
     // Verify the scheduler was called
     let calls = scheduler.get_calls().await;
-    assert!(calls.contains(&"sessions".to_string()));
+    assert!(calls.contains(&"sessions", None));
 }
 
 #[tokio::test]
@@ -746,7 +746,7 @@ async fn test_schedule_tool_sessions_action_empty() {
 
     // Verify the scheduler was called
     let calls = scheduler.get_calls().await;
-    assert!(calls.contains(&"sessions".to_string()));
+    assert!(calls.contains(&"sessions", None));
 }
 
 #[tokio::test]
@@ -897,5 +897,5 @@ async fn test_schedule_tool_dispatch() {
 
     // Verify the scheduler was called
     let calls = scheduler.get_calls().await;
-    assert!(calls.contains(&"list_scheduled_jobs".to_string()));
+    assert!(calls.contains(&"list_scheduled_jobs", None));
 }

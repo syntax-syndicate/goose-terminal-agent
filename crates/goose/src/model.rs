@@ -175,7 +175,8 @@ impl ModelConfig {
     /// 4. Global default (128_000)
     fn get_context_limit_with_env_override(
         model_name: &str,
-        custom_env_var: Option<&str>) -> Option<usize> {
+        custom_env_var: Option<&str>,
+    ) -> Option<usize> {
         // 1. Check custom environment variable first (e.g., GOOSE_LEAD_CONTEXT_LIMIT)
         if let Some(env_var) = custom_env_var {
             if let Ok(limit_str) = std::env::var(env_var) {
@@ -244,8 +245,8 @@ mod tests {
 
         // Test tool interpreter model
         let config = ModelConfig::new("test-model".to_string())
-            .with_toolshim_model(Some("mistral-nemo".to_string()));
-        assert_eq!(config.toolshim_model, Some("mistral-nemo".to_string()));
+            .with_toolshim_model(Some("mistral-nemo", None));
+        assert_eq!(config.toolshim_model, Some("mistral-nemo", None));
     }
 
     #[test]
@@ -302,10 +303,12 @@ mod tests {
             || {
                 let config = ModelConfig::new_with_context_env(
                     "unknown-model".to_string(),
-                    Some("GOOSE_LEAD_CONTEXT_LIMIT"));
+                    Some("GOOSE_LEAD_CONTEXT_LIMIT"),
+                );
                 // Should use the custom env var, not the default one
                 assert_eq!(config.context_limit(), 300_000);
-            });
+            },
+        );
 
         // Test fallback to model-specific when env var is invalid
         with_vars([("GOOSE_CONTEXT_LIMIT", Some("invalid"))], || {

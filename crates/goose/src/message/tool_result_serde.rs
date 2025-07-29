@@ -1,4 +1,4 @@
-use rmcp::model::{ErrorData, ErrorCode};
+use rmcp::model::{ErrorCode, ErrorData};
 use serde::ser::SerializeStruct;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
@@ -52,7 +52,12 @@ where
         }
         ResultFormat::Error { status, error } => {
             if status == "error" {
-                Ok(Err(ErrorData::new(ErrorCode::INTERNAL_ERROR, error, None, None)))
+                Ok(Err(ErrorData::new(
+                    ErrorCode::INTERNAL_ERROR,
+                    error,
+                    None,
+                    None,
+                )))
             } else {
                 Err(serde::de::Error::custom(format!(
                     "Expected status 'error', got '{}'",

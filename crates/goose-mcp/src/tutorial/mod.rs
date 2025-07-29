@@ -7,7 +7,9 @@ use mcp_core::{
 };
 use mcp_server::router::CapabilitiesBuilder;
 use mcp_server::Router;
-use rmcp::model::{Content, JsonRpcMessage, Prompt, Resource, Role, Tool, ToolAnnotations, ErrorData, ErrorCode};
+use rmcp::model::{
+    Content, ErrorCode, ErrorData, JsonRpcMessage, Prompt, Resource, Role, Tool, ToolAnnotations,
+};
 use rmcp::object;
 use serde_json::Value;
 use std::{future::Future, pin::Pin};
@@ -82,7 +84,7 @@ impl TutorialRouter {
             // Use first line for additional context
             let first_line = file
                 .contents_utf8()
-                .and_then(|s| s.lines().next().map(|line| line.to_string()))
+                .and_then(|s| s.lines().next().map(|line| line, None))
                 .unwrap_or_else(String::new);
 
             if let Some(name) = file.path().file_stem() {
@@ -94,13 +96,11 @@ impl TutorialRouter {
 
     async fn load_tutorial(&self, name: &str) -> Result<String, ErrorData> {
         let file_name = format!("{}.md", name);
-        let file = TUTORIALS_DIR
-            .get_file(&file_name)
-            .ok_or(ErrorData::new(
-                ErrorCode::RESOURCE_NOT_FOUND,
-                format!("Could not locate tutorial '{}'", name),
-                None
-            ))?;
+        let file = TUTORIALS_DIR.get_file(&file_name).ok_or(ErrorData::new(
+            ErrorCode::RESOURCE_NOT_FOUND,
+            format!("Could not locate tutorial '{}'", name),
+            None,
+        ))?;
         Ok(String::from_utf8_lossy(file.contents()).into_owned())
     }
 }
@@ -126,7 +126,8 @@ impl Router for TutorialRouter {
         &self,
         tool_name: &str,
         arguments: Value,
-        _notifier: mpsc::Sender<JsonRpcMessage>) -> Pin<Box<dyn Future<Output = Result<Vec<Content>, ErrorData>> + Send + 'static>> {
+        _notifier: mpsc::Sender<JsonRpcMessage>,
+    ) -> Pin<Box<dyn Future<Output = Result<Vec<Content>, ErrorData>> + Send + 'static>> {
         let this = self.clone();
         let tool_name = tool_name.to_string();
 
@@ -137,7 +138,11 @@ impl Router for TutorialRouter {
                         .get("name")
                         .and_then(|v| v.as_str())
                         .ok_or_else(|| {
-                            ErrorData::new(ErrorCode::INVALID_PARAMS, "Missing 'name' parameter".to_string(), None)
+                            ErrorData::new(
+                                ErrorCode::INVALID_PARAMS,
+                                "Missing 'name' parameter".to_string(),
+                                None,
+                            )
                         })?;
 
                     let content = this.load_tutorial(name).await?;
@@ -145,7 +150,11 @@ impl Router for TutorialRouter {
                         Content::text(content).with_audience(vec![Role::Assistant])
                     ])
                 }
-                _ => Err(ErrorData::new(ErrorCode::METHOD_NOT_FOUND, format!("Tool {} not found", tool_name), None)),
+                _ => Err(ErrorData::new(
+                    ErrorCode::METHOD_NOT_FOUND,
+                    format!("Tool {} not found", tool_name),
+                    None,
+                )),
             }
         })
     }
@@ -156,7 +165,8 @@ impl Router for TutorialRouter {
 
     fn read_resource(
         &self,
-        _uri: &str) -> Pin<Box<dyn Future<Output = Result<String, ResourceError>> + Send + 'static>> {
+        _uri: &str,
+    ) -> Pin<Box<dyn Future<Output = Result<String, ResourceError>> + Send + 'static>> {
         Box::pin(async move { Ok("".to_string()) })
     }
 
@@ -166,7 +176,8 @@ impl Router for TutorialRouter {
 
     fn get_prompt(
         &self,
-        prompt_name: &str) -> Pin<Box<dyn Future<Output = Result<String, PromptError>> + Send + 'static>> {
+        prompt_name: &str,
+    ) -> Pin<Box<dyn Future<Output = Result<String, PromptError>> + Send + 'static>> {
         let prompt_name = prompt_name.to_string();
         Box::pin(async move {
             Err(PromptError::NotFound(format!(
