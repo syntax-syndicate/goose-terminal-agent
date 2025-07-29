@@ -34,7 +34,7 @@ impl Agent {
         let action = arguments
             .get("action")
             .and_then(|v| v.as_str())
-            .ok_or_else(|| ToolError::ExecutionError("Missing 'action' parameter".to_string()))?;
+            .ok_or_else(|| ErrorData::new(ErrorCode::INVALID_PARAMS, "Missing 'action' parameter".to_string(), None))?;
 
         match action {
             "list" => self.handle_list_jobs(scheduler).await,
@@ -86,14 +86,14 @@ impl Agent {
             .get("recipe_path")
             .and_then(|v| v.as_str())
             .ok_or_else(|| {
-                ToolError::ExecutionError("Missing 'recipe_path' parameter".to_string())
+                ErrorData::new(ErrorCode::INVALID_PARAMS, "Missing 'recipe_path' parameter".to_string(), None)
             })?;
 
         let cron_expression = arguments
             .get("cron_expression")
             .and_then(|v| v.as_str())
             .ok_or_else(|| {
-                ToolError::ExecutionError("Missing 'cron_expression' parameter".to_string())
+                ErrorData::new(ErrorCode::INVALID_PARAMS, "Missing 'cron_expression' parameter".to_string(), None)
             })?;
 
         // Get the execution_mode parameter, defaulting to "background" if not provided
@@ -175,7 +175,7 @@ impl Agent {
         let job_id = arguments
             .get("job_id")
             .and_then(|v| v.as_str())
-            .ok_or_else(|| ToolError::ExecutionError("Missing 'job_id' parameter".to_string()))?;
+            .ok_or_else(|| ErrorData::new(ErrorCode::INVALID_PARAMS, "Missing 'job_id' parameter".to_string(), None))?;
 
         match scheduler.run_now(job_id).await {
             Ok(session_id) => Ok(vec![Content::text(format!(
@@ -198,7 +198,7 @@ impl Agent {
         let job_id = arguments
             .get("job_id")
             .and_then(|v| v.as_str())
-            .ok_or_else(|| ToolError::ExecutionError("Missing 'job_id' parameter".to_string()))?;
+            .ok_or_else(|| ErrorData::new(ErrorCode::INVALID_PARAMS, "Missing 'job_id' parameter".to_string(), None))?;
 
         match scheduler.pause_schedule(job_id).await {
             Ok(()) => Ok(vec![Content::text(format!(
@@ -221,7 +221,7 @@ impl Agent {
         let job_id = arguments
             .get("job_id")
             .and_then(|v| v.as_str())
-            .ok_or_else(|| ToolError::ExecutionError("Missing 'job_id' parameter".to_string()))?;
+            .ok_or_else(|| ErrorData::new(ErrorCode::INVALID_PARAMS, "Missing 'job_id' parameter".to_string(), None))?;
 
         match scheduler.unpause_schedule(job_id).await {
             Ok(()) => Ok(vec![Content::text(format!(
@@ -244,7 +244,7 @@ impl Agent {
         let job_id = arguments
             .get("job_id")
             .and_then(|v| v.as_str())
-            .ok_or_else(|| ToolError::ExecutionError("Missing 'job_id' parameter".to_string()))?;
+            .ok_or_else(|| ErrorData::new(ErrorCode::INVALID_PARAMS, "Missing 'job_id' parameter".to_string(), None))?;
 
         match scheduler.remove_scheduled_job(job_id).await {
             Ok(()) => Ok(vec![Content::text(format!(
@@ -267,7 +267,7 @@ impl Agent {
         let job_id = arguments
             .get("job_id")
             .and_then(|v| v.as_str())
-            .ok_or_else(|| ToolError::ExecutionError("Missing 'job_id' parameter".to_string()))?;
+            .ok_or_else(|| ErrorData::new(ErrorCode::INVALID_PARAMS, "Missing 'job_id' parameter".to_string(), None))?;
 
         match scheduler.kill_running_job(job_id).await {
             Ok(()) => Ok(vec![Content::text(format!(
@@ -290,7 +290,7 @@ impl Agent {
         let job_id = arguments
             .get("job_id")
             .and_then(|v| v.as_str())
-            .ok_or_else(|| ToolError::ExecutionError("Missing 'job_id' parameter".to_string()))?;
+            .ok_or_else(|| ErrorData::new(ErrorCode::INVALID_PARAMS, "Missing 'job_id' parameter".to_string(), None))?;
 
         match scheduler.get_running_job_info(job_id).await {
             Ok(Some((session_id, start_time))) => {
@@ -320,7 +320,7 @@ impl Agent {
         let job_id = arguments
             .get("job_id")
             .and_then(|v| v.as_str())
-            .ok_or_else(|| ToolError::ExecutionError("Missing 'job_id' parameter".to_string()))?;
+            .ok_or_else(|| ErrorData::new(ErrorCode::INVALID_PARAMS, "Missing 'job_id' parameter".to_string(), None))?;
 
         let limit = arguments
             .get("limit")
@@ -370,7 +370,7 @@ impl Agent {
             .get("session_id")
             .and_then(|v| v.as_str())
             .ok_or_else(|| {
-                ToolError::ExecutionError("Missing 'session_id' parameter".to_string())
+                ErrorData::new(ErrorCode::INVALID_PARAMS, "Missing 'session_id' parameter".to_string(), None)
             })?;
 
         // Get the session file path

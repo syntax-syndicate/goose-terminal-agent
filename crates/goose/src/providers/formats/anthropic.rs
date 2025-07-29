@@ -4,7 +4,7 @@ use crate::providers::base::Usage;
 use crate::providers::errors::ProviderError;
 use anyhow::{anyhow, Result};
 use mcp_core::tool::ToolCall;
-use rmcp::model::{Role, Tool};
+use rmcp::model::{ErrorCode, ErrorData, Role, Tool};
 use serde_json::{json, Value};
 use std::collections::HashSet;
 
@@ -996,7 +996,7 @@ mod tests {
             ),
             Message::user().with_tool_response(
                 "tool_1",
-                Err(ToolError::ExecutionError("Tool failed".to_string())),
+                Err(ErrorData::new(ErrorCode::INTERNAL_ERROR, "Tool failed".to_string(), None)),
             ),
         ];
 

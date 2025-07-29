@@ -261,7 +261,7 @@ pub async fn pdf_tool(
                 if let Ok(xobjects) = xobjects {
                     for (name, xobject) in xobjects.iter() {
                         let xobject_id = xobject.as_reference().map_err(|_| {
-                            ToolError::ExecutionError("Failed to get XObject reference".to_string())
+                            ErrorData::new(ErrorCode::INTERNAL_ERROR, "Failed to get XObject reference".to_string(), None)
                         })?;
 
                         let xobject = doc.get_object(xobject_id).map_err(|e| {

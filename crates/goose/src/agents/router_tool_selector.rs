@@ -76,7 +76,7 @@ impl RouterToolSelector for VectorToolSelector {
         let query = params
             .get("query")
             .and_then(|v| v.as_str())
-            .ok_or_else(|| ToolError::InvalidParameters("Missing 'query' parameter".to_string()))?;
+            .ok_or_else(|| ErrorData::new(ErrorCode::INVALID_PARAMS, "Missing 'query' parameter".to_string(, None)))?;
 
         let k = params.get("k").and_then(|v| v.as_u64()).unwrap_or(5) as usize;
 
@@ -101,7 +101,7 @@ impl RouterToolSelector for VectorToolSelector {
         let query_embedding = embeddings
             .into_iter()
             .next()
-            .ok_or_else(|| ToolError::ExecutionError("No embedding returned".to_string()))?;
+            .ok_or_else(|| ErrorData::new(ErrorCode::INTERNAL_ERROR, "No embedding returned".to_string(), None))?;
 
         let vector_db = self.vector_db.read().await;
         let tools = vector_db
@@ -259,7 +259,7 @@ impl RouterToolSelector for LLMToolSelector {
         let query = params
             .get("query")
             .and_then(|v| v.as_str())
-            .ok_or_else(|| ToolError::InvalidParameters("Missing 'query' parameter".to_string()))?;
+            .ok_or_else(|| ErrorData::new(ErrorCode::INVALID_PARAMS, "Missing 'query' parameter".to_string(, None)))?;
 
         let extension_name = params
             .get("extension_name")

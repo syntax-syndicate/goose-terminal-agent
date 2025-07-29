@@ -214,7 +214,7 @@ mod tests {
     #[test]
     fn test_error_response_passes_through() {
         // Create an error response
-        let error = ToolError::ExecutionError("Test error".to_string());
+        let error = ErrorData::new(ErrorCode::INTERNAL_ERROR, "Test error".to_string(), None);
         let response: Result<Vec<Content>, ErrorData> = Err(error);
 
         // Process the response

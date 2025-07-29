@@ -532,7 +532,7 @@ impl ExtensionManager {
         let uri = params
             .get("uri")
             .and_then(|v| v.as_str())
-            .ok_or_else(|| ToolError::InvalidParameters("Missing 'uri' parameter".to_string()))?;
+            .ok_or_else(|| ErrorData::new(ErrorCode::INVALID_PARAMS, "Missing 'uri' parameter".to_string(, None)))?;
 
         let extension_name = params.get("extension_name").and_then(|v| v.as_str());
 

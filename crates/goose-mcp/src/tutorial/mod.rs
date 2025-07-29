@@ -7,7 +7,7 @@ use mcp_core::{
 };
 use mcp_server::router::CapabilitiesBuilder;
 use mcp_server::Router;
-use rmcp::model::{Content, JsonRpcMessage, Prompt, Resource, Role, Tool, ToolAnnotations};
+use rmcp::model::{Content, ErrorCode, ErrorData, JsonRpcMessage, Prompt, Resource, Role, Tool, ToolAnnotations};
 use rmcp::model::{ErrorCode, ErrorData};
 use rmcp::object;
 use serde_json::Value;
@@ -137,7 +137,7 @@ impl Router for TutorialRouter {
                         .get("name")
                         .and_then(|v| v.as_str())
                         .ok_or_else(|| {
-                            ToolError::InvalidParameters("Missing 'name' parameter".to_string())
+                            ErrorData::new(ErrorCode::INVALID_PARAMS, "Missing 'name' parameter".to_string(, None))
                         })?;
 
                     let content = this.load_tutorial(name).await?;

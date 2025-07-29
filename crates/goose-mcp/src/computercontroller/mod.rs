@@ -584,7 +584,7 @@ impl ComputerControllerRouter {
     // Helper function to register a file as a resource
     fn register_as_resource(&self, cache_path: &PathBuf, mime_type: &str) -> Result<(), ErrorData> {
         let uri = Url::from_file_path(cache_path)
-            .map_err(|_| ToolError::ExecutionError("Invalid cache path".into()))?
+            .map_err(|_| ErrorData::new(ErrorCode::INTERNAL_ERROR, "Invalid cache path".into(, None)))?
             .to_string();
 
         let mut resource = RawResource::new(uri.clone(), cache_path.to_string_lossy().into_owned());
@@ -604,7 +604,7 @@ impl ComputerControllerRouter {
         let url = params
             .get("url")
             .and_then(|v| v.as_str())
-            .ok_or_else(|| ToolError::InvalidParameters("Missing 'url' parameter".into()))?;
+            .ok_or_else(|| ErrorData::new(ErrorCode::INVALID_PARAMS, "Missing 'url' parameter".into(, None)))?;
 
         let save_as = params
             .get("save_as")
@@ -698,12 +698,12 @@ impl ComputerControllerRouter {
         let language = params
             .get("language")
             .and_then(|v| v.as_str())
-            .ok_or_else(|| ToolError::InvalidParameters("Missing 'language' parameter".into()))?;
+            .ok_or_else(|| ErrorData::new(ErrorCode::INVALID_PARAMS, "Missing 'language' parameter".into(, None)))?;
 
         let script = params
             .get("script")
             .and_then(|v| v.as_str())
-            .ok_or_else(|| ToolError::InvalidParameters("Missing 'script' parameter".into()))?;
+            .ok_or_else(|| ErrorData::new(ErrorCode::INVALID_PARAMS, "Missing 'script' parameter".into(, None)))?;
 
         let save_output = params
             .get("save_output")
@@ -854,7 +854,7 @@ impl ComputerControllerRouter {
         let script = params
             .get("script")
             .and_then(|v| v.as_str())
-            .ok_or_else(|| ToolError::InvalidParameters("Missing 'script' parameter".into()))?;
+            .ok_or_else(|| ErrorData::new(ErrorCode::INVALID_PARAMS, "Missing 'script' parameter".into(, None)))?;
 
         let save_output = params
             .get("save_output")
@@ -893,12 +893,12 @@ impl ComputerControllerRouter {
         let path = params
             .get("path")
             .and_then(|v| v.as_str())
-            .ok_or_else(|| ToolError::InvalidParameters("Missing 'path' parameter".into()))?;
+            .ok_or_else(|| ErrorData::new(ErrorCode::INVALID_PARAMS, "Missing 'path' parameter".into(, None)))?;
 
         let operation = params
             .get("operation")
             .and_then(|v| v.as_str())
-            .ok_or_else(|| ToolError::InvalidParameters("Missing 'operation' parameter".into()))?;
+            .ok_or_else(|| ErrorData::new(ErrorCode::INVALID_PARAMS, "Missing 'operation' parameter".into(, None)))?;
 
         match operation {
             "list_worksheets" => {
@@ -930,7 +930,7 @@ impl ComputerControllerRouter {
                     .get("range")
                     .and_then(|v| v.as_str())
                     .ok_or_else(|| {
-                        ToolError::InvalidParameters("Missing 'range' parameter".into())
+                        ErrorData::new(ErrorCode::INVALID_PARAMS, "Missing 'range' parameter".into(, None))
                     })?;
 
                 let xlsx = xlsx_tool::XlsxTool::new(path)
@@ -953,7 +953,7 @@ impl ComputerControllerRouter {
                     .get("search_text")
                     .and_then(|v| v.as_str())
                     .ok_or_else(|| {
-                        ToolError::InvalidParameters("Missing 'search_text' parameter".into())
+                        ErrorData::new(ErrorCode::INVALID_PARAMS, "Missing 'search_text' parameter".into(, None))
                     })?;
 
                 let case_sensitive = params
@@ -981,18 +981,18 @@ impl ComputerControllerRouter {
             }
             "update_cell" => {
                 let row = params.get("row").and_then(|v| v.as_u64()).ok_or_else(|| {
-                    ToolError::InvalidParameters("Missing 'row' parameter".into())
+                    ErrorData::new(ErrorCode::INVALID_PARAMS, "Missing 'row' parameter".into(, None))
                 })?;
 
                 let col = params.get("col").and_then(|v| v.as_u64()).ok_or_else(|| {
-                    ToolError::InvalidParameters("Missing 'col' parameter".into())
+                    ErrorData::new(ErrorCode::INVALID_PARAMS, "Missing 'col' parameter".into(, None))
                 })?;
 
                 let value = params
                     .get("value")
                     .and_then(|v| v.as_str())
                     .ok_or_else(|| {
-                        ToolError::InvalidParameters("Missing 'value' parameter".into())
+                        ErrorData::new(ErrorCode::INVALID_PARAMS, "Missing 'value' parameter".into(, None))
                     })?;
 
                 let worksheet_name = params
@@ -1020,11 +1020,11 @@ impl ComputerControllerRouter {
             }
             "get_cell" => {
                 let row = params.get("row").and_then(|v| v.as_u64()).ok_or_else(|| {
-                    ToolError::InvalidParameters("Missing 'row' parameter".into())
+                    ErrorData::new(ErrorCode::INVALID_PARAMS, "Missing 'row' parameter".into(, None))
                 })?;
 
                 let col = params.get("col").and_then(|v| v.as_u64()).ok_or_else(|| {
-                    ToolError::InvalidParameters("Missing 'col' parameter".into())
+                    ErrorData::new(ErrorCode::INVALID_PARAMS, "Missing 'col' parameter".into(, None))
                 })?;
 
                 let xlsx = xlsx_tool::XlsxTool::new(path)
@@ -1055,12 +1055,12 @@ impl ComputerControllerRouter {
         let path = params
             .get("path")
             .and_then(|v| v.as_str())
-            .ok_or_else(|| ToolError::InvalidParameters("Missing 'path' parameter".into()))?;
+            .ok_or_else(|| ErrorData::new(ErrorCode::INVALID_PARAMS, "Missing 'path' parameter".into(, None)))?;
 
         let operation = params
             .get("operation")
             .and_then(|v| v.as_str())
-            .ok_or_else(|| ToolError::InvalidParameters("Missing 'operation' parameter".into()))?;
+            .ok_or_else(|| ErrorData::new(ErrorCode::INVALID_PARAMS, "Missing 'operation' parameter".into(, None)))?;
 
         crate::computercontroller::docx_tool::docx_tool(
             path,
@@ -1075,12 +1075,12 @@ impl ComputerControllerRouter {
         let path = params
             .get("path")
             .and_then(|v| v.as_str())
-            .ok_or_else(|| ToolError::InvalidParameters("Missing 'path' parameter".into()))?;
+            .ok_or_else(|| ErrorData::new(ErrorCode::INVALID_PARAMS, "Missing 'path' parameter".into(, None)))?;
 
         let operation = params
             .get("operation")
             .and_then(|v| v.as_str())
-            .ok_or_else(|| ToolError::InvalidParameters("Missing 'operation' parameter".into()))?;
+            .ok_or_else(|| ErrorData::new(ErrorCode::INVALID_PARAMS, "Missing 'operation' parameter".into(, None)))?;
 
         crate::computercontroller::pdf_tool::pdf_tool(path, operation, &self.cache_dir).await
     }
@@ -1089,7 +1089,7 @@ impl ComputerControllerRouter {
         let command = params
             .get("command")
             .and_then(|v| v.as_str())
-            .ok_or_else(|| ToolError::InvalidParameters("Missing 'command' parameter".into()))?;
+            .ok_or_else(|| ErrorData::new(ErrorCode::INVALID_PARAMS, "Missing 'command' parameter".into(, None)))?;
 
         match command {
             "list" => {
@@ -1110,7 +1110,7 @@ impl ComputerControllerRouter {
             }
             "view" => {
                 let path = params.get("path").and_then(|v| v.as_str()).ok_or_else(|| {
-                    ToolError::InvalidParameters("Missing 'path' parameter for view".into())
+                    ErrorData::new(ErrorCode::INVALID_PARAMS, "Missing 'path' parameter for view".into(, None))
                 })?;
 
                 let content = fs::read_to_string(path).map_err(|e| {
@@ -1124,7 +1124,7 @@ impl ComputerControllerRouter {
             }
             "delete" => {
                 let path = params.get("path").and_then(|v| v.as_str()).ok_or_else(|| {
-                    ToolError::InvalidParameters("Missing 'path' parameter for delete".into())
+                    ErrorData::new(ErrorCode::INVALID_PARAMS, "Missing 'path' parameter for delete".into(, None))
                 })?;
 
                 fs::remove_file(path).map_err(|e| {

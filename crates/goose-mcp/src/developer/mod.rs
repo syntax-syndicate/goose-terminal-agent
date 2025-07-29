@@ -834,13 +834,13 @@ impl DeveloperRouter {
             .get("command")
             .and_then(|v| v.as_str())
             .ok_or_else(|| {
-                ToolError::InvalidParameters("Missing 'command' parameter".to_string())
+                ErrorData::new(ErrorCode::INVALID_PARAMS, "Missing 'command' parameter".to_string(, None))
             })?;
 
         let path_str = params
             .get("path")
             .and_then(|v| v.as_str())
-            .ok_or_else(|| ToolError::InvalidParameters("Missing 'path' parameter".into()))?;
+            .ok_or_else(|| ErrorData::new(ErrorCode::INVALID_PARAMS, "Missing 'path' parameter".into(, None)))?;
 
         let path = self.resolve_path(path_str)?;
 
@@ -873,7 +873,7 @@ impl DeveloperRouter {
                     .get("file_text")
                     .and_then(|v| v.as_str())
                     .ok_or_else(|| {
-                        ToolError::InvalidParameters("Missing 'file_text' parameter".into())
+                        ErrorData::new(ErrorCode::INVALID_PARAMS, "Missing 'file_text' parameter".into(, None))
                     })?;
 
                 self.text_editor_write(&path, file_text).await
@@ -883,13 +883,13 @@ impl DeveloperRouter {
                     .get("old_str")
                     .and_then(|v| v.as_str())
                     .ok_or_else(|| {
-                        ToolError::InvalidParameters("Missing 'old_str' parameter".into())
+                        ErrorData::new(ErrorCode::INVALID_PARAMS, "Missing 'old_str' parameter".into(, None))
                     })?;
                 let new_str = params
                     .get("new_str")
                     .and_then(|v| v.as_str())
                     .ok_or_else(|| {
-                        ToolError::InvalidParameters("Missing 'new_str' parameter".into())
+                        ErrorData::new(ErrorCode::INVALID_PARAMS, "Missing 'new_str' parameter".into(, None))
                     })?;
 
                 self.text_editor_replace(&path, old_str, new_str).await
@@ -899,13 +899,13 @@ impl DeveloperRouter {
                     .get("insert_line")
                     .and_then(|v| v.as_i64())
                     .ok_or_else(|| {
-                        ToolError::InvalidParameters("Missing 'insert_line' parameter".into())
+                        ErrorData::new(ErrorCode::INVALID_PARAMS, "Missing 'insert_line' parameter".into(, None))
                     })? as usize;
                 let new_str = params
                     .get("new_str")
                     .and_then(|v| v.as_str())
                     .ok_or_else(|| {
-                        ToolError::InvalidParameters("Missing 'new_str' parameter".into())
+                        ErrorData::new(ErrorCode::INVALID_PARAMS, "Missing 'new_str' parameter".into(, None))
                     })?;
 
                 self.text_editor_insert(&path, insert_line, new_str).await
@@ -948,7 +948,7 @@ impl DeveloperRouter {
             }
 
             let uri = Url::from_file_path(path)
-                .map_err(|_| ToolError::ExecutionError("Invalid file path".into()))?
+                .map_err(|_| ErrorData::new(ErrorCode::INTERNAL_ERROR, "Invalid file path".into(, None)))?
                 .to_string();
 
             let content = std::fs::read_to_string(path).map_err(|e| {
@@ -1411,7 +1411,7 @@ impl DeveloperRouter {
 
     async fn list_windows(&self, _params: Value) -> Result<Vec<Content>, ErrorData> {
         let windows = Window::all()
-            .map_err(|_| ToolError::ExecutionError("Failed to list windows".into()))?;
+            .map_err(|_| ErrorData::new(ErrorCode::INTERNAL_ERROR, "Failed to list windows".into(, None)))?;
 
         let window_titles: Vec<String> =
             windows.into_iter().map(|w| w.title().to_string()).collect();
@@ -1465,7 +1465,7 @@ impl DeveloperRouter {
         let path_str = params
             .get("path")
             .and_then(|v| v.as_str())
-            .ok_or_else(|| ToolError::InvalidParameters("Missing 'path' parameter".into()))?;
+            .ok_or_else(|| ErrorData::new(ErrorCode::INVALID_PARAMS, "Missing 'path' parameter".into(, None)))?;
 
         let path = {
             let p = self.resolve_path(path_str)?;
@@ -1564,7 +1564,7 @@ impl DeveloperRouter {
             if let Some(window_title) = params.get("window_title").and_then(|v| v.as_str()) {
                 // Try to find and capture the specified window
                 let windows = Window::all()
-                    .map_err(|_| ToolError::ExecutionError("Failed to list windows".into()))?;
+                    .map_err(|_| ErrorData::new(ErrorCode::INTERNAL_ERROR, "Failed to list windows".into(, None)))?;
 
                 let window = windows
                     .into_iter()
@@ -1589,7 +1589,7 @@ impl DeveloperRouter {
                 let display = params.get("display").and_then(|v| v.as_u64()).unwrap_or(0) as usize;
 
                 let monitors = Monitor::all()
-                    .map_err(|_| ToolError::ExecutionError("Failed to access monitors".into()))?;
+                    .map_err(|_| ErrorData::new(ErrorCode::INTERNAL_ERROR, "Failed to access monitors".into(, None)))?;
                 let monitor = monitors.get(display).ok_or_else(|| {
                     ToolError::ExecutionError(format!(
                         "{} was not an available monitor, {} found.",

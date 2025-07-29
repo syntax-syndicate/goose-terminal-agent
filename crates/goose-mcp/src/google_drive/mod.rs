@@ -992,7 +992,7 @@ impl GoogleDriveRouter {
         // To minimize tool growth, we search/list for a number of different
         // objects in Gdrive with sub-funcs.
         let drive_type = params.get("driveType").and_then(|q| q.as_str()).ok_or(
-            ToolError::InvalidParameters("The type is required".to_string()),
+            ErrorData::new(ErrorCode::INVALID_PARAMS, "The type is required".to_string(, None)),
         )?;
         match drive_type {
             "file" => return self.search_files(params).await,
@@ -1468,11 +1468,11 @@ impl GoogleDriveRouter {
     // Implement sheets_tool functionality
     async fn sheets_tool(&self, params: Value) -> Result<Vec<Content>, ErrorData> {
         let spreadsheet_id = params.get("spreadsheetId").and_then(|q| q.as_str()).ok_or(
-            ToolError::InvalidParameters("The spreadsheetId is required".to_string()),
+            ErrorData::new(ErrorCode::INVALID_PARAMS, "The spreadsheetId is required".to_string(, None)),
         )?;
 
         let operation = params.get("operation").and_then(|q| q.as_str()).ok_or(
-            ToolError::InvalidParameters("The operation is required".to_string()),
+            ErrorData::new(ErrorCode::INVALID_PARAMS, "The operation is required".to_string(, None)),
         )?;
 
         match operation {
@@ -2142,7 +2142,7 @@ impl GoogleDriveRouter {
                 "The currentFolderId param is required".to_string(),
             ))?;
         let new_folder_id = params.get("newFolderId").and_then(|q| q.as_str()).ok_or(
-            ToolError::InvalidParameters("The newFolderId param is required".to_string()),
+            ErrorData::new(ErrorCode::INVALID_PARAMS, "The newFolderId param is required".to_string(, None)),
         )?;
         let req = File::default();
         let result = self
@@ -2510,7 +2510,7 @@ impl GoogleDriveRouter {
                     "The fileId param is required".to_string(),
                 ))?;
         let operation = params.get("operation").and_then(|q| q.as_str()).ok_or(
-            ToolError::InvalidParameters("The operation is required".to_string()),
+            ErrorData::new(ErrorCode::INVALID_PARAMS, "The operation is required".to_string(, None)),
         )?;
         let content =
             params
@@ -2616,11 +2616,11 @@ impl GoogleDriveRouter {
 
     async fn docs_tool(&self, params: Value) -> Result<Vec<Content>, ErrorData> {
         let document_id = params.get("documentId").and_then(|q| q.as_str()).ok_or(
-            ToolError::InvalidParameters("The documentId is required".to_string()),
+            ErrorData::new(ErrorCode::INVALID_PARAMS, "The documentId is required".to_string(, None)),
         )?;
 
         let operation = params.get("operation").and_then(|q| q.as_str()).ok_or(
-            ToolError::InvalidParameters("The operation is required".to_string()),
+            ErrorData::new(ErrorCode::INVALID_PARAMS, "The operation is required".to_string(, None)),
         )?;
 
         match operation {
@@ -2672,11 +2672,11 @@ impl GoogleDriveRouter {
             },
             "insert_text" => {
                 let text = params.get("text").and_then(|q| q.as_str()).ok_or(
-                    ToolError::InvalidParameters("The text parameter is required for insert_text operation".to_string()),
+                    ErrorData::new(ErrorCode::INVALID_PARAMS, "The text parameter is required for insert_text operation".to_string(, None)),
                 )?;
 
                 let position = params.get("position").and_then(|q| q.as_i64()).ok_or(
-                    ToolError::InvalidParameters("The position parameter is required for insert_text operation".to_string()),
+                    ErrorData::new(ErrorCode::INVALID_PARAMS, "The position parameter is required for insert_text operation".to_string(, None)),
                 )?;
 
                 // Create the insert text request
@@ -2723,7 +2723,7 @@ impl GoogleDriveRouter {
             },
             "append_text" => {
                 let text = params.get("text").and_then(|q| q.as_str()).ok_or(
-                    ToolError::InvalidParameters("The text parameter is required for append_text operation".to_string()),
+                    ErrorData::new(ErrorCode::INVALID_PARAMS, "The text parameter is required for append_text operation".to_string(, None)),
                 )?;
 
                 // First, get the document to find the end position
@@ -2798,11 +2798,11 @@ impl GoogleDriveRouter {
             },
             "replace_text" => {
                 let text = params.get("text").and_then(|q| q.as_str()).ok_or(
-                    ToolError::InvalidParameters("The text parameter is required for replace_text operation".to_string()),
+                    ErrorData::new(ErrorCode::INVALID_PARAMS, "The text parameter is required for replace_text operation".to_string(, None)),
                 )?;
 
                 let replace_text = params.get("replaceText").and_then(|q| q.as_str()).ok_or(
-                    ToolError::InvalidParameters("The replaceText parameter is required for replace_text operation".to_string()),
+                    ErrorData::new(ErrorCode::INVALID_PARAMS, "The replaceText parameter is required for replace_text operation".to_string(, None)),
                 )?;
 
                 // Create the replace all text request
@@ -2860,7 +2860,7 @@ impl GoogleDriveRouter {
             },
             "create_paragraph" => {
                 let text = params.get("text").and_then(|q| q.as_str()).ok_or(
-                    ToolError::InvalidParameters("The text parameter is required for create_paragraph operation".to_string()),
+                    ErrorData::new(ErrorCode::INVALID_PARAMS, "The text parameter is required for create_paragraph operation".to_string(, None)),
                 )?;
 
                 // Get the end position of the document
@@ -2935,11 +2935,11 @@ impl GoogleDriveRouter {
             },
             "delete_content" => {
                 let start_position = params.get("startPosition").and_then(|q| q.as_i64()).ok_or(
-                    ToolError::InvalidParameters("The startPosition parameter is required for delete_content operation".to_string()),
+                    ErrorData::new(ErrorCode::INVALID_PARAMS, "The startPosition parameter is required for delete_content operation".to_string(, None)),
                 )?;
 
                 let end_position = params.get("endPosition").and_then(|q| q.as_i64()).ok_or(
-                    ToolError::InvalidParameters("The endPosition parameter is required for delete_content operation".to_string()),
+                    ErrorData::new(ErrorCode::INVALID_PARAMS, "The endPosition parameter is required for delete_content operation".to_string(, None)),
                 )?;
 
                 // Create the delete content range request
@@ -3120,7 +3120,7 @@ impl GoogleDriveRouter {
                     "The fileId param is required".to_string(),
                 ))?;
         let operation = params.get("operation").and_then(|q| q.as_str()).ok_or(
-            ToolError::InvalidParameters("The operation is required".to_string()),
+            ErrorData::new(ErrorCode::INVALID_PARAMS, "The operation is required".to_string(, None)),
         )?;
         let permission_id = params.get("permissionId").and_then(|q| q.as_str());
         let role = params.get("role").and_then(|s| {
@@ -3128,7 +3128,7 @@ impl GoogleDriveRouter {
                 if ROLES.contains(&s) {
                     Ok(s)
                 } else {
-                    Err(ToolError::InvalidParameters("Invalid role: must be one of ('owner', 'organizer', 'fileOrganizer', 'writer', 'commenter', 'reader')".to_string()))
+                    Err(ErrorData::new(ErrorCode::INVALID_PARAMS, "Invalid role: must be one of ('owner', 'organizer', 'fileOrganizer', 'writer', 'commenter', 'reader', None)".to_string()))
                 }
             })
         }).transpose()?;
@@ -3137,7 +3137,7 @@ impl GoogleDriveRouter {
                 if PERMISSIONTYPE.contains(&s) {
                     Ok(s)
                 } else {
-                    Err(ToolError::InvalidParameters("Invalid permission type: must be one of ('user', 'group', 'domain', 'anyone')".to_string()))
+                    Err(ErrorData::new(ErrorCode::INVALID_PARAMS, "Invalid permission type: must be one of ('user', 'group', 'domain', 'anyone', None)".to_string()))
                 }
             })
         ).transpose()?;

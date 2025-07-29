@@ -542,7 +542,7 @@ pub async fn docx_tool(
                         .extension()
                         .and_then(|e| e.to_str())
                         .ok_or_else(|| {
-                            ToolError::ExecutionError("Invalid image file extension".to_string())
+                            ErrorData::new(ErrorCode::INVALID_PARAMS, "Invalid image file extension".to_string(), None)
                         })?
                         .to_lowercase();
 
