@@ -13,6 +13,9 @@ use std::time::Duration;
 use tokio::sync::oneshot;
 use tokio::time::timeout;
 
+/// Default models for openrouter config configuration
+const OPENROUTER_DEFAULT_MODEL: &str = "qwen/qwen3-coder";
+
 const OPENROUTER_AUTH_URL: &str = "https://openrouter.ai/auth";
 const OPENROUTER_TOKEN_URL: &str = "https://openrouter.ai/api/v1/auth/keys";
 const CALLBACK_URL: &str = "http://localhost:3000";
@@ -161,13 +164,7 @@ pub use self::PkceAuthFlow as OpenRouterAuth;
 use crate::config::Config;
 use serde_json::Value;
 
-/// Default models for OpenRouter configuration
-const OPENROUTER_DEFAULT_MODEL: &str = "moonshotai/kimi-k2";
-const OPENROUTER_LEAD_MODEL: &str = "anthropic/claude-sonnet-4";
-const OPENROUTER_EDITOR_MODEL: &str = "morph/morph-v2";
 
-/// Configure OpenRouter settings after successful authentication
-/// This sets up the provider, models, and other related configuration
 pub fn configure_openrouter(config: &Config, api_key: String) -> Result<()> {
     config.set_secret("OPENROUTER_API_KEY", Value::String(api_key))?;
     config.set_param("GOOSE_PROVIDER", Value::String("openrouter".to_string()))?;
@@ -175,22 +172,5 @@ pub fn configure_openrouter(config: &Config, api_key: String) -> Result<()> {
         "GOOSE_MODEL",
         Value::String(OPENROUTER_DEFAULT_MODEL.to_string()),
     )?;
-    config.set_param(
-        "GOOSE_LEAD_MODEL",
-        Value::String(OPENROUTER_LEAD_MODEL.to_string()),
-    )?;
-    config.set_param(
-        "GOOSE_LEAD_PROVIDER",
-        Value::String("openrouter".to_string()),
-    )?;
-    config.set_param(
-        "GOOSE_EDITOR_MODEL",
-        Value::String(OPENROUTER_EDITOR_MODEL.to_string()),
-    )?;
-    config.set_param(
-        "GOOSE_EDITOR_PROVIDER",
-        Value::String("openrouter".to_string()),
-    )?;
-
     Ok(())
 }

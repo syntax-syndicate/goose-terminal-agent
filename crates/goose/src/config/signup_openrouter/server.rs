@@ -12,7 +12,6 @@ use serde::Deserialize;
 use std::net::SocketAddr;
 use tokio::sync::oneshot;
 
-// Embed the HTML templates at compile time
 static TEMPLATES_DIR: Dir =
     include_dir!("$CARGO_MANIFEST_DIR/src/config/signup_openrouter/templates");
 
@@ -28,12 +27,8 @@ pub async fn run_callback_server(
     shutdown_rx: oneshot::Receiver<()>,
 ) -> Result<()> {
     let app = Router::new().route("/", get(handle_callback));
-
     let addr = SocketAddr::from(([127, 0, 0, 1], 3000));
-
     let listener = tokio::net::TcpListener::bind(addr).await?;
-
-    // Wrap the code_tx in an Arc<Mutex> so we can use it in the handler
     let state = std::sync::Arc::new(tokio::sync::Mutex::new(Some(code_tx)));
 
     axum::serve(listener, app.with_state(state.clone()).into_make_service())
@@ -51,7 +46,6 @@ async fn handle_callback(
         std::sync::Arc<tokio::sync::Mutex<Option<oneshot::Sender<String>>>>,
     >,
 ) -> impl IntoResponse {
-    // Check for error first
     if let Some(error) = params.error {
         let mut env = Environment::new();
         let template_content = TEMPLATES_DIR
@@ -67,9 +61,7 @@ async fn handle_callback(
         return (StatusCode::BAD_REQUEST, Html(rendered));
     }
 
-    // Extract the code
     if let Some(code) = params.code {
-        // Send the code through the channel
         let mut tx_guard = state.lock().await;
         if let Some(tx) = tx_guard.take() {
             let _ = tx.send(code);
@@ -84,7 +76,6 @@ async fn handle_callback(
         return (StatusCode::OK, Html(success_html.to_string()));
     }
 
-    // No code parameter
     let invalid_html = TEMPLATES_DIR
         .get_file("invalid.html")
         .expect("invalid.html template not found")

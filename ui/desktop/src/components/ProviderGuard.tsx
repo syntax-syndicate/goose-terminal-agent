@@ -33,37 +33,25 @@ export default function ProviderGuard({ children }: ProviderGuardProps) {
       showRetry: false,
     });
 
-    try {
-      const result = await startOpenRouterSetup();
-
-      if (result.success) {
-        setOpenRouterSetupState({
-          show: true,
-          title: 'Setup Complete!',
-          message: 'OpenRouter has been configured successfully.',
-          showProgress: false,
-          showRetry: false,
-          autoClose: 3000,
-        });
-
-        // Reload the page after successful setup
-        setTimeout(() => {
-          window.location.reload();
-        }, 3000);
-      } else {
-        setOpenRouterSetupState({
-          show: true,
-          title: 'Setup Pending',
-          message: result.message,
-          showProgress: false,
-          showRetry: true,
-        });
-      }
-    } catch (error) {
+    const result = await startOpenRouterSetup();
+    if (result.success) {
       setOpenRouterSetupState({
         show: true,
-        title: 'Setup Error',
-        message: 'Failed to complete OpenRouter setup',
+        title: 'Setup Complete!',
+        message: 'OpenRouter has been configured successfully.',
+        showProgress: false,
+        showRetry: false,
+      });
+
+      // Reload the page after successful setup
+      setTimeout(() => {
+        window.location.reload();
+      }, 3000);
+    } else {
+      setOpenRouterSetupState({
+        show: true,
+        title: 'Openrouter setup pending',
+        message: result.message,
         showProgress: false,
         showRetry: true,
       });
@@ -78,8 +66,6 @@ export default function ProviderGuard({ children }: ProviderGuardProps) {
 
         const provider = (await read('GOOSE_PROVIDER', false)) ?? config.GOOSE_DEFAULT_PROVIDER;
         const model = (await read('GOOSE_MODEL', false)) ?? config.GOOSE_DEFAULT_MODEL;
-
-        console.log('ProviderGuard - Provider:', provider, 'Model:', model);
 
         if (provider && model) {
           console.log('ProviderGuard - Provider and model found, continuing normally');
@@ -136,9 +122,9 @@ export default function ProviderGuard({ children }: ProviderGuardProps) {
           <div className="space-y-4">
             <button
               onClick={handleOpenRouterSetup}
-              className="w-full px-6 py-3 bg-accent text-text-on-accent rounded-lg hover:bg-accent-hover transition-colors font-medium"
+              className="w-full px-6 py-3 bg-background-muted text-text-standard rounded-lg hover:bg-background-hover transition-colors font-medium"
             >
-              Set up OpenRouter (Recommended)
+              Auto-configure with Openrouter (recommended to start)
             </button>
 
             <button
@@ -150,7 +136,9 @@ export default function ProviderGuard({ children }: ProviderGuardProps) {
           </div>
 
           <p className="text-sm text-text-muted mt-6">
-            OpenRouter provides access to multiple AI models with a single API key.
+            Openrouter provides access to multiple AI models. To use this you will need to create an
+            account, and purchase some starter credits for powerful non free models. When you
+            configure Goose with Openrouter, models and config will be setup automatically for you.
           </p>
         </div>
       </div>
