@@ -33,7 +33,7 @@ fn openapi_schema_for<T: JsonSchema>(name: String) -> Vec<(String, serde_json::V
     parent.remove("components");
     parent.remove("$schema");
 
-    schemas.push((name.into(), parent.into()));
+    schemas.push((name, parent.into()));
 
     for subschema in schema
         .get("components")
@@ -205,22 +205,20 @@ macro_rules! insert_schemas {
 pub fn generate_schema() -> String {
     let api_doc = ApiDoc::openapi();
     let mut api_doc_value = serde_json::to_value(&api_doc).unwrap();
-    api_doc_value["components"]["schemas"]
-        .as_object_mut()
-        .map(|schemas| {
-            insert_schemas!(Content, schemas);
-            insert_schemas!(EmbeddedResource, schemas);
-            insert_schemas!(ImageContent, schemas);
-            insert_schemas!(Annotations, schemas);
-            insert_schemas!(TextContent, schemas);
-            insert_schemas!(ResourceContents, schemas);
-            insert_schemas!(Role, schemas);
-            insert_schemas!(Tool, schemas);
-            insert_schemas!(ToolAnnotations, schemas);
-            insert_schemas!(RawTextContent, schemas);
-            insert_schemas!(RawImageContent, schemas);
-            insert_schemas!(RawEmbeddedResource, schemas);
-            insert_schemas!(AudioContent, schemas);
-        });
+    if let Some(schemas) = api_doc_value["components"]["schemas"].as_object_mut() {
+        insert_schemas!(Content, schemas);
+        insert_schemas!(EmbeddedResource, schemas);
+        insert_schemas!(ImageContent, schemas);
+        insert_schemas!(Annotations, schemas);
+        insert_schemas!(TextContent, schemas);
+        insert_schemas!(ResourceContents, schemas);
+        insert_schemas!(Role, schemas);
+        insert_schemas!(Tool, schemas);
+        insert_schemas!(ToolAnnotations, schemas);
+        insert_schemas!(RawTextContent, schemas);
+        insert_schemas!(RawImageContent, schemas);
+        insert_schemas!(RawEmbeddedResource, schemas);
+        insert_schemas!(AudioContent, schemas);
+    }
     serde_json::to_string_pretty(&api_doc_value).unwrap()
 }
