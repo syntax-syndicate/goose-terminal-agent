@@ -1,114 +1,1133 @@
 {
+  "openapi": "3.0.3",
+  "info": {
+    "title": "goose-server",
+    "description": "An AI agent",
+    "contact": {
+      "name": "Block",
+      "email": "ai-oss-tools@block.xyz"
+    },
+    "license": {
+      "name": "Apache-2.0"
+    },
+    "version": "1.1.0"
+  },
+  "paths": {
+    "/agent/add_sub_recipes": {
+      "post": {
+        "tags": [
+          "super::routes::agent"
+        ],
+        "operationId": "add_sub_recipes",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddSubRecipesRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "added sub recipes to agent successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AddSubRecipesResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - invalid secret key"
+          }
+        }
+      }
+    },
+    "/agent/tools": {
+      "get": {
+        "tags": [
+          "super::routes::agent"
+        ],
+        "operationId": "get_tools",
+        "parameters": [
+          {
+            "name": "extension_name",
+            "in": "query",
+            "description": "Optional extension name to filter tools",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "nullable": true
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Tools retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ToolInfo"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - invalid secret key"
+          },
+          "424": {
+            "description": "Agent not initialized"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        }
+      }
+    },
+    "/config": {
+      "get": {
+        "tags": [
+          "super::routes::config_management"
+        ],
+        "operationId": "read_all_config",
+        "responses": {
+          "200": {
+            "description": "All configuration values retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConfigResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/config/backup": {
+      "post": {
+        "tags": [
+          "super::routes::config_management"
+        ],
+        "operationId": "backup_config",
+        "responses": {
+          "200": {
+            "description": "Config file backed up",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        }
+      }
+    },
+    "/config/extensions": {
+      "get": {
+        "tags": [
+          "super::routes::config_management"
+        ],
+        "operationId": "get_extensions",
+        "responses": {
+          "200": {
+            "description": "All extensions retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExtensionResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "super::routes::config_management"
+        ],
+        "operationId": "add_extension",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ExtensionQuery"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Extension added or updated successfully",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request"
+          },
+          "422": {
+            "description": "Could not serialize config.yaml"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        }
+      }
+    },
+    "/config/extensions/{name}": {
+      "delete": {
+        "tags": [
+          "super::routes::config_management"
+        ],
+        "operationId": "remove_extension",
+        "parameters": [
+          {
+            "name": "name",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Extension removed successfully",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Extension not found"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        }
+      }
+    },
+    "/config/init": {
+      "post": {
+        "tags": [
+          "super::routes::config_management"
+        ],
+        "operationId": "init_config",
+        "responses": {
+          "200": {
+            "description": "Config initialization check completed",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        }
+      }
+    },
+    "/config/permissions": {
+      "post": {
+        "tags": [
+          "super::routes::config_management"
+        ],
+        "operationId": "upsert_permissions",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpsertPermissionsQuery"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Permission update completed",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request"
+          }
+        }
+      }
+    },
+    "/config/providers": {
+      "get": {
+        "tags": [
+          "super::routes::config_management"
+        ],
+        "operationId": "providers",
+        "responses": {
+          "200": {
+            "description": "All configuration values retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ProviderDetails"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/config/read": {
+      "post": {
+        "tags": [
+          "super::routes::config_management"
+        ],
+        "operationId": "read_config",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConfigKeyQuery"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Configuration value retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "404": {
+            "description": "Configuration key not found"
+          }
+        }
+      }
+    },
+    "/config/recover": {
+      "post": {
+        "tags": [
+          "super::routes::config_management"
+        ],
+        "operationId": "recover_config",
+        "responses": {
+          "200": {
+            "description": "Config recovery attempted",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        }
+      }
+    },
+    "/config/remove": {
+      "post": {
+        "tags": [
+          "super::routes::config_management"
+        ],
+        "operationId": "remove_config",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConfigKeyQuery"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Configuration value removed successfully",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Configuration key not found"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        }
+      }
+    },
+    "/config/upsert": {
+      "post": {
+        "tags": [
+          "super::routes::config_management"
+        ],
+        "operationId": "upsert_config",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpsertConfigQuery"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Configuration value upserted successfully",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        }
+      }
+    },
+    "/config/validate": {
+      "get": {
+        "tags": [
+          "super::routes::config_management"
+        ],
+        "operationId": "validate_config",
+        "responses": {
+          "200": {
+            "description": "Config validation result",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Config file is corrupted"
+          }
+        }
+      }
+    },
+    "/confirm": {
+      "post": {
+        "tags": [
+          "super::routes::reply"
+        ],
+        "operationId": "confirm_permission",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PermissionConfirmationRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Permission action is confirmed",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - invalid secret key"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        }
+      }
+    },
+    "/context/manage": {
+      "post": {
+        "tags": [
+          "Context Management"
+        ],
+        "operationId": "manage_context",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ContextManageRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Context managed successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ContextManageResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - Invalid or missing API key"
+          },
+          "412": {
+            "description": "Precondition failed - Agent not available"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        },
+        "security": [
+          {
+            "api_key": []
+          }
+        ]
+      }
+    },
+    "/recipes/create": {
+      "post": {
+        "tags": [
+          "Recipe Management"
+        ],
+        "summary": "Create a Recipe configuration from the current session",
+        "operationId": "create_recipe",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateRecipeRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Recipe created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreateRecipeResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request"
+          },
+          "412": {
+            "description": "Precondition failed - Agent not available"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        }
+      }
+    },
+    "/recipes/decode": {
+      "post": {
+        "tags": [
+          "Recipe Management"
+        ],
+        "operationId": "decode_recipe",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DecodeRecipeRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Recipe decoded successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DecodeRecipeResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request"
+          }
+        }
+      }
+    },
+    "/recipes/encode": {
+      "post": {
+        "tags": [
+          "Recipe Management"
+        ],
+        "operationId": "encode_recipe",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EncodeRecipeRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Recipe encoded successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EncodeRecipeResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request"
+          }
+        }
+      }
+    },
+    "/schedule/create": {
+      "post": {
+        "tags": [
+          "schedule"
+        ],
+        "operationId": "create_schedule",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateScheduleRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Scheduled job created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScheduledJob"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid cron expression or recipe file"
+          },
+          "409": {
+            "description": "Job ID already exists"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        }
+      }
+    },
+    "/schedule/delete/{id}": {
+      "delete": {
+        "tags": [
+          "schedule"
+        ],
+        "operationId": "delete_schedule",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "ID of the schedule to delete",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Scheduled job deleted successfully"
+          },
+          "404": {
+            "description": "Scheduled job not found"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        }
+      }
+    },
+    "/schedule/list": {
+      "get": {
+        "tags": [
+          "schedule"
+        ],
+        "operationId": "list_schedules",
+        "responses": {
+          "200": {
+            "description": "A list of scheduled jobs",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ListSchedulesResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        }
+      }
+    },
+    "/schedule/{id}": {
+      "put": {
+        "tags": [
+          "schedule"
+        ],
+        "operationId": "update_schedule",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "ID of the schedule to update",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateScheduleRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Scheduled job updated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScheduledJob"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Cannot update a currently running job or invalid request"
+          },
+          "404": {
+            "description": "Scheduled job not found"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        }
+      }
+    },
+    "/schedule/{id}/inspect": {
+      "get": {
+        "tags": [
+          "schedule"
+        ],
+        "operationId": "inspect_running_job",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "ID of the schedule to inspect",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Running job information",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InspectJobResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Scheduled job not found"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        }
+      }
+    },
+    "/schedule/{id}/kill": {
+      "post": {
+        "tags": [
+          "schedule"
+        ],
+        "operationId": "kill_running_job",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Running job killed successfully"
+          }
+        }
+      }
+    },
+    "/schedule/{id}/pause": {
+      "post": {
+        "tags": [
+          "schedule"
+        ],
+        "operationId": "pause_schedule",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "ID of the schedule to pause",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Scheduled job paused successfully"
+          },
+          "400": {
+            "description": "Cannot pause a currently running job"
+          },
+          "404": {
+            "description": "Scheduled job not found"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        }
+      }
+    },
+    "/schedule/{id}/run_now": {
+      "post": {
+        "tags": [
+          "schedule"
+        ],
+        "operationId": "run_now_handler",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "ID of the schedule to run",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Scheduled job triggered successfully, returns new session ID",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RunNowResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Scheduled job not found"
+          },
+          "500": {
+            "description": "Internal server error when trying to run the job"
+          }
+        }
+      }
+    },
+    "/schedule/{id}/sessions": {
+      "get": {
+        "tags": [
+          "schedule"
+        ],
+        "operationId": "sessions_handler",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "ID of the schedule",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "minimum": 0
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A list of session display info",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/SessionDisplayInfo"
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        }
+      }
+    },
+    "/schedule/{id}/unpause": {
+      "post": {
+        "tags": [
+          "schedule"
+        ],
+        "operationId": "unpause_schedule",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "ID of the schedule to unpause",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Scheduled job unpaused successfully"
+          },
+          "404": {
+            "description": "Scheduled job not found"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        }
+      }
+    },
+    "/sessions": {
+      "get": {
+        "tags": [
+          "Session Management"
+        ],
+        "operationId": "list_sessions",
+        "responses": {
+          "200": {
+            "description": "List of available sessions retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SessionListResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - Invalid or missing API key"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        },
+        "security": [
+          {
+            "api_key": []
+          }
+        ]
+      }
+    },
+    "/sessions/{session_id}": {
+      "get": {
+        "tags": [
+          "Session Management"
+        ],
+        "operationId": "get_session_history",
+        "parameters": [
+          {
+            "name": "session_id",
+            "in": "path",
+            "description": "Unique identifier for the session",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Session history retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SessionHistoryResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - Invalid or missing API key"
+          },
+          "404": {
+            "description": "Session not found"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        },
+        "security": [
+          {
+            "api_key": []
+          }
+        ]
+      }
+    }
+  },
   "components": {
     "schemas": {
       "AddSubRecipesRequest": {
-        "properties": {
-          "sub_recipes": {
-            "items": {
-              "$ref": "#/components/schemas/SubRecipe"
-            },
-            "type": "array"
-          }
-        },
+        "type": "object",
         "required": [
           "sub_recipes"
         ],
-        "type": "object"
+        "properties": {
+          "sub_recipes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SubRecipe"
+            }
+          }
+        }
       },
       "AddSubRecipesResponse": {
+        "type": "object",
+        "required": [
+          "success"
+        ],
         "properties": {
           "success": {
             "type": "boolean"
           }
-        },
-        "required": [
-          "success"
-        ],
-        "type": "object"
-      },
-      "Annotations": {
-        "properties": {
-          "audience": {
-            "items": {
-              "$ref": "#/components/schemas/Role"
-            },
-            "nullable": true,
-            "type": "array"
-          },
-          "priority": {
-            "format": "float",
-            "nullable": true,
-            "type": "number"
-          },
-          "timestamp": {
-            "format": "date-time",
-            "nullable": true,
-            "type": "string"
-          }
-        },
-        "title": "Annotations",
-        "type": "object"
-      },
-      "AudioContent": {
-        "properties": {
-          "annotations": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/Annotations"
-              },
-              {
-                "enum": [
-                  null
-                ],
-                "nullable": true
-              }
-            ]
-          },
-          "data": {
-            "type": "string"
-          },
-          "mimeType": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "data",
-          "mimeType"
-        ],
-        "title": "Annotated",
-        "type": "object"
+        }
       },
       "Author": {
+        "type": "object",
         "properties": {
           "contact": {
-            "nullable": true,
-            "type": "string"
+            "type": "string",
+            "nullable": true
           },
           "metadata": {
-            "nullable": true,
-            "type": "string"
+            "type": "string",
+            "nullable": true
           }
-        },
-        "type": "object"
+        }
       },
       "AuthorRequest": {
+        "type": "object",
         "properties": {
           "contact": {
-            "nullable": true,
-            "type": "string"
+            "type": "string",
+            "nullable": true
           },
           "metadata": {
-            "nullable": true,
-            "type": "string"
+            "type": "string",
+            "nullable": true
           }
-        },
-        "type": "object"
+        }
       },
       "ConfigKey": {
+        "type": "object",
+        "required": [
+          "name",
+          "required",
+          "secret"
+        ],
         "properties": {
           "default": {
-            "nullable": true,
-            "type": "string"
+            "type": "string",
+            "nullable": true
           },
           "name": {
             "type": "string"
@@ -119,15 +1138,14 @@
           "secret": {
             "type": "boolean"
           }
-        },
-        "required": [
-          "name",
-          "required",
-          "secret"
-        ],
-        "type": "object"
+        }
       },
       "ConfigKeyQuery": {
+        "type": "object",
+        "required": [
+          "key",
+          "is_secret"
+        ],
         "properties": {
           "is_secret": {
             "type": "boolean"
@@ -135,152 +1153,91 @@
           "key": {
             "type": "string"
           }
-        },
-        "required": [
-          "key",
-          "is_secret"
-        ],
-        "type": "object"
+        }
       },
       "ConfigResponse": {
-        "properties": {
-          "config": {
-            "additionalProperties": {},
-            "type": "object"
-          }
-        },
+        "type": "object",
         "required": [
           "config"
         ],
-        "type": "object"
-      },
-      "Content": {
-        "oneOf": [
-          {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/RawTextContent"
-              }
-            ],
-            "properties": {
-              "type": {
-                "enum": [
-                  "text"
-                ],
-                "type": "string"
-              }
-            },
-            "required": [
-              "type"
-            ],
-            "type": "object"
-          },
-          {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/RawImageContent"
-              }
-            ],
-            "properties": {
-              "type": {
-                "enum": [
-                  "image"
-                ],
-                "type": "string"
-              }
-            },
-            "required": [
-              "type"
-            ],
-            "type": "object"
-          },
-          {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/RawEmbeddedResource"
-              }
-            ],
-            "properties": {
-              "type": {
-                "enum": [
-                  "resource"
-                ],
-                "type": "string"
-              }
-            },
-            "required": [
-              "type"
-            ],
-            "type": "object"
+        "properties": {
+          "config": {
+            "type": "object",
+            "additionalProperties": {}
           }
-        ],
-        "title": "Content"
+        }
       },
       "ContextLengthExceeded": {
+        "type": "object",
+        "required": [
+          "msg"
+        ],
         "properties": {
           "msg": {
             "type": "string"
           }
-        },
-        "required": [
-          "msg"
-        ],
-        "type": "object"
+        }
       },
       "ContextManageRequest": {
+        "type": "object",
         "description": "Request payload for context management operations",
-        "properties": {
-          "manageAction": {
-            "description": "Operation to perform: \"truncation\" or \"summarize\"",
-            "type": "string"
-          },
-          "messages": {
-            "description": "Collection of messages to be managed",
-            "items": {
-              "$ref": "#/components/schemas/Message"
-            },
-            "type": "array"
-          }
-        },
         "required": [
           "messages",
           "manageAction"
         ],
-        "type": "object"
-      },
-      "ContextManageResponse": {
-        "description": "Response from context management operations",
         "properties": {
+          "manageAction": {
+            "type": "string",
+            "description": "Operation to perform: \"truncation\" or \"summarize\""
+          },
           "messages": {
-            "description": "Processed messages after the operation",
+            "type": "array",
             "items": {
               "$ref": "#/components/schemas/Message"
             },
-            "type": "array"
-          },
-          "tokenCounts": {
-            "description": "Token counts for each processed message",
-            "items": {
-              "minimum": 0,
-              "type": "integer"
-            },
-            "type": "array"
+            "description": "Collection of messages to be managed"
           }
-        },
+        }
+      },
+      "ContextManageResponse": {
+        "type": "object",
+        "description": "Response from context management operations",
         "required": [
           "messages",
           "tokenCounts"
         ],
-        "type": "object"
+        "properties": {
+          "messages": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Message"
+            },
+            "description": "Processed messages after the operation"
+          },
+          "tokenCounts": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "description": "Token counts for each processed message"
+          }
+        }
       },
       "CreateRecipeRequest": {
+        "type": "object",
+        "required": [
+          "messages",
+          "title",
+          "description"
+        ],
         "properties": {
           "activities": {
+            "type": "array",
             "items": {
               "type": "string"
             },
-            "nullable": true,
-            "type": "array"
+            "nullable": true
           },
           "author": {
             "allOf": [
@@ -294,27 +1251,22 @@
             "type": "string"
           },
           "messages": {
+            "type": "array",
             "items": {
               "$ref": "#/components/schemas/Message"
-            },
-            "type": "array"
+            }
           },
           "title": {
             "type": "string"
           }
-        },
-        "required": [
-          "messages",
-          "title",
-          "description"
-        ],
-        "type": "object"
+        }
       },
       "CreateRecipeResponse": {
+        "type": "object",
         "properties": {
           "error": {
-            "nullable": true,
-            "type": "string"
+            "type": "string",
+            "nullable": true
           },
           "recipe": {
             "allOf": [
@@ -324,17 +1276,22 @@
             ],
             "nullable": true
           }
-        },
-        "type": "object"
+        }
       },
       "CreateScheduleRequest": {
+        "type": "object",
+        "required": [
+          "id",
+          "recipe_source",
+          "cron"
+        ],
         "properties": {
           "cron": {
             "type": "string"
           },
           "execution_mode": {
-            "nullable": true,
-            "type": "string"
+            "type": "string",
+            "nullable": true
           },
           "id": {
             "type": "string"
@@ -342,376 +1299,345 @@
           "recipe_source": {
             "type": "string"
           }
-        },
-        "required": [
-          "id",
-          "recipe_source",
-          "cron"
-        ],
-        "type": "object"
+        }
       },
       "DecodeRecipeRequest": {
+        "type": "object",
+        "required": [
+          "deeplink"
+        ],
         "properties": {
           "deeplink": {
             "type": "string"
           }
-        },
-        "required": [
-          "deeplink"
-        ],
-        "type": "object"
+        }
       },
       "DecodeRecipeResponse": {
+        "type": "object",
+        "required": [
+          "recipe"
+        ],
         "properties": {
           "recipe": {
             "$ref": "#/components/schemas/Recipe"
           }
-        },
-        "required": [
-          "recipe"
-        ],
-        "type": "object"
-      },
-      "EmbeddedResource": {
-        "properties": {
-          "annotations": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/Annotations"
-              },
-              {
-                "enum": [
-                  null
-                ],
-                "nullable": true
-              }
-            ]
-          },
-          "resource": {
-            "$ref": "#/components/schemas/ResourceContents"
-          }
-        },
-        "required": [
-          "resource"
-        ],
-        "title": "Annotated",
-        "type": "object"
+        }
       },
       "EncodeRecipeRequest": {
+        "type": "object",
+        "required": [
+          "recipe"
+        ],
         "properties": {
           "recipe": {
             "$ref": "#/components/schemas/Recipe"
           }
-        },
-        "required": [
-          "recipe"
-        ],
-        "type": "object"
+        }
       },
       "EncodeRecipeResponse": {
+        "type": "object",
+        "required": [
+          "deeplink"
+        ],
         "properties": {
           "deeplink": {
             "type": "string"
           }
-        },
-        "required": [
-          "deeplink"
-        ],
-        "type": "object"
+        }
       },
       "Envs": {
+        "type": "object",
         "additionalProperties": {
-          "description": "A map of environment variables to set, e.g. API_KEY -> some_secret, HOST -> host",
-          "type": "string"
-        },
-        "type": "object"
+          "type": "string",
+          "description": "A map of environment variables to set, e.g. API_KEY -> some_secret, HOST -> host"
+        }
       },
       "ExtensionConfig": {
-        "description": "Represents the different types of MCP extensions that can be added to the manager",
-        "discriminator": {
-          "propertyName": "type"
-        },
         "oneOf": [
           {
+            "type": "object",
             "description": "Server-sent events client with a URI endpoint",
-            "properties": {
-              "bundled": {
-                "description": "Whether this extension is bundled with Goose",
-                "nullable": true,
-                "type": "boolean"
-              },
-              "description": {
-                "nullable": true,
-                "type": "string"
-              },
-              "env_keys": {
-                "items": {
-                  "type": "string"
-                },
-                "type": "array"
-              },
-              "envs": {
-                "$ref": "#/components/schemas/Envs"
-              },
-              "name": {
-                "description": "The name used to identify this extension",
-                "type": "string"
-              },
-              "timeout": {
-                "format": "int64",
-                "minimum": 0,
-                "nullable": true,
-                "type": "integer"
-              },
-              "type": {
-                "enum": [
-                  "sse"
-                ],
-                "type": "string"
-              },
-              "uri": {
-                "type": "string"
-              }
-            },
             "required": [
               "name",
               "uri",
               "type"
             ],
-            "type": "object"
-          },
-          {
-            "description": "Standard I/O client with command and arguments",
             "properties": {
-              "args": {
-                "items": {
-                  "type": "string"
-                },
-                "type": "array"
-              },
               "bundled": {
+                "type": "boolean",
                 "description": "Whether this extension is bundled with Goose",
-                "nullable": true,
-                "type": "boolean"
-              },
-              "cmd": {
-                "type": "string"
+                "nullable": true
               },
               "description": {
-                "nullable": true,
-                "type": "string"
+                "type": "string",
+                "nullable": true
               },
               "env_keys": {
+                "type": "array",
                 "items": {
                   "type": "string"
-                },
-                "type": "array"
+                }
               },
               "envs": {
                 "$ref": "#/components/schemas/Envs"
               },
               "name": {
-                "description": "The name used to identify this extension",
-                "type": "string"
+                "type": "string",
+                "description": "The name used to identify this extension"
               },
               "timeout": {
+                "type": "integer",
                 "format": "int64",
-                "minimum": 0,
                 "nullable": true,
-                "type": "integer"
+                "minimum": 0
               },
               "type": {
+                "type": "string",
                 "enum": [
-                  "stdio"
-                ],
+                  "sse"
+                ]
+              },
+              "uri": {
                 "type": "string"
               }
-            },
+            }
+          },
+          {
+            "type": "object",
+            "description": "Standard I/O client with command and arguments",
             "required": [
               "name",
               "cmd",
               "args",
               "type"
             ],
-            "type": "object"
-          },
-          {
-            "description": "Built-in extension that is part of the goose binary",
             "properties": {
-              "bundled": {
-                "description": "Whether this extension is bundled with Goose",
-                "nullable": true,
-                "type": "boolean"
-              },
-              "description": {
-                "nullable": true,
-                "type": "string"
-              },
-              "display_name": {
-                "nullable": true,
-                "type": "string"
-              },
-              "name": {
-                "description": "The name used to identify this extension",
-                "type": "string"
-              },
-              "timeout": {
-                "format": "int64",
-                "minimum": 0,
-                "nullable": true,
-                "type": "integer"
-              },
-              "type": {
-                "enum": [
-                  "builtin"
-                ],
-                "type": "string"
-              }
-            },
-            "required": [
-              "name",
-              "type"
-            ],
-            "type": "object"
-          },
-          {
-            "description": "Streamable HTTP client with a URI endpoint using MCP Streamable HTTP specification",
-            "properties": {
-              "bundled": {
-                "description": "Whether this extension is bundled with Goose",
-                "nullable": true,
-                "type": "boolean"
-              },
-              "description": {
-                "nullable": true,
-                "type": "string"
-              },
-              "env_keys": {
+              "args": {
+                "type": "array",
                 "items": {
                   "type": "string"
-                },
-                "type": "array"
+                }
+              },
+              "bundled": {
+                "type": "boolean",
+                "description": "Whether this extension is bundled with Goose",
+                "nullable": true
+              },
+              "cmd": {
+                "type": "string"
+              },
+              "description": {
+                "type": "string",
+                "nullable": true
+              },
+              "env_keys": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
               },
               "envs": {
                 "$ref": "#/components/schemas/Envs"
               },
-              "headers": {
-                "additionalProperties": {
-                  "type": "string"
-                },
-                "type": "object"
-              },
               "name": {
-                "description": "The name used to identify this extension",
-                "type": "string"
+                "type": "string",
+                "description": "The name used to identify this extension"
               },
               "timeout": {
+                "type": "integer",
                 "format": "int64",
-                "minimum": 0,
                 "nullable": true,
-                "type": "integer"
+                "minimum": 0
               },
               "type": {
+                "type": "string",
                 "enum": [
-                  "streamable_http"
-                ],
-                "type": "string"
-              },
-              "uri": {
-                "type": "string"
+                  "stdio"
+                ]
               }
-            },
+            }
+          },
+          {
+            "type": "object",
+            "description": "Built-in extension that is part of the goose binary",
+            "required": [
+              "name",
+              "type"
+            ],
+            "properties": {
+              "bundled": {
+                "type": "boolean",
+                "description": "Whether this extension is bundled with Goose",
+                "nullable": true
+              },
+              "description": {
+                "type": "string",
+                "nullable": true
+              },
+              "display_name": {
+                "type": "string",
+                "nullable": true
+              },
+              "name": {
+                "type": "string",
+                "description": "The name used to identify this extension"
+              },
+              "timeout": {
+                "type": "integer",
+                "format": "int64",
+                "nullable": true,
+                "minimum": 0
+              },
+              "type": {
+                "type": "string",
+                "enum": [
+                  "builtin"
+                ]
+              }
+            }
+          },
+          {
+            "type": "object",
+            "description": "Streamable HTTP client with a URI endpoint using MCP Streamable HTTP specification",
             "required": [
               "name",
               "uri",
               "type"
             ],
-            "type": "object"
-          },
-          {
-            "description": "Frontend-provided tools that will be called through the frontend",
             "properties": {
               "bundled": {
+                "type": "boolean",
                 "description": "Whether this extension is bundled with Goose",
-                "nullable": true,
-                "type": "boolean"
+                "nullable": true
               },
-              "instructions": {
-                "description": "Instructions for how to use these tools",
-                "nullable": true,
-                "type": "string"
+              "description": {
+                "type": "string",
+                "nullable": true
+              },
+              "env_keys": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "envs": {
+                "$ref": "#/components/schemas/Envs"
+              },
+              "headers": {
+                "type": "object",
+                "additionalProperties": {
+                  "type": "string"
+                }
               },
               "name": {
-                "description": "The name used to identify this extension",
-                "type": "string"
+                "type": "string",
+                "description": "The name used to identify this extension"
               },
-              "tools": {
-                "description": "The tools provided by the frontend",
-                "items": {
-                  "$ref": "#/components/schemas/Tool"
-                },
-                "type": "array"
+              "timeout": {
+                "type": "integer",
+                "format": "int64",
+                "nullable": true,
+                "minimum": 0
               },
               "type": {
+                "type": "string",
                 "enum": [
-                  "frontend"
-                ],
+                  "streamable_http"
+                ]
+              },
+              "uri": {
                 "type": "string"
               }
-            },
+            }
+          },
+          {
+            "type": "object",
+            "description": "Frontend-provided tools that will be called through the frontend",
             "required": [
               "name",
               "tools",
               "type"
             ],
-            "type": "object"
-          },
-          {
-            "description": "Inline Python code that will be executed using uvx",
             "properties": {
-              "code": {
-                "description": "The Python code to execute",
-                "type": "string"
+              "bundled": {
+                "type": "boolean",
+                "description": "Whether this extension is bundled with Goose",
+                "nullable": true
               },
-              "dependencies": {
-                "description": "Python package dependencies required by this extension",
-                "items": {
-                  "type": "string"
-                },
-                "nullable": true,
-                "type": "array"
-              },
-              "description": {
-                "description": "Description of what the extension does",
-                "nullable": true,
-                "type": "string"
+              "instructions": {
+                "type": "string",
+                "description": "Instructions for how to use these tools",
+                "nullable": true
               },
               "name": {
-                "description": "The name used to identify this extension",
-                "type": "string"
+                "type": "string",
+                "description": "The name used to identify this extension"
               },
-              "timeout": {
-                "description": "Timeout in seconds",
-                "format": "int64",
-                "minimum": 0,
-                "nullable": true,
-                "type": "integer"
+              "tools": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/Tool"
+                },
+                "description": "The tools provided by the frontend"
               },
               "type": {
+                "type": "string",
                 "enum": [
-                  "inline_python"
-                ],
-                "type": "string"
+                  "frontend"
+                ]
               }
-            },
+            }
+          },
+          {
+            "type": "object",
+            "description": "Inline Python code that will be executed using uvx",
             "required": [
               "name",
               "code",
               "type"
             ],
-            "type": "object"
+            "properties": {
+              "code": {
+                "type": "string",
+                "description": "The Python code to execute"
+              },
+              "dependencies": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "description": "Python package dependencies required by this extension",
+                "nullable": true
+              },
+              "description": {
+                "type": "string",
+                "description": "Description of what the extension does",
+                "nullable": true
+              },
+              "name": {
+                "type": "string",
+                "description": "The name used to identify this extension"
+              },
+              "timeout": {
+                "type": "integer",
+                "format": "int64",
+                "description": "Timeout in seconds",
+                "nullable": true,
+                "minimum": 0
+              },
+              "type": {
+                "type": "string",
+                "enum": [
+                  "inline_python"
+                ]
+              }
+            }
           }
-        ]
+        ],
+        "description": "Represents the different types of MCP extensions that can be added to the manager",
+        "discriminator": {
+          "propertyName": "type"
+        }
       },
       "ExtensionEntry": {
         "allOf": [
@@ -719,19 +1645,25 @@
             "$ref": "#/components/schemas/ExtensionConfig"
           },
           {
+            "type": "object",
+            "required": [
+              "enabled"
+            ],
             "properties": {
               "enabled": {
                 "type": "boolean"
               }
-            },
-            "required": [
-              "enabled"
-            ],
-            "type": "object"
+            }
           }
         ]
       },
       "ExtensionQuery": {
+        "type": "object",
+        "required": [
+          "name",
+          "config",
+          "enabled"
+        ],
         "properties": {
           "config": {
             "$ref": "#/components/schemas/ExtensionConfig"
@@ -742,29 +1674,28 @@
           "name": {
             "type": "string"
           }
-        },
-        "required": [
-          "name",
-          "config",
-          "enabled"
-        ],
-        "type": "object"
+        }
       },
       "ExtensionResponse": {
-        "properties": {
-          "extensions": {
-            "items": {
-              "$ref": "#/components/schemas/ExtensionEntry"
-            },
-            "type": "array"
-          }
-        },
+        "type": "object",
         "required": [
           "extensions"
         ],
-        "type": "object"
+        "properties": {
+          "extensions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ExtensionEntry"
+            }
+          }
+        }
       },
       "FrontendToolRequest": {
+        "type": "object",
+        "required": [
+          "id",
+          "toolCall"
+        ],
         "properties": {
           "id": {
             "type": "string"
@@ -772,119 +1703,80 @@
           "toolCall": {
             "type": "object"
           }
-        },
-        "required": [
-          "id",
-          "toolCall"
-        ],
-        "type": "object"
-      },
-      "ImageContent": {
-        "properties": {
-          "annotations": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/Annotations"
-              },
-              {
-                "enum": [
-                  null
-                ],
-                "nullable": true
-              }
-            ]
-          },
-          "data": {
-            "description": "The base64-encoded image",
-            "type": "string"
-          },
-          "mimeType": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "data",
-          "mimeType"
-        ],
-        "title": "Annotated",
-        "type": "object"
+        }
       },
       "InspectJobResponse": {
+        "type": "object",
         "properties": {
           "processStartTime": {
-            "nullable": true,
-            "type": "string"
+            "type": "string",
+            "nullable": true
           },
           "runningDurationSeconds": {
+            "type": "integer",
             "format": "int64",
-            "nullable": true,
-            "type": "integer"
+            "nullable": true
           },
           "sessionId": {
-            "nullable": true,
-            "type": "string"
+            "type": "string",
+            "nullable": true
           }
-        },
-        "type": "object"
+        }
       },
       "KillJobResponse": {
+        "type": "object",
+        "required": [
+          "message"
+        ],
         "properties": {
           "message": {
             "type": "string"
           }
-        },
-        "required": [
-          "message"
-        ],
-        "type": "object"
+        }
       },
       "ListSchedulesResponse": {
-        "properties": {
-          "jobs": {
-            "items": {
-              "$ref": "#/components/schemas/ScheduledJob"
-            },
-            "type": "array"
-          }
-        },
+        "type": "object",
         "required": [
           "jobs"
         ],
-        "type": "object"
+        "properties": {
+          "jobs": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ScheduledJob"
+            }
+          }
+        }
       },
       "Message": {
+        "type": "object",
         "description": "A message to or from an LLM",
-        "properties": {
-          "content": {
-            "items": {
-              "$ref": "#/components/schemas/MessageContent"
-            },
-            "type": "array"
-          },
-          "created": {
-            "format": "int64",
-            "type": "integer"
-          },
-          "id": {
-            "nullable": true,
-            "type": "string"
-          },
-          "role": {
-            "$ref": "#/components/schemas/Role"
-          }
-        },
         "required": [
           "role",
           "created",
           "content"
         ],
-        "type": "object"
+        "properties": {
+          "content": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MessageContent"
+            }
+          },
+          "created": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "id": {
+            "type": "string",
+            "nullable": true
+          },
+          "role": {
+            "$ref": "#/components/schemas/Role"
+          }
+        }
       },
       "MessageContent": {
-        "description": "Content passed inside a message, which can be both simple content and tool content",
-        "discriminator": {
-          "propertyName": "type"
-        },
         "oneOf": [
           {
             "allOf": [
@@ -892,18 +1784,18 @@
                 "$ref": "#/components/schemas/TextContent"
               },
               {
-                "properties": {
-                  "type": {
-                    "enum": [
-                      "text"
-                    ],
-                    "type": "string"
-                  }
-                },
+                "type": "object",
                 "required": [
                   "type"
                 ],
-                "type": "object"
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "enum": [
+                      "text"
+                    ]
+                  }
+                }
               }
             ]
           },
@@ -913,18 +1805,18 @@
                 "$ref": "#/components/schemas/ImageContent"
               },
               {
-                "properties": {
-                  "type": {
-                    "enum": [
-                      "image"
-                    ],
-                    "type": "string"
-                  }
-                },
+                "type": "object",
                 "required": [
                   "type"
                 ],
-                "type": "object"
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "enum": [
+                      "image"
+                    ]
+                  }
+                }
               }
             ]
           },
@@ -934,18 +1826,18 @@
                 "$ref": "#/components/schemas/ToolRequest"
               },
               {
-                "properties": {
-                  "type": {
-                    "enum": [
-                      "toolRequest"
-                    ],
-                    "type": "string"
-                  }
-                },
+                "type": "object",
                 "required": [
                   "type"
                 ],
-                "type": "object"
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "enum": [
+                      "toolRequest"
+                    ]
+                  }
+                }
               }
             ]
           },
@@ -955,18 +1847,18 @@
                 "$ref": "#/components/schemas/ToolResponse"
               },
               {
-                "properties": {
-                  "type": {
-                    "enum": [
-                      "toolResponse"
-                    ],
-                    "type": "string"
-                  }
-                },
+                "type": "object",
                 "required": [
                   "type"
                 ],
-                "type": "object"
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "enum": [
+                      "toolResponse"
+                    ]
+                  }
+                }
               }
             ]
           },
@@ -976,18 +1868,18 @@
                 "$ref": "#/components/schemas/ToolConfirmationRequest"
               },
               {
-                "properties": {
-                  "type": {
-                    "enum": [
-                      "toolConfirmationRequest"
-                    ],
-                    "type": "string"
-                  }
-                },
+                "type": "object",
                 "required": [
                   "type"
                 ],
-                "type": "object"
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "enum": [
+                      "toolConfirmationRequest"
+                    ]
+                  }
+                }
               }
             ]
           },
@@ -997,18 +1889,18 @@
                 "$ref": "#/components/schemas/FrontendToolRequest"
               },
               {
-                "properties": {
-                  "type": {
-                    "enum": [
-                      "frontendToolRequest"
-                    ],
-                    "type": "string"
-                  }
-                },
+                "type": "object",
                 "required": [
                   "type"
                 ],
-                "type": "object"
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "enum": [
+                      "frontendToolRequest"
+                    ]
+                  }
+                }
               }
             ]
           },
@@ -1018,18 +1910,18 @@
                 "$ref": "#/components/schemas/ThinkingContent"
               },
               {
-                "properties": {
-                  "type": {
-                    "enum": [
-                      "thinking"
-                    ],
-                    "type": "string"
-                  }
-                },
+                "type": "object",
                 "required": [
                   "type"
                 ],
-                "type": "object"
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "enum": [
+                      "thinking"
+                    ]
+                  }
+                }
               }
             ]
           },
@@ -1039,18 +1931,18 @@
                 "$ref": "#/components/schemas/RedactedThinkingContent"
               },
               {
-                "properties": {
-                  "type": {
-                    "enum": [
-                      "redactedThinking"
-                    ],
-                    "type": "string"
-                  }
-                },
+                "type": "object",
                 "required": [
                   "type"
                 ],
-                "type": "object"
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "enum": [
+                      "redactedThinking"
+                    ]
+                  }
+                }
               }
             ]
           },
@@ -1060,18 +1952,18 @@
                 "$ref": "#/components/schemas/ContextLengthExceeded"
               },
               {
-                "properties": {
-                  "type": {
-                    "enum": [
-                      "contextLengthExceeded"
-                    ],
-                    "type": "string"
-                  }
-                },
+                "type": "object",
                 "required": [
                   "type"
                 ],
-                "type": "object"
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "enum": [
+                      "contextLengthExceeded"
+                    ]
+                  }
+                }
               }
             ]
           },
@@ -1081,65 +1973,74 @@
                 "$ref": "#/components/schemas/SummarizationRequested"
               },
               {
-                "properties": {
-                  "type": {
-                    "enum": [
-                      "summarizationRequested"
-                    ],
-                    "type": "string"
-                  }
-                },
+                "type": "object",
                 "required": [
                   "type"
                 ],
-                "type": "object"
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "enum": [
+                      "summarizationRequested"
+                    ]
+                  }
+                }
               }
             ]
           }
-        ]
+        ],
+        "description": "Content passed inside a message, which can be both simple content and tool content",
+        "discriminator": {
+          "propertyName": "type"
+        }
       },
       "ModelInfo": {
+        "type": "object",
         "description": "Information about a model's capabilities",
-        "properties": {
-          "context_limit": {
-            "description": "The maximum context length this model supports",
-            "minimum": 0,
-            "type": "integer"
-          },
-          "currency": {
-            "description": "Currency for the costs (default: \"$\")",
-            "nullable": true,
-            "type": "string"
-          },
-          "input_token_cost": {
-            "description": "Cost per token for input (optional)",
-            "format": "double",
-            "nullable": true,
-            "type": "number"
-          },
-          "name": {
-            "description": "The name of the model",
-            "type": "string"
-          },
-          "output_token_cost": {
-            "description": "Cost per token for output (optional)",
-            "format": "double",
-            "nullable": true,
-            "type": "number"
-          },
-          "supports_cache_control": {
-            "description": "Whether this model supports cache control",
-            "nullable": true,
-            "type": "boolean"
-          }
-        },
         "required": [
           "name",
           "context_limit"
         ],
-        "type": "object"
+        "properties": {
+          "context_limit": {
+            "type": "integer",
+            "description": "The maximum context length this model supports",
+            "minimum": 0
+          },
+          "currency": {
+            "type": "string",
+            "description": "Currency for the costs (default: \"$\")",
+            "nullable": true
+          },
+          "input_token_cost": {
+            "type": "number",
+            "format": "double",
+            "description": "Cost per token for input (optional)",
+            "nullable": true
+          },
+          "name": {
+            "type": "string",
+            "description": "The name of the model"
+          },
+          "output_token_cost": {
+            "type": "number",
+            "format": "double",
+            "description": "Cost per token for output (optional)",
+            "nullable": true
+          },
+          "supports_cache_control": {
+            "type": "boolean",
+            "description": "Whether this model supports cache control",
+            "nullable": true
+          }
+        }
       },
       "PermissionConfirmationRequest": {
+        "type": "object",
+        "required": [
+          "id",
+          "action"
+        ],
         "properties": {
           "action": {
             "type": "string"
@@ -1150,30 +2051,31 @@
           "principal_type": {
             "$ref": "#/components/schemas/PrincipalType"
           }
-        },
-        "required": [
-          "id",
-          "action"
-        ],
-        "type": "object"
+        }
       },
       "PermissionLevel": {
+        "type": "string",
         "description": "Enum representing the possible permission levels for a tool.",
         "enum": [
           "always_allow",
           "ask_before",
           "never_allow"
-        ],
-        "type": "string"
+        ]
       },
       "PrincipalType": {
+        "type": "string",
         "enum": [
           "Extension",
           "Tool"
-        ],
-        "type": "string"
+        ]
       },
       "ProviderDetails": {
+        "type": "object",
+        "required": [
+          "name",
+          "metadata",
+          "is_configured"
+        ],
         "properties": {
           "is_configured": {
             "type": "boolean"
@@ -1184,52 +2086,11 @@
           "name": {
             "type": "string"
           }
-        },
-        "required": [
-          "name",
-          "metadata",
-          "is_configured"
-        ],
-        "type": "object"
+        }
       },
       "ProviderMetadata": {
+        "type": "object",
         "description": "Metadata about a provider's configuration requirements and capabilities",
-        "properties": {
-          "config_keys": {
-            "description": "Required configuration keys",
-            "items": {
-              "$ref": "#/components/schemas/ConfigKey"
-            },
-            "type": "array"
-          },
-          "default_model": {
-            "description": "The default/recommended model for this provider",
-            "type": "string"
-          },
-          "description": {
-            "description": "Description of the provider's capabilities",
-            "type": "string"
-          },
-          "display_name": {
-            "description": "Display name for the provider in UIs",
-            "type": "string"
-          },
-          "known_models": {
-            "description": "A list of currently known models with their capabilities\nTODO: eventually query the apis directly",
-            "items": {
-              "$ref": "#/components/schemas/ModelInfo"
-            },
-            "type": "array"
-          },
-          "model_doc_link": {
-            "description": "Link to the docs where models can be found",
-            "type": "string"
-          },
-          "name": {
-            "description": "The unique identifier for this provider",
-            "type": "string"
-          }
-        },
         "required": [
           "name",
           "display_name",
@@ -1239,72 +2100,71 @@
           "model_doc_link",
           "config_keys"
         ],
-        "type": "object"
+        "properties": {
+          "config_keys": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ConfigKey"
+            },
+            "description": "Required configuration keys"
+          },
+          "default_model": {
+            "type": "string",
+            "description": "The default/recommended model for this provider"
+          },
+          "description": {
+            "type": "string",
+            "description": "Description of the provider's capabilities"
+          },
+          "display_name": {
+            "type": "string",
+            "description": "Display name for the provider in UIs"
+          },
+          "known_models": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ModelInfo"
+            },
+            "description": "A list of currently known models with their capabilities\nTODO: eventually query the apis directly"
+          },
+          "model_doc_link": {
+            "type": "string",
+            "description": "Link to the docs where models can be found"
+          },
+          "name": {
+            "type": "string",
+            "description": "The unique identifier for this provider"
+          }
+        }
       },
       "ProvidersResponse": {
-        "properties": {
-          "providers": {
-            "items": {
-              "$ref": "#/components/schemas/ProviderDetails"
-            },
-            "type": "array"
-          }
-        },
+        "type": "object",
         "required": [
           "providers"
         ],
-        "type": "object"
-      },
-      "RawEmbeddedResource": {
         "properties": {
-          "resource": {
-            "$ref": "#/components/schemas/ResourceContents"
+          "providers": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ProviderDetails"
+            }
           }
-        },
-        "required": [
-          "resource"
-        ],
-        "title": "RawEmbeddedResource",
-        "type": "object"
-      },
-      "RawImageContent": {
-        "properties": {
-          "data": {
-            "description": "The base64-encoded image",
-            "type": "string"
-          },
-          "mimeType": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "data",
-          "mimeType"
-        ],
-        "title": "RawImageContent",
-        "type": "object"
-      },
-      "RawTextContent": {
-        "properties": {
-          "text": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "text"
-        ],
-        "title": "RawTextContent",
-        "type": "object"
+        }
       },
       "Recipe": {
+        "type": "object",
         "description": "A Recipe represents a personalized, user-generated agent configuration that defines\nspecific behaviors and capabilities within the Goose system.\n\n# Fields\n\n## Required Fields\n* `version` - Semantic version of the Recipe file format (defaults to \"1.0.0\")\n* `title` - Short, descriptive name of the Recipe\n* `description` - Detailed description explaining the Recipe's purpose and functionality\n* `Instructions` - Instructions that defines the Recipe's behavior\n\n## Optional Fields\n* `prompt` - the initial prompt to the session to start with\n* `extensions` - List of extension configurations required by the Recipe\n* `context` - Supplementary context information for the Recipe\n* `activities` - Activity labels that appear when loading the Recipe\n* `author` - Information about the Recipe's creator and metadata\n* `parameters` - Additional parameters for the Recipe\n* `response` - Response configuration including JSON schema validation\n* `retry` - Retry configuration for automated validation and recovery\n# Example\n\n\nuse goose::recipe::Recipe;\n\n// Using the builder pattern\nlet recipe = Recipe::builder()\n.title(\"Example Agent\")\n.description(\"An example Recipe configuration\")\n.instructions(\"Act as a helpful assistant\")\n.build()\n.expect(\"Missing required fields\");\n\n// Or using struct initialization\nlet recipe = Recipe {\nversion: \"1.0.0\".to_string(),\ntitle: \"Example Agent\".to_string(),\ndescription: \"An example Recipe configuration\".to_string(),\ninstructions: Some(\"Act as a helpful assistant\".to_string()),\nprompt: None,\nextensions: None,\ncontext: None,\nactivities: None,\nauthor: None,\nsettings: None,\nparameters: None,\nresponse: None,\nsub_recipes: None,\nretry: None,\n};\n",
+        "required": [
+          "title",
+          "description"
+        ],
         "properties": {
           "activities": {
+            "type": "array",
             "items": {
               "type": "string"
             },
-            "nullable": true,
-            "type": "array"
+            "nullable": true
           },
           "author": {
             "allOf": [
@@ -1315,36 +2175,36 @@
             "nullable": true
           },
           "context": {
+            "type": "array",
             "items": {
               "type": "string"
             },
-            "nullable": true,
-            "type": "array"
+            "nullable": true
           },
           "description": {
             "type": "string"
           },
           "extensions": {
+            "type": "array",
             "items": {
               "$ref": "#/components/schemas/ExtensionConfig"
             },
-            "nullable": true,
-            "type": "array"
+            "nullable": true
           },
           "instructions": {
-            "nullable": true,
-            "type": "string"
+            "type": "string",
+            "nullable": true
           },
           "parameters": {
+            "type": "array",
             "items": {
               "$ref": "#/components/schemas/RecipeParameter"
             },
-            "nullable": true,
-            "type": "array"
+            "nullable": true
           },
           "prompt": {
-            "nullable": true,
-            "type": "string"
+            "type": "string",
+            "nullable": true
           },
           "response": {
             "allOf": [
@@ -1371,11 +2231,11 @@
             "nullable": true
           },
           "sub_recipes": {
+            "type": "array",
             "items": {
               "$ref": "#/components/schemas/SubRecipe"
             },
-            "nullable": true,
-            "type": "array"
+            "nullable": true
           },
           "title": {
             "type": "string"
@@ -1383,18 +2243,20 @@
           "version": {
             "type": "string"
           }
-        },
-        "required": [
-          "title",
-          "description"
-        ],
-        "type": "object"
+        }
       },
       "RecipeParameter": {
+        "type": "object",
+        "required": [
+          "key",
+          "input_type",
+          "requirement",
+          "description"
+        ],
         "properties": {
           "default": {
-            "nullable": true,
-            "type": "string"
+            "type": "string",
+            "nullable": true
           },
           "description": {
             "type": "string"
@@ -1406,25 +2268,19 @@
             "type": "string"
           },
           "options": {
+            "type": "array",
             "items": {
               "type": "string"
             },
-            "nullable": true,
-            "type": "array"
+            "nullable": true
           },
           "requirement": {
             "$ref": "#/components/schemas/RecipeParameterRequirement"
           }
-        },
-        "required": [
-          "key",
-          "input_type",
-          "requirement",
-          "description"
-        ],
-        "type": "object"
+        }
       },
       "RecipeParameterInputType": {
+        "type": "string",
         "enum": [
           "string",
           "number",
@@ -1432,211 +2288,155 @@
           "date",
           "file",
           "select"
-        ],
-        "type": "string"
+        ]
       },
       "RecipeParameterRequirement": {
+        "type": "string",
         "enum": [
           "required",
           "optional",
           "user_prompt"
-        ],
-        "type": "string"
+        ]
       },
       "RedactedThinkingContent": {
+        "type": "object",
+        "required": [
+          "data"
+        ],
         "properties": {
           "data": {
             "type": "string"
           }
-        },
-        "required": [
-          "data"
-        ],
-        "type": "object"
-      },
-      "ResourceContents": {
-        "anyOf": [
-          {
-            "properties": {
-              "mime_type": {
-                "nullable": true,
-                "type": "string"
-              },
-              "text": {
-                "type": "string"
-              },
-              "uri": {
-                "type": "string"
-              }
-            },
-            "required": [
-              "uri",
-              "text"
-            ],
-            "type": "object"
-          },
-          {
-            "properties": {
-              "blob": {
-                "type": "string"
-              },
-              "mime_type": {
-                "nullable": true,
-                "type": "string"
-              },
-              "uri": {
-                "type": "string"
-              }
-            },
-            "required": [
-              "uri",
-              "blob"
-            ],
-            "type": "object"
-          }
-        ],
-        "title": "ResourceContents"
+        }
       },
       "Response": {
+        "type": "object",
         "properties": {
           "json_schema": {
             "nullable": true
           }
-        },
-        "type": "object"
+        }
       },
       "RetryConfig": {
+        "type": "object",
         "description": "Configuration for retry logic in recipe execution",
-        "properties": {
-          "checks": {
-            "description": "List of success checks to validate recipe completion",
-            "items": {
-              "$ref": "#/components/schemas/SuccessCheck"
-            },
-            "type": "array"
-          },
-          "max_retries": {
-            "description": "Maximum number of retry attempts before giving up",
-            "format": "int32",
-            "minimum": 0,
-            "type": "integer"
-          },
-          "on_failure": {
-            "description": "Optional shell command to run on failure for cleanup",
-            "nullable": true,
-            "type": "string"
-          },
-          "on_failure_timeout_seconds": {
-            "description": "Timeout in seconds for on_failure commands (default: 600 seconds)",
-            "format": "int64",
-            "minimum": 0,
-            "nullable": true,
-            "type": "integer"
-          },
-          "timeout_seconds": {
-            "description": "Timeout in seconds for individual shell commands (default: 300 seconds)",
-            "format": "int64",
-            "minimum": 0,
-            "nullable": true,
-            "type": "integer"
-          }
-        },
         "required": [
           "max_retries",
           "checks"
         ],
-        "type": "object"
-      },
-      "Role": {
-        "description": "Represents the role of a participant in a conversation or message exchange.\n\nUsed in sampling and chat contexts to distinguish between different\ntypes of message senders in the conversation flow.",
-        "oneOf": [
-          {
-            "description": "A human user or client making a request",
-            "enum": [
-              "user"
-            ],
-            "type": "string"
+        "properties": {
+          "checks": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SuccessCheck"
+            },
+            "description": "List of success checks to validate recipe completion"
           },
-          {
-            "description": "An AI assistant or server providing a response",
-            "enum": [
-              "assistant"
-            ],
-            "type": "string"
+          "max_retries": {
+            "type": "integer",
+            "format": "int32",
+            "description": "Maximum number of retry attempts before giving up",
+            "minimum": 0
+          },
+          "on_failure": {
+            "type": "string",
+            "description": "Optional shell command to run on failure for cleanup",
+            "nullable": true
+          },
+          "on_failure_timeout_seconds": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Timeout in seconds for on_failure commands (default: 600 seconds)",
+            "nullable": true,
+            "minimum": 0
+          },
+          "timeout_seconds": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Timeout in seconds for individual shell commands (default: 300 seconds)",
+            "nullable": true,
+            "minimum": 0
           }
-        ],
-        "title": "Role"
+        }
       },
       "RunNowResponse": {
+        "type": "object",
+        "required": [
+          "session_id"
+        ],
         "properties": {
           "session_id": {
             "type": "string"
           }
-        },
-        "required": [
-          "session_id"
-        ],
-        "type": "object"
+        }
       },
       "ScheduledJob": {
-        "properties": {
-          "cron": {
-            "type": "string"
-          },
-          "current_session_id": {
-            "nullable": true,
-            "type": "string"
-          },
-          "currently_running": {
-            "type": "boolean"
-          },
-          "execution_mode": {
-            "nullable": true,
-            "type": "string"
-          },
-          "id": {
-            "type": "string"
-          },
-          "last_run": {
-            "format": "date-time",
-            "nullable": true,
-            "type": "string"
-          },
-          "paused": {
-            "type": "boolean"
-          },
-          "process_start_time": {
-            "format": "date-time",
-            "nullable": true,
-            "type": "string"
-          },
-          "source": {
-            "type": "string"
-          }
-        },
+        "type": "object",
         "required": [
           "id",
           "source",
           "cron"
         ],
-        "type": "object"
+        "properties": {
+          "cron": {
+            "type": "string"
+          },
+          "current_session_id": {
+            "type": "string",
+            "nullable": true
+          },
+          "currently_running": {
+            "type": "boolean"
+          },
+          "execution_mode": {
+            "type": "string",
+            "nullable": true
+          },
+          "id": {
+            "type": "string"
+          },
+          "last_run": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "paused": {
+            "type": "boolean"
+          },
+          "process_start_time": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "source": {
+            "type": "string"
+          }
+        }
       },
       "SessionDisplayInfo": {
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "createdAt",
+          "workingDir",
+          "messageCount"
+        ],
         "properties": {
           "accumulatedInputTokens": {
+            "type": "integer",
             "format": "int32",
-            "nullable": true,
-            "type": "integer"
+            "nullable": true
           },
           "accumulatedOutputTokens": {
+            "type": "integer",
             "format": "int32",
-            "nullable": true,
-            "type": "integer"
+            "nullable": true
           },
           "accumulatedTotalTokens": {
+            "type": "integer",
             "format": "int32",
-            "nullable": true,
-            "type": "integer"
+            "nullable": true
           },
           "createdAt": {
             "type": "string"
@@ -1645,69 +2445,68 @@
             "type": "string"
           },
           "inputTokens": {
+            "type": "integer",
             "format": "int32",
-            "nullable": true,
-            "type": "integer"
+            "nullable": true
           },
           "messageCount": {
-            "minimum": 0,
-            "type": "integer"
+            "type": "integer",
+            "minimum": 0
           },
           "name": {
             "type": "string"
           },
           "outputTokens": {
+            "type": "integer",
             "format": "int32",
-            "nullable": true,
-            "type": "integer"
+            "nullable": true
           },
           "scheduleId": {
-            "nullable": true,
-            "type": "string"
+            "type": "string",
+            "nullable": true
           },
           "totalTokens": {
+            "type": "integer",
             "format": "int32",
-            "nullable": true,
-            "type": "integer"
+            "nullable": true
           },
           "workingDir": {
             "type": "string"
           }
-        },
-        "required": [
-          "id",
-          "name",
-          "createdAt",
-          "workingDir",
-          "messageCount"
-        ],
-        "type": "object"
+        }
       },
       "SessionHistoryResponse": {
-        "properties": {
-          "messages": {
-            "description": "List of messages in the session conversation",
-            "items": {
-              "$ref": "#/components/schemas/Message"
-            },
-            "type": "array"
-          },
-          "metadata": {
-            "$ref": "#/components/schemas/SessionMetadata"
-          },
-          "sessionId": {
-            "description": "Unique identifier for the session",
-            "type": "string"
-          }
-        },
+        "type": "object",
         "required": [
           "sessionId",
           "metadata",
           "messages"
         ],
-        "type": "object"
+        "properties": {
+          "messages": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Message"
+            },
+            "description": "List of messages in the session conversation"
+          },
+          "metadata": {
+            "$ref": "#/components/schemas/SessionMetadata"
+          },
+          "sessionId": {
+            "type": "string",
+            "description": "Unique identifier for the session"
+          }
+        }
       },
       "SessionInfo": {
+        "type": "object",
+        "required": [
+          "id",
+          "path",
+          "modified",
+          "metadata"
+        ],
         "properties": {
           "id": {
             "type": "string"
@@ -1721,134 +2520,132 @@
           "path": {
             "type": "string"
           }
-        },
-        "required": [
-          "id",
-          "path",
-          "modified",
-          "metadata"
-        ],
-        "type": "object"
+        }
       },
       "SessionListResponse": {
-        "properties": {
-          "sessions": {
-            "description": "List of available session information objects",
-            "items": {
-              "$ref": "#/components/schemas/SessionInfo"
-            },
-            "type": "array"
-          }
-        },
+        "type": "object",
         "required": [
           "sessions"
         ],
-        "type": "object"
+        "properties": {
+          "sessions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SessionInfo"
+            },
+            "description": "List of available session information objects"
+          }
+        }
       },
       "SessionMetadata": {
+        "type": "object",
         "description": "Metadata for a session, stored as the first line in the session file",
-        "properties": {
-          "accumulated_input_tokens": {
-            "description": "The number of input tokens used in the session. Accumulated across all messages.",
-            "format": "int32",
-            "nullable": true,
-            "type": "integer"
-          },
-          "accumulated_output_tokens": {
-            "description": "The number of output tokens used in the session. Accumulated across all messages.",
-            "format": "int32",
-            "nullable": true,
-            "type": "integer"
-          },
-          "accumulated_total_tokens": {
-            "description": "The total number of tokens used in the session. Accumulated across all messages (useful for tracking cost over an entire session).",
-            "format": "int32",
-            "nullable": true,
-            "type": "integer"
-          },
-          "description": {
-            "description": "A short description of the session, typically 3 words or less",
-            "type": "string"
-          },
-          "input_tokens": {
-            "description": "The number of input tokens used in the session. Retrieved from the provider's last usage.",
-            "format": "int32",
-            "nullable": true,
-            "type": "integer"
-          },
-          "message_count": {
-            "description": "Number of messages in the session",
-            "minimum": 0,
-            "type": "integer"
-          },
-          "output_tokens": {
-            "description": "The number of output tokens used in the session. Retrieved from the provider's last usage.",
-            "format": "int32",
-            "nullable": true,
-            "type": "integer"
-          },
-          "project_id": {
-            "description": "ID of the project this session belongs to, if any",
-            "nullable": true,
-            "type": "string"
-          },
-          "schedule_id": {
-            "description": "ID of the schedule that triggered this session, if any",
-            "nullable": true,
-            "type": "string"
-          },
-          "total_tokens": {
-            "description": "The total number of tokens used in the session. Retrieved from the provider's last usage.",
-            "format": "int32",
-            "nullable": true,
-            "type": "integer"
-          },
-          "working_dir": {
-            "description": "Working directory for the session",
-            "example": "/home/user/sessions/session1",
-            "type": "string"
-          }
-        },
         "required": [
           "working_dir",
           "description",
           "message_count"
         ],
-        "type": "object"
+        "properties": {
+          "accumulated_input_tokens": {
+            "type": "integer",
+            "format": "int32",
+            "description": "The number of input tokens used in the session. Accumulated across all messages.",
+            "nullable": true
+          },
+          "accumulated_output_tokens": {
+            "type": "integer",
+            "format": "int32",
+            "description": "The number of output tokens used in the session. Accumulated across all messages.",
+            "nullable": true
+          },
+          "accumulated_total_tokens": {
+            "type": "integer",
+            "format": "int32",
+            "description": "The total number of tokens used in the session. Accumulated across all messages (useful for tracking cost over an entire session).",
+            "nullable": true
+          },
+          "description": {
+            "type": "string",
+            "description": "A short description of the session, typically 3 words or less"
+          },
+          "input_tokens": {
+            "type": "integer",
+            "format": "int32",
+            "description": "The number of input tokens used in the session. Retrieved from the provider's last usage.",
+            "nullable": true
+          },
+          "message_count": {
+            "type": "integer",
+            "description": "Number of messages in the session",
+            "minimum": 0
+          },
+          "output_tokens": {
+            "type": "integer",
+            "format": "int32",
+            "description": "The number of output tokens used in the session. Retrieved from the provider's last usage.",
+            "nullable": true
+          },
+          "project_id": {
+            "type": "string",
+            "description": "ID of the project this session belongs to, if any",
+            "nullable": true
+          },
+          "schedule_id": {
+            "type": "string",
+            "description": "ID of the schedule that triggered this session, if any",
+            "nullable": true
+          },
+          "total_tokens": {
+            "type": "integer",
+            "format": "int32",
+            "description": "The total number of tokens used in the session. Retrieved from the provider's last usage.",
+            "nullable": true
+          },
+          "working_dir": {
+            "type": "string",
+            "description": "Working directory for the session",
+            "example": "/home/user/sessions/session1"
+          }
+        }
       },
       "SessionsQuery": {
+        "type": "object",
         "properties": {
           "limit": {
+            "type": "integer",
             "format": "int32",
-            "minimum": 0,
-            "type": "integer"
+            "minimum": 0
           }
-        },
-        "type": "object"
+        }
       },
       "Settings": {
+        "type": "object",
         "properties": {
           "goose_model": {
-            "nullable": true,
-            "type": "string"
+            "type": "string",
+            "nullable": true
           },
           "goose_provider": {
-            "nullable": true,
-            "type": "string"
+            "type": "string",
+            "nullable": true
           },
           "temperature": {
+            "type": "number",
             "format": "float",
-            "nullable": true,
-            "type": "number"
+            "nullable": true
           }
-        },
-        "type": "object"
+        }
       },
       "SubRecipe": {
+        "type": "object",
+        "required": [
+          "name",
+          "path"
+        ],
         "properties": {
           "description": {
-            "nullable": true,
-            "type": "string"
+            "type": "string",
+            "nullable": true
           },
           "name": {
             "type": "string"
@@ -1860,84 +2657,59 @@
             "type": "boolean"
           },
           "values": {
+            "type": "object",
             "additionalProperties": {
               "type": "string"
             },
-            "nullable": true,
-            "type": "object"
+            "nullable": true
           }
-        },
-        "required": [
-          "name",
-          "path"
-        ],
-        "type": "object"
+        }
       },
       "SuccessCheck": {
-        "description": "A single success check to validate recipe completion",
-        "discriminator": {
-          "propertyName": "type"
-        },
         "oneOf": [
           {
+            "type": "object",
             "description": "Execute a shell command and check its exit status",
-            "properties": {
-              "command": {
-                "description": "The shell command to execute",
-                "type": "string"
-              },
-              "type": {
-                "enum": [
-                  "Shell"
-                ],
-                "type": "string"
-              }
-            },
             "required": [
               "command",
               "type"
             ],
-            "type": "object"
+            "properties": {
+              "command": {
+                "type": "string",
+                "description": "The shell command to execute"
+              },
+              "type": {
+                "type": "string",
+                "enum": [
+                  "Shell"
+                ]
+              }
+            }
           }
-        ]
+        ],
+        "description": "A single success check to validate recipe completion",
+        "discriminator": {
+          "propertyName": "type"
+        }
       },
       "SummarizationRequested": {
+        "type": "object",
+        "required": [
+          "msg"
+        ],
         "properties": {
           "msg": {
             "type": "string"
           }
-        },
-        "required": [
-          "msg"
-        ],
-        "type": "object"
-      },
-      "TextContent": {
-        "properties": {
-          "annotations": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/Annotations"
-              },
-              {
-                "enum": [
-                  null
-                ],
-                "nullable": true
-              }
-            ]
-          },
-          "text": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "text"
-        ],
-        "title": "Annotated",
-        "type": "object"
+        }
       },
       "ThinkingContent": {
+        "type": "object",
+        "required": [
+          "thinking",
+          "signature"
+        ],
         "properties": {
           "signature": {
             "type": "string"
@@ -1945,107 +2717,37 @@
           "thinking": {
             "type": "string"
           }
-        },
-        "required": [
-          "thinking",
-          "signature"
-        ],
-        "type": "object"
-      },
-      "Tool": {
-        "description": "A tool that can be used by a model.",
-        "properties": {
-          "annotations": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/ToolAnnotations"
-              },
-              {
-                "enum": [
-                  null
-                ],
-                "nullable": true
-              }
-            ],
-            "description": "Optional additional tool information."
-          },
-          "description": {
-            "description": "A description of what the tool does",
-            "nullable": true,
-            "type": "string"
-          },
-          "inputSchema": {
-            "additionalProperties": true,
-            "description": "A JSON Schema object defining the expected parameters for the tool",
-            "type": "object"
-          },
-          "name": {
-            "description": "The name of the tool",
-            "type": "string"
-          }
-        },
-        "required": [
-          "name",
-          "inputSchema"
-        ],
-        "title": "Tool",
-        "type": "object"
-      },
-      "ToolAnnotations": {
-        "description": "Additional properties describing a Tool to clients.\n\nNOTE: all properties in ToolAnnotations are **hints**.\nThey are not guaranteed to provide a faithful description of\ntool behavior (including descriptive properties like `title`).\n\nClients should never make tool use decisions based on ToolAnnotations\nreceived from untrusted servers.",
-        "properties": {
-          "destructiveHint": {
-            "description": "If true, the tool may perform destructive updates to its environment.\nIf false, the tool performs only additive updates.\n\n(This property is meaningful only when `readOnlyHint == false`)\n\nDefault: true\nA human-readable description of the tool's purpose.",
-            "nullable": true,
-            "type": "boolean"
-          },
-          "idempotentHint": {
-            "description": "If true, calling the tool repeatedly with the same arguments\nwill have no additional effect on the its environment.\n\n(This property is meaningful only when `readOnlyHint == false`)\n\nDefault: false.",
-            "nullable": true,
-            "type": "boolean"
-          },
-          "openWorldHint": {
-            "description": "If true, this tool may interact with an \"open world\" of external\nentities. If false, the tool's domain of interaction is closed.\nFor example, the world of a web search tool is open, whereas that\nof a memory tool is not.\n\nDefault: true",
-            "nullable": true,
-            "type": "boolean"
-          },
-          "readOnlyHint": {
-            "description": "If true, the tool does not modify its environment.\n\nDefault: false",
-            "nullable": true,
-            "type": "boolean"
-          },
-          "title": {
-            "description": "A human-readable title for the tool.",
-            "nullable": true,
-            "type": "string"
-          }
-        },
-        "title": "ToolAnnotations",
-        "type": "object"
+        }
       },
       "ToolConfirmationRequest": {
+        "type": "object",
+        "required": [
+          "id",
+          "toolName",
+          "arguments"
+        ],
         "properties": {
           "arguments": {},
           "id": {
             "type": "string"
           },
           "prompt": {
-            "nullable": true,
-            "type": "string"
+            "type": "string",
+            "nullable": true
           },
           "toolName": {
             "type": "string"
           }
-        },
-        "required": [
-          "id",
-          "toolName",
-          "arguments"
-        ],
-        "type": "object"
+        }
       },
       "ToolInfo": {
+        "type": "object",
         "description": "Information about the tool used for building prompts",
+        "required": [
+          "name",
+          "description",
+          "parameters"
+        ],
         "properties": {
           "description": {
             "type": "string"
@@ -2054,10 +2756,10 @@
             "type": "string"
           },
           "parameters": {
+            "type": "array",
             "items": {
               "type": "string"
-            },
-            "type": "array"
+            }
           },
           "permission": {
             "allOf": [
@@ -2067,15 +2769,14 @@
             ],
             "nullable": true
           }
-        },
-        "required": [
-          "name",
-          "description",
-          "parameters"
-        ],
-        "type": "object"
+        }
       },
       "ToolPermission": {
+        "type": "object",
+        "required": [
+          "tool_name",
+          "permission"
+        ],
         "properties": {
           "permission": {
             "$ref": "#/components/schemas/PermissionLevel"
@@ -2083,14 +2784,14 @@
           "tool_name": {
             "type": "string"
           }
-        },
-        "required": [
-          "tool_name",
-          "permission"
-        ],
-        "type": "object"
+        }
       },
       "ToolRequest": {
+        "type": "object",
+        "required": [
+          "id",
+          "toolCall"
+        ],
         "properties": {
           "id": {
             "type": "string"
@@ -2098,14 +2799,14 @@
           "toolCall": {
             "type": "object"
           }
-        },
-        "required": [
-          "id",
-          "toolCall"
-        ],
-        "type": "object"
+        }
       },
       "ToolResponse": {
+        "type": "object",
+        "required": [
+          "id",
+          "toolResult"
+        ],
         "properties": {
           "id": {
             "type": "string"
@@ -2113,25 +2814,26 @@
           "toolResult": {
             "type": "object"
           }
-        },
-        "required": [
-          "id",
-          "toolResult"
-        ],
-        "type": "object"
+        }
       },
       "UpdateScheduleRequest": {
+        "type": "object",
+        "required": [
+          "cron"
+        ],
         "properties": {
           "cron": {
             "type": "string"
           }
-        },
-        "required": [
-          "cron"
-        ],
-        "type": "object"
+        }
       },
       "UpsertConfigQuery": {
+        "type": "object",
+        "required": [
+          "key",
+          "value",
+          "is_secret"
+        ],
         "properties": {
           "is_secret": {
             "type": "boolean"
@@ -2140,1092 +2842,390 @@
             "type": "string"
           },
           "value": {}
-        },
-        "required": [
-          "key",
-          "value",
-          "is_secret"
-        ],
-        "type": "object"
+        }
       },
       "UpsertPermissionsQuery": {
-        "properties": {
-          "tool_permissions": {
-            "items": {
-              "$ref": "#/components/schemas/ToolPermission"
-            },
-            "type": "array"
-          }
-        },
+        "type": "object",
         "required": [
           "tool_permissions"
         ],
-        "type": "object"
-      }
-    }
-  },
-  "info": {
-    "contact": {
-      "email": "ai-oss-tools@block.xyz",
-      "name": "Block"
-    },
-    "description": "An AI agent",
-    "license": {
-      "name": "Apache-2.0"
-    },
-    "title": "goose-server",
-    "version": "1.1.0"
-  },
-  "openapi": "3.0.3",
-  "paths": {
-    "/agent/add_sub_recipes": {
-      "post": {
-        "operationId": "add_sub_recipes",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/AddSubRecipesRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AddSubRecipesResponse"
-                }
-              }
-            },
-            "description": "added sub recipes to agent successfully"
-          },
-          "401": {
-            "description": "Unauthorized - invalid secret key"
-          }
-        },
-        "tags": [
-          "super::routes::agent"
-        ]
-      }
-    },
-    "/agent/tools": {
-      "get": {
-        "operationId": "get_tools",
-        "parameters": [
-          {
-            "description": "Optional extension name to filter tools",
-            "in": "query",
-            "name": "extension_name",
-            "required": false,
-            "schema": {
-              "nullable": true,
-              "type": "string"
+        "properties": {
+          "tool_permissions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ToolPermission"
             }
           }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "items": {
-                    "$ref": "#/components/schemas/ToolInfo"
-                  },
-                  "type": "array"
-                }
-              }
-            },
-            "description": "Tools retrieved successfully"
-          },
-          "401": {
-            "description": "Unauthorized - invalid secret key"
-          },
-          "424": {
-            "description": "Agent not initialized"
-          },
-          "500": {
-            "description": "Internal server error"
-          }
-        },
-        "tags": [
-          "super::routes::agent"
-        ]
-      }
-    },
-    "/config": {
-      "get": {
-        "operationId": "read_all_config",
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ConfigResponse"
-                }
-              }
-            },
-            "description": "All configuration values retrieved successfully"
-          }
-        },
-        "tags": [
-          "super::routes::config_management"
-        ]
-      }
-    },
-    "/config/backup": {
-      "post": {
-        "operationId": "backup_config",
-        "responses": {
-          "200": {
-            "content": {
-              "text/plain": {
-                "schema": {
-                  "type": "string"
-                }
-              }
-            },
-            "description": "Config file backed up"
-          },
-          "500": {
-            "description": "Internal server error"
-          }
-        },
-        "tags": [
-          "super::routes::config_management"
-        ]
-      }
-    },
-    "/config/extensions": {
-      "get": {
-        "operationId": "get_extensions",
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ExtensionResponse"
-                }
-              }
-            },
-            "description": "All extensions retrieved successfully"
-          },
-          "500": {
-            "description": "Internal server error"
-          }
-        },
-        "tags": [
-          "super::routes::config_management"
-        ]
+        }
       },
-      "post": {
-        "operationId": "add_extension",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ExtensionQuery"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "text/plain": {
-                "schema": {
-                  "type": "string"
-                }
+      "Content": {
+        "oneOf": [
+          {
+            "required": [
+              "type"
+            ],
+            "type": "object",
+            "properties": {
+              "type": {
+                "type": "string",
+                "enum": [
+                  "text"
+                ]
               }
             },
-            "description": "Extension added or updated successfully"
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/RawTextContent"
+              }
+            ]
           },
-          "400": {
-            "description": "Invalid request"
-          },
-          "422": {
-            "description": "Could not serialize config.yaml"
-          },
-          "500": {
-            "description": "Internal server error"
-          }
-        },
-        "tags": [
-          "super::routes::config_management"
-        ]
-      }
-    },
-    "/config/extensions/{name}": {
-      "delete": {
-        "operationId": "remove_extension",
-        "parameters": [
           {
-            "in": "path",
-            "name": "name",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
+            "required": [
+              "type"
+            ],
+            "type": "object",
+            "properties": {
+              "type": {
+                "type": "string",
+                "enum": [
+                  "image"
+                ]
+              }
+            },
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/RawImageContent"
+              }
+            ]
+          },
+          {
+            "required": [
+              "type"
+            ],
+            "type": "object",
+            "properties": {
+              "type": {
+                "type": "string",
+                "enum": [
+                  "resource"
+                ]
+              }
+            },
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/RawEmbeddedResource"
+              }
+            ]
           }
         ],
-        "responses": {
-          "200": {
-            "content": {
-              "text/plain": {
-                "schema": {
-                  "type": "string"
-                }
+        "title": "Content"
+      },
+      "EmbeddedResource": {
+        "type": "object",
+        "properties": {
+          "resource": {
+            "$ref": "#/components/schemas/ResourceContents"
+          },
+          "annotations": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Annotations"
+              },
+              {
+                "nullable": true,
+                "enum": [
+                  null
+                ]
               }
-            },
-            "description": "Extension removed successfully"
-          },
-          "404": {
-            "description": "Extension not found"
-          },
-          "500": {
-            "description": "Internal server error"
+            ]
           }
         },
-        "tags": [
-          "super::routes::config_management"
-        ]
-      }
-    },
-    "/config/init": {
-      "post": {
-        "operationId": "init_config",
-        "responses": {
-          "200": {
-            "content": {
-              "text/plain": {
-                "schema": {
-                  "type": "string"
-                }
-              }
-            },
-            "description": "Config initialization check completed"
+        "required": [
+          "resource"
+        ],
+        "title": "Annotated"
+      },
+      "ImageContent": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "string",
+            "description": "The base64-encoded image"
           },
-          "500": {
-            "description": "Internal server error"
+          "mimeType": {
+            "type": "string"
+          },
+          "annotations": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Annotations"
+              },
+              {
+                "nullable": true,
+                "enum": [
+                  null
+                ]
+              }
+            ]
           }
         },
-        "tags": [
-          "super::routes::config_management"
-        ]
-      }
-    },
-    "/config/permissions": {
-      "post": {
-        "operationId": "upsert_permissions",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/UpsertPermissionsQuery"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "text/plain": {
-                "schema": {
-                  "type": "string"
-                }
-              }
+        "required": [
+          "data",
+          "mimeType"
+        ],
+        "title": "Annotated"
+      },
+      "Annotations": {
+        "type": "object",
+        "properties": {
+          "audience": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Role"
             },
-            "description": "Permission update completed"
+            "nullable": true
           },
-          "400": {
-            "description": "Invalid request"
+          "priority": {
+            "type": "number",
+            "format": "float",
+            "nullable": true
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
           }
         },
-        "tags": [
-          "super::routes::config_management"
-        ]
-      }
-    },
-    "/config/providers": {
-      "get": {
-        "operationId": "providers",
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "items": {
-                    "$ref": "#/components/schemas/ProviderDetails"
-                  },
-                  "type": "array"
-                }
+        "title": "Annotations"
+      },
+      "TextContent": {
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string"
+          },
+          "annotations": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Annotations"
+              },
+              {
+                "nullable": true,
+                "enum": [
+                  null
+                ]
               }
-            },
-            "description": "All configuration values retrieved successfully"
+            ]
           }
         },
-        "tags": [
-          "super::routes::config_management"
-        ]
-      }
-    },
-    "/config/read": {
-      "post": {
-        "operationId": "read_config",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ConfigKeyQuery"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            },
-            "description": "Configuration value retrieved successfully"
-          },
-          "404": {
-            "description": "Configuration key not found"
-          }
-        },
-        "tags": [
-          "super::routes::config_management"
-        ]
-      }
-    },
-    "/config/recover": {
-      "post": {
-        "operationId": "recover_config",
-        "responses": {
-          "200": {
-            "content": {
-              "text/plain": {
-                "schema": {
-                  "type": "string"
-                }
-              }
-            },
-            "description": "Config recovery attempted"
-          },
-          "500": {
-            "description": "Internal server error"
-          }
-        },
-        "tags": [
-          "super::routes::config_management"
-        ]
-      }
-    },
-    "/config/remove": {
-      "post": {
-        "operationId": "remove_config",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ConfigKeyQuery"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "text/plain": {
-                "schema": {
-                  "type": "string"
-                }
-              }
-            },
-            "description": "Configuration value removed successfully"
-          },
-          "404": {
-            "description": "Configuration key not found"
-          },
-          "500": {
-            "description": "Internal server error"
-          }
-        },
-        "tags": [
-          "super::routes::config_management"
-        ]
-      }
-    },
-    "/config/upsert": {
-      "post": {
-        "operationId": "upsert_config",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/UpsertConfigQuery"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "text/plain": {
-                "schema": {
-                  "type": "string"
-                }
-              }
-            },
-            "description": "Configuration value upserted successfully"
-          },
-          "500": {
-            "description": "Internal server error"
-          }
-        },
-        "tags": [
-          "super::routes::config_management"
-        ]
-      }
-    },
-    "/config/validate": {
-      "get": {
-        "operationId": "validate_config",
-        "responses": {
-          "200": {
-            "content": {
-              "text/plain": {
-                "schema": {
-                  "type": "string"
-                }
-              }
-            },
-            "description": "Config validation result"
-          },
-          "422": {
-            "description": "Config file is corrupted"
-          }
-        },
-        "tags": [
-          "super::routes::config_management"
-        ]
-      }
-    },
-    "/confirm": {
-      "post": {
-        "operationId": "confirm_permission",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/PermissionConfirmationRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            },
-            "description": "Permission action is confirmed"
-          },
-          "401": {
-            "description": "Unauthorized - invalid secret key"
-          },
-          "500": {
-            "description": "Internal server error"
-          }
-        },
-        "tags": [
-          "super::routes::reply"
-        ]
-      }
-    },
-    "/context/manage": {
-      "post": {
-        "operationId": "manage_context",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ContextManageRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ContextManageResponse"
-                }
-              }
-            },
-            "description": "Context managed successfully"
-          },
-          "401": {
-            "description": "Unauthorized - Invalid or missing API key"
-          },
-          "412": {
-            "description": "Precondition failed - Agent not available"
-          },
-          "500": {
-            "description": "Internal server error"
-          }
-        },
-        "security": [
+        "required": [
+          "text"
+        ],
+        "title": "Annotated"
+      },
+      "ResourceContents": {
+        "anyOf": [
           {
-            "api_key": []
+            "type": "object",
+            "properties": {
+              "uri": {
+                "type": "string"
+              },
+              "mime_type": {
+                "type": "string",
+                "nullable": true
+              },
+              "text": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "uri",
+              "text"
+            ]
+          },
+          {
+            "type": "object",
+            "properties": {
+              "uri": {
+                "type": "string"
+              },
+              "mime_type": {
+                "type": "string",
+                "nullable": true
+              },
+              "blob": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "uri",
+              "blob"
+            ]
           }
         ],
-        "tags": [
-          "Context Management"
-        ]
-      }
-    },
-    "/recipes/create": {
-      "post": {
-        "operationId": "create_recipe",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CreateRecipeRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/CreateRecipeResponse"
-                }
-              }
-            },
-            "description": "Recipe created successfully"
-          },
-          "400": {
-            "description": "Bad request"
-          },
-          "412": {
-            "description": "Precondition failed - Agent not available"
-          },
-          "500": {
-            "description": "Internal server error"
-          }
-        },
-        "summary": "Create a Recipe configuration from the current session",
-        "tags": [
-          "Recipe Management"
-        ]
-      }
-    },
-    "/recipes/decode": {
-      "post": {
-        "operationId": "decode_recipe",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/DecodeRecipeRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/DecodeRecipeResponse"
-                }
-              }
-            },
-            "description": "Recipe decoded successfully"
-          },
-          "400": {
-            "description": "Bad request"
-          }
-        },
-        "tags": [
-          "Recipe Management"
-        ]
-      }
-    },
-    "/recipes/encode": {
-      "post": {
-        "operationId": "encode_recipe",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/EncodeRecipeRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/EncodeRecipeResponse"
-                }
-              }
-            },
-            "description": "Recipe encoded successfully"
-          },
-          "400": {
-            "description": "Bad request"
-          }
-        },
-        "tags": [
-          "Recipe Management"
-        ]
-      }
-    },
-    "/schedule/create": {
-      "post": {
-        "operationId": "create_schedule",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CreateScheduleRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ScheduledJob"
-                }
-              }
-            },
-            "description": "Scheduled job created successfully"
-          },
-          "400": {
-            "description": "Invalid cron expression or recipe file"
-          },
-          "409": {
-            "description": "Job ID already exists"
-          },
-          "500": {
-            "description": "Internal server error"
-          }
-        },
-        "tags": [
-          "schedule"
-        ]
-      }
-    },
-    "/schedule/delete/{id}": {
-      "delete": {
-        "operationId": "delete_schedule",
-        "parameters": [
+        "title": "ResourceContents"
+      },
+      "Role": {
+        "oneOf": [
           {
-            "description": "ID of the schedule to delete",
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
+            "type": "string",
+            "description": "A human user or client making a request",
+            "enum": [
+              "user"
+            ]
+          },
+          {
+            "type": "string",
+            "description": "An AI assistant or server providing a response",
+            "enum": [
+              "assistant"
+            ]
           }
         ],
-        "responses": {
-          "204": {
-            "description": "Scheduled job deleted successfully"
+        "description": "Represents the role of a participant in a conversation or message exchange.\n\nUsed in sampling and chat contexts to distinguish between different\ntypes of message senders in the conversation flow.",
+        "title": "Role"
+      },
+      "Tool": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "The name of the tool"
           },
-          "404": {
-            "description": "Scheduled job not found"
+          "description": {
+            "type": "string",
+            "description": "A description of what the tool does",
+            "nullable": true
           },
-          "500": {
-            "description": "Internal server error"
-          }
-        },
-        "tags": [
-          "schedule"
-        ]
-      }
-    },
-    "/schedule/list": {
-      "get": {
-        "operationId": "list_schedules",
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ListSchedulesResponse"
-                }
+          "inputSchema": {
+            "type": "object",
+            "description": "A JSON Schema object defining the expected parameters for the tool",
+            "additionalProperties": true
+          },
+          "annotations": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ToolAnnotations"
+              },
+              {
+                "nullable": true,
+                "enum": [
+                  null
+                ]
               }
-            },
-            "description": "A list of scheduled jobs"
-          },
-          "500": {
-            "description": "Internal server error"
+            ],
+            "description": "Optional additional tool information."
           }
         },
-        "tags": [
-          "schedule"
-        ]
-      }
-    },
-    "/schedule/{id}": {
-      "put": {
-        "operationId": "update_schedule",
-        "parameters": [
-          {
-            "description": "ID of the schedule to update",
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
+        "required": [
+          "name",
+          "inputSchema"
         ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/UpdateScheduleRequest"
+        "description": "A tool that can be used by a model.",
+        "title": "Tool"
+      },
+      "ToolAnnotations": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "description": "A human-readable title for the tool.",
+            "nullable": true
+          },
+          "readOnlyHint": {
+            "type": "boolean",
+            "description": "If true, the tool does not modify its environment.\n\nDefault: false",
+            "nullable": true
+          },
+          "destructiveHint": {
+            "type": "boolean",
+            "description": "If true, the tool may perform destructive updates to its environment.\nIf false, the tool performs only additive updates.\n\n(This property is meaningful only when `readOnlyHint == false`)\n\nDefault: true\nA human-readable description of the tool's purpose.",
+            "nullable": true
+          },
+          "idempotentHint": {
+            "type": "boolean",
+            "description": "If true, calling the tool repeatedly with the same arguments\nwill have no additional effect on the its environment.\n\n(This property is meaningful only when `readOnlyHint == false`)\n\nDefault: false.",
+            "nullable": true
+          },
+          "openWorldHint": {
+            "type": "boolean",
+            "description": "If true, this tool may interact with an \"open world\" of external\nentities. If false, the tool's domain of interaction is closed.\nFor example, the world of a web search tool is open, whereas that\nof a memory tool is not.\n\nDefault: true",
+            "nullable": true
+          }
+        },
+        "description": "Additional properties describing a Tool to clients.\n\nNOTE: all properties in ToolAnnotations are **hints**.\nThey are not guaranteed to provide a faithful description of\ntool behavior (including descriptive properties like `title`).\n\nClients should never make tool use decisions based on ToolAnnotations\nreceived from untrusted servers.",
+        "title": "ToolAnnotations"
+      },
+      "RawTextContent": {
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "text"
+        ],
+        "title": "RawTextContent"
+      },
+      "RawImageContent": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "string",
+            "description": "The base64-encoded image"
+          },
+          "mimeType": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "data",
+          "mimeType"
+        ],
+        "title": "RawImageContent"
+      },
+      "RawEmbeddedResource": {
+        "type": "object",
+        "properties": {
+          "resource": {
+            "$ref": "#/components/schemas/ResourceContents"
+          }
+        },
+        "required": [
+          "resource"
+        ],
+        "title": "RawEmbeddedResource"
+      },
+      "AudioContent": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "string"
+          },
+          "mimeType": {
+            "type": "string"
+          },
+          "annotations": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Annotations"
+              },
+              {
+                "nullable": true,
+                "enum": [
+                  null
+                ]
               }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ScheduledJob"
-                }
-              }
-            },
-            "description": "Scheduled job updated successfully"
-          },
-          "400": {
-            "description": "Cannot update a currently running job or invalid request"
-          },
-          "404": {
-            "description": "Scheduled job not found"
-          },
-          "500": {
-            "description": "Internal server error"
+            ]
           }
         },
-        "tags": [
-          "schedule"
-        ]
-      }
-    },
-    "/schedule/{id}/inspect": {
-      "get": {
-        "operationId": "inspect_running_job",
-        "parameters": [
-          {
-            "description": "ID of the schedule to inspect",
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
+        "required": [
+          "data",
+          "mimeType"
         ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/InspectJobResponse"
-                }
-              }
-            },
-            "description": "Running job information"
-          },
-          "404": {
-            "description": "Scheduled job not found"
-          },
-          "500": {
-            "description": "Internal server error"
-          }
-        },
-        "tags": [
-          "schedule"
-        ]
-      }
-    },
-    "/schedule/{id}/kill": {
-      "post": {
-        "operationId": "kill_running_job",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Running job killed successfully"
-          }
-        },
-        "tags": [
-          "schedule"
-        ]
-      }
-    },
-    "/schedule/{id}/pause": {
-      "post": {
-        "operationId": "pause_schedule",
-        "parameters": [
-          {
-            "description": "ID of the schedule to pause",
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "204": {
-            "description": "Scheduled job paused successfully"
-          },
-          "400": {
-            "description": "Cannot pause a currently running job"
-          },
-          "404": {
-            "description": "Scheduled job not found"
-          },
-          "500": {
-            "description": "Internal server error"
-          }
-        },
-        "tags": [
-          "schedule"
-        ]
-      }
-    },
-    "/schedule/{id}/run_now": {
-      "post": {
-        "operationId": "run_now_handler",
-        "parameters": [
-          {
-            "description": "ID of the schedule to run",
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/RunNowResponse"
-                }
-              }
-            },
-            "description": "Scheduled job triggered successfully, returns new session ID"
-          },
-          "404": {
-            "description": "Scheduled job not found"
-          },
-          "500": {
-            "description": "Internal server error when trying to run the job"
-          }
-        },
-        "tags": [
-          "schedule"
-        ]
-      }
-    },
-    "/schedule/{id}/sessions": {
-      "get": {
-        "operationId": "sessions_handler",
-        "parameters": [
-          {
-            "description": "ID of the schedule",
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "in": "query",
-            "name": "limit",
-            "required": false,
-            "schema": {
-              "format": "int32",
-              "minimum": 0,
-              "type": "integer"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "items": {
-                    "$ref": "#/components/schemas/SessionDisplayInfo"
-                  },
-                  "type": "array"
-                }
-              }
-            },
-            "description": "A list of session display info"
-          },
-          "500": {
-            "description": "Internal server error"
-          }
-        },
-        "tags": [
-          "schedule"
-        ]
-      }
-    },
-    "/schedule/{id}/unpause": {
-      "post": {
-        "operationId": "unpause_schedule",
-        "parameters": [
-          {
-            "description": "ID of the schedule to unpause",
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "204": {
-            "description": "Scheduled job unpaused successfully"
-          },
-          "404": {
-            "description": "Scheduled job not found"
-          },
-          "500": {
-            "description": "Internal server error"
-          }
-        },
-        "tags": [
-          "schedule"
-        ]
-      }
-    },
-    "/sessions": {
-      "get": {
-        "operationId": "list_sessions",
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/SessionListResponse"
-                }
-              }
-            },
-            "description": "List of available sessions retrieved successfully"
-          },
-          "401": {
-            "description": "Unauthorized - Invalid or missing API key"
-          },
-          "500": {
-            "description": "Internal server error"
-          }
-        },
-        "security": [
-          {
-            "api_key": []
-          }
-        ],
-        "tags": [
-          "Session Management"
-        ]
-      }
-    },
-    "/sessions/{session_id}": {
-      "get": {
-        "operationId": "get_session_history",
-        "parameters": [
-          {
-            "description": "Unique identifier for the session",
-            "in": "path",
-            "name": "session_id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/SessionHistoryResponse"
-                }
-              }
-            },
-            "description": "Session history retrieved successfully"
-          },
-          "401": {
-            "description": "Unauthorized - Invalid or missing API key"
-          },
-          "404": {
-            "description": "Session not found"
-          },
-          "500": {
-            "description": "Internal server error"
-          }
-        },
-        "security": [
-          {
-            "api_key": []
-          }
-        ],
-        "tags": [
-          "Session Management"
-        ]
+        "title": "Annotated"
       }
     }
   }
