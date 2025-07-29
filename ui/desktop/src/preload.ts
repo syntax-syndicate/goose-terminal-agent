@@ -123,9 +123,11 @@ const electronAPI: ElectronAPI = {
     // Add fallback to localStorage if config from preload is empty or missing
     if (!config || Object.keys(config).length === 0) {
       try {
-        const storedConfig = localStorage.getItem('gooseConfig');
-        if (storedConfig) {
-          return JSON.parse(storedConfig);
+        if (typeof Storage !== 'undefined' && window.localStorage) {
+          const storedConfig = localStorage.getItem('gooseConfig');
+          if (storedConfig) {
+            return JSON.parse(storedConfig);
+          }
         }
       } catch (e) {
         console.warn('Failed to parse stored config from localStorage:', e);

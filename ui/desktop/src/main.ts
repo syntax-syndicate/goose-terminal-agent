@@ -672,34 +672,31 @@ const createChat = async (
   // We need to wait for the window to load before we can access localStorage
   mainWindow.webContents.on('did-finish-load', () => {
     const configStr = JSON.stringify(windowConfig).replace(/'/g, "\\'");
-    // Add error handling and retry logic for localStorage access
+    // Optimized localStorage access with single retry
     mainWindow.webContents
       .executeJavaScript(
         `
-      try {
-        if (typeof Storage !== 'undefined' && window.localStorage) {
-          localStorage.setItem('gooseConfig', '${configStr}');
-        } else {
-          console.warn('localStorage not available, retrying in 100ms');
-          setTimeout(() => {
-            try {
+      (function() {
+        function setConfig() {
+          try {
+            if (typeof Storage !== 'undefined' && window.localStorage) {
               localStorage.setItem('gooseConfig', '${configStr}');
-            } catch (e) {
-              console.error('Failed to set localStorage after retry:', e);
+              return true;
+            }
+          } catch (e) {
+            console.warn('localStorage access failed:', e);
+          }
+          return false;
+        }
+
+        if (!setConfig()) {
+          setTimeout(() => {
+            if (!setConfig()) {
+              console.error('Failed to set localStorage after retry - continuing without localStorage config');
             }
           }, 100);
         }
-      } catch (e) {
-        console.error('Failed to access localStorage:', e);
-        // Retry after a short delay
-        setTimeout(() => {
-          try {
-            localStorage.setItem('gooseConfig', '${configStr}');
-          } catch (retryError) {
-            console.error('Failed to set localStorage after retry:', retryError);
-          }
-        }, 100);
-      }
+      })();
     `
       )
       .catch((error) => {
