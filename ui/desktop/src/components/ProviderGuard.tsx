@@ -124,21 +124,20 @@ export default function ProviderGuard({ children }: ProviderGuardProps) {
               onClick={handleOpenRouterSetup}
               className="w-full px-6 py-3 bg-background-muted text-text-standard rounded-lg hover:bg-background-hover transition-colors font-medium"
             >
-              Auto-configure with Openrouter (recommended to start)
+              Automatic setup with OpenRouter (recommended)
             </button>
 
             <button
               onClick={() => navigate('/welcome', { replace: true })}
               className="w-full px-6 py-3 bg-background-muted text-text-standard rounded-lg hover:bg-background-hover transition-colors font-medium"
             >
-              Configure Other Providers
+              Configure Other Providers (advanced)
             </button>
           </div>
 
           <p className="text-sm text-text-muted mt-6">
-            Openrouter provides access to multiple AI models. To use this you will need to create an
-            account, and purchase some starter credits for powerful non free models. When you
-            configure Goose with Openrouter, models and config will be setup automatically for you.
+            OpenRouter provides access to multiple AI models. To use this it will need to create an
+            account with OpenRouter.
           </p>
         </div>
       </div>

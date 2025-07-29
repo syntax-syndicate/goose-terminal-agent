@@ -42,6 +42,15 @@ export function SetupModal({
           </div>
         )}
 
+        {onClose && (
+          <div className="mb-4">
+            <Button onClick={onClose} className="w-full">
+              Close
+            </Button>
+            <br />
+          </div>
+        )}
+
         {showRetry && onRetry && (
           <Button onClick={onRetry} className="w-full">
             Retry Setup
