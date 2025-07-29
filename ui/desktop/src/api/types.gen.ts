@@ -9,9 +9,15 @@ export type AddSubRecipesResponse = {
 };
 
 export type Annotations = {
-    audience?: Array<Role>;
-    priority?: number;
-    timestamp?: string;
+    audience?: Array<Role> | null;
+    priority?: number | null;
+    timestamp?: string | null;
+};
+
+export type AudioContent = {
+    annotations?: Annotations | null;
+    data: string;
+    mimeType: string;
 };
 
 export type Author = {
@@ -40,22 +46,13 @@ export type ConfigResponse = {
     config: {};
 };
 
-export type Content = {
-    text: string;
-    type: string;
-} | {
-    data: string;
-    mimeType: string;
-    type: string;
-} | {
-    resource: ResourceContents;
-    type: string;
-} | {
-    annotations?: Annotations;
-    data: string;
-    mimeType: string;
-    type: string;
-};
+export type Content = (RawTextContent & {
+    type: 'text';
+}) | (RawImageContent & {
+    type: 'image';
+}) | (RawEmbeddedResource & {
+    type: 'resource';
+});
 
 export type ContextLengthExceeded = {
     msg: string;
@@ -118,7 +115,7 @@ export type DecodeRecipeResponse = {
 };
 
 export type EmbeddedResource = {
-    annotations?: Annotations;
+    annotations?: Annotations | null;
     resource: ResourceContents;
 };
 
@@ -265,7 +262,10 @@ export type FrontendToolRequest = {
 };
 
 export type ImageContent = {
-    annotations?: Annotations;
+    annotations?: Annotations | null;
+    /**
+     * The base64-encoded image
+     */
     data: string;
     mimeType: string;
 };
@@ -407,6 +407,22 @@ export type ProvidersResponse = {
     providers: Array<ProviderDetails>;
 };
 
+export type RawEmbeddedResource = {
+    resource: ResourceContents;
+};
+
+export type RawImageContent = {
+    /**
+     * The base64-encoded image
+     */
+    data: string;
+    mimeType: string;
+};
+
+export type RawTextContent = {
+    text: string;
+};
+
 /**
  * A Recipe represents a personalized, user-generated agent configuration that defines
  * specific behaviors and capabilities within the Goose system.
@@ -495,12 +511,12 @@ export type RedactedThinkingContent = {
 };
 
 export type ResourceContents = {
-    mime_type?: string;
+    mime_type?: string | null;
     text: string;
     uri: string;
 } | {
     blob: string;
-    mime_type?: string;
+    mime_type?: string | null;
     uri: string;
 };
 
@@ -534,7 +550,13 @@ export type RetryConfig = {
     timeout_seconds?: number | null;
 };
 
-export type Role = string;
+/**
+ * Represents the role of a participant in a conversation or message exchange.
+ *
+ * Used in sampling and chat contexts to distinguish between different
+ * types of message senders in the conversation flow.
+ */
+export type Role = 'user' | 'assistant';
 
 export type RunNowResponse = {
     session_id: string;
@@ -679,7 +701,7 @@ export type SummarizationRequested = {
 };
 
 export type TextContent = {
-    annotations?: Annotations;
+    annotations?: Annotations | null;
     text: string;
 };
 
@@ -688,21 +710,79 @@ export type ThinkingContent = {
     thinking: string;
 };
 
+/**
+ * A tool that can be used by a model.
+ */
 export type Tool = {
-    annotations?: ToolAnnotations;
-    description?: string;
+    /**
+     * Optional additional tool information.
+     */
+    annotations?: ToolAnnotations | null;
+    /**
+     * A description of what the tool does
+     */
+    description?: string | null;
+    /**
+     * A JSON Schema object defining the expected parameters for the tool
+     */
     inputSchema: {
         [key: string]: unknown;
     };
+    /**
+     * The name of the tool
+     */
     name: string;
 };
 
+/**
+ * Additional properties describing a Tool to clients.
+ *
+ * NOTE: all properties in ToolAnnotations are **hints**.
+ * They are not guaranteed to provide a faithful description of
+ * tool behavior (including descriptive properties like `title`).
+ *
+ * Clients should never make tool use decisions based on ToolAnnotations
+ * received from untrusted servers.
+ */
 export type ToolAnnotations = {
-    destructiveHint?: boolean;
-    idempotentHint?: boolean;
-    openWorldHint?: boolean;
-    readOnlyHint?: boolean;
-    title?: string;
+    /**
+     * If true, the tool may perform destructive updates to its environment.
+     * If false, the tool performs only additive updates.
+     *
+     * (This property is meaningful only when `readOnlyHint == false`)
+     *
+     * Default: true
+     * A human-readable description of the tool's purpose.
+     */
+    destructiveHint?: boolean | null;
+    /**
+     * If true, calling the tool repeatedly with the same arguments
+     * will have no additional effect on the its environment.
+     *
+     * (This property is meaningful only when `readOnlyHint == false`)
+     *
+     * Default: false.
+     */
+    idempotentHint?: boolean | null;
+    /**
+     * If true, this tool may interact with an "open world" of external
+     * entities. If false, the tool's domain of interaction is closed.
+     * For example, the world of a web search tool is open, whereas that
+     * of a memory tool is not.
+     *
+     * Default: true
+     */
+    openWorldHint?: boolean | null;
+    /**
+     * If true, the tool does not modify its environment.
+     *
+     * Default: false
+     */
+    readOnlyHint?: boolean | null;
+    /**
+     * A human-readable title for the tool.
+     */
+    title?: string | null;
 };
 
 export type ToolConfirmationRequest = {
