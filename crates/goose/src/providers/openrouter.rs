@@ -120,10 +120,10 @@ impl OpenRouterProvider {
 
             // Return appropriate error based on the OpenRouter error code
             match error_code {
-                401 | 403 => return Err(ProviderError::Authentication(error_message, None)),
-                429 => return Err(ProviderError::RateLimitExceeded(error_message, None)),
-                500 | 503 => return Err(ProviderError::ServerError(error_message, None)),
-                _ => return Err(ProviderError::RequestFailed(error_message, None)),
+                401 | 403 => return Err(ProviderError::Authentication(error_message.to_string())),
+                429 => return Err(ProviderError::RateLimitExceeded(error_message.to_string())),
+                500 | 503 => return Err(ProviderError::ServerError(error_message.to_string())),
+                _ => return Err(ProviderError::RequestFailed(error_message.to_string())),
             }
         }
 

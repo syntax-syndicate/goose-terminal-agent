@@ -52,7 +52,7 @@ pub fn load_recipe(recipe_name: &str, params: Vec<(String, String)>) -> Result<R
             "Please provide the following parameters in the command line: {}",
             missing_parameters_command_line(parameters)
         )),
-        Err(e) => Err(anyhow::anyhow!(e, None)),
+        Err(e) => Err(anyhow::anyhow!(e.to_string())),
     }
 }
 

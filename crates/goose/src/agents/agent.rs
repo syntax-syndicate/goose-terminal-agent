@@ -44,10 +44,9 @@ use crate::recipe::{Author, Recipe, Response, Settings, SubRecipe};
 use crate::scheduler_trait::SchedulerTrait;
 use crate::tool_monitor::{ToolCall, ToolMonitor};
 use crate::utils::is_token_cancelled;
+use mcp_core::{ToolError, ToolResult};
 use regex::Regex;
-use rmcp::model::{
-    Content, ErrorCode, ErrorData, GetPromptResult, Prompt, ServerNotification, Tool,
-};
+use rmcp::model::{Content, GetPromptResult, Prompt, ServerNotification, Tool};
 use serde_json::Value;
 use tokio::sync::{mpsc, Mutex, RwLock};
 use tokio_util::sync::CancellationToken;
@@ -74,7 +73,7 @@ pub struct Agent {
     pub(super) prompt_manager: Mutex<PromptManager>,
     pub(super) confirmation_tx: mpsc::Sender<(String, PermissionConfirmation)>,
     pub(super) confirmation_rx: Mutex<mpsc::Receiver<(String, PermissionConfirmation)>>,
-    pub(super) tool_result_tx: mpsc::Sender<(String, Result<Vec<Content>, ErrorData>)>,
+    pub(super) tool_result_tx: mpsc::Sender<(String, ToolResult<Vec<Content>>)>,
     pub(super) tool_result_rx: ToolResultReceiver,
     pub(super) tool_monitor: Arc<Mutex<Option<ToolMonitor>>>,
     pub(super) router_tool_selector: Mutex<Option<Arc<Box<dyn RouterToolSelector>>>>,
@@ -100,8 +99,7 @@ pub enum ToolStreamItem<T> {
     Result(T),
 }
 
-pub type ToolStream =
-    Pin<Box<dyn Stream<Item = ToolStreamItem<Result<Vec<Content>, ErrorData>>> + Send>>;
+pub type ToolStream = Pin<Box<dyn Stream<Item = ToolStreamItem<ToolResult<Vec<Content>>>> + Send>>;
 
 // tool_stream combines a stream of ServerNotifications with a future representing the
 // final result of the tool call. MCP notifications are not request-scoped, but
@@ -110,7 +108,7 @@ pub type ToolStream =
 pub fn tool_stream<S, F>(rx: S, done: F) -> ToolStream
 where
     S: Stream<Item = ServerNotification> + Send + Unpin + 'static,
-    F: Future<Output = Result<Vec<Content>, ErrorData>> + Send + 'static,
+    F: Future<Output = ToolResult<Vec<Content>>> + Send + 'static,
 {
     Box::pin(async_stream::stream! {
         tokio::pin!(done);
@@ -272,7 +270,7 @@ impl Agent {
         tool_call: mcp_core::tool::ToolCall,
         request_id: String,
         cancellation_token: Option<CancellationToken>,
-    ) -> (String, Result<ToolCallResult, ErrorData>) {
+    ) -> (String, Result<ToolCallResult, ToolError>) {
         // Check if this tool call should be allowed based on repetition monitoring
         if let Some(monitor) = self.tool_monitor.lock().await.as_mut() {
             let tool_call_info = ToolCall::new(tool_call.name.clone(), tool_call.arguments.clone());
@@ -280,10 +278,8 @@ impl Agent {
             if !monitor.check_tool_call(tool_call_info) {
                 return (
                     request_id,
-                    Err(ErrorData::new(
-                        ErrorCode::INTERNAL_ERROR,
+                    Err(ToolError::ExecutionError(
                         "Tool call rejected: exceeded maximum allowed repetitions".to_string(),
-                        None,
                     )),
                 );
             }
@@ -323,10 +319,8 @@ impl Agent {
             } else {
                 (
                     request_id,
-                    Err(ErrorData::new(
-                        ErrorCode::INTERNAL_ERROR,
+                    Err(ToolError::ExecutionError(
                         "Final output tool not defined".to_string(),
-                        None,
                     )),
                 )
             };
@@ -372,10 +366,8 @@ impl Agent {
             ToolCallResult::from(extension_manager.search_available_extensions().await)
         } else if self.is_frontend_tool(&tool_call.name).await {
             // For frontend tools, return an error indicating we need frontend execution
-            ToolCallResult::from(Err(ErrorData::new(
-                ErrorCode::INTERNAL_ERROR,
+            ToolCallResult::from(Err(ToolError::ExecutionError(
                 "Frontend tool execution required".to_string(),
-                None,
             )))
         } else if tool_call.name == ROUTER_VECTOR_SEARCH_TOOL_NAME
             || tool_call.name == ROUTER_LLM_SEARCH_TOOL_NAME
@@ -387,21 +379,18 @@ impl Agent {
                     Err(e) => {
                         return (
                             request_id,
-                            Err(ErrorData::new(
-                                ErrorCode::INTERNAL_ERROR,
-                                format!("Failed to select tools: {}", e),
-                                None,
-                            )),
+                            Err(ToolError::ExecutionError(format!(
+                                "Failed to select tools: {}",
+                                e
+                            ))),
                         )
                     }
                 },
                 None => {
                     return (
                         request_id,
-                        Err(ErrorData::new(
-                            ErrorCode::INTERNAL_ERROR,
+                        Err(ToolError::ExecutionError(
                             "No tool selector available".to_string(),
-                            None,
                         )),
                     )
                 }
@@ -426,11 +415,7 @@ impl Agent {
                 .dispatch_tool_call(tool_call.clone())
                 .await;
             result.unwrap_or_else(|e| {
-                ToolCallResult::from(Err(ErrorData::new(
-                    ErrorCode::INTERNAL_ERROR,
-                    e.to_string(),
-                    None,
-                )))
+                ToolCallResult::from(Err(ToolError::ExecutionError(e.to_string())))
             })
         };
 
@@ -452,7 +437,7 @@ impl Agent {
         action: String,
         extension_name: String,
         request_id: String,
-    ) -> (String, Result<Vec<Content>, ErrorData>) {
+    ) -> (String, Result<Vec<Content>, ToolError>) {
         let mut extension_manager = self.extension_manager.write().await;
 
         let selector = self.router_tool_selector.lock().await.clone();
@@ -471,11 +456,10 @@ impl Agent {
                 {
                     return (
                         request_id,
-                        Err(ErrorData::new(
-                            ErrorCode::INTERNAL_ERROR,
-                            format!("Failed to update vector index: {}", e),
-                            None,
-                        )),
+                        Err(ToolError::ExecutionError(format!(
+                            "Failed to update vector index: {}",
+                            e
+                        ))),
                     );
                 }
             }
@@ -491,7 +475,7 @@ impl Agent {
                         extension_name
                     ))]
                 })
-                .map_err(|e| ErrorData::new(ErrorCode::INTERNAL_ERROR, e.to_string(), None));
+                .map_err(|e| ToolError::ExecutionError(e.to_string()));
             return (request_id, result);
         }
 
@@ -500,24 +484,19 @@ impl Agent {
             Ok(None) => {
                 return (
                     request_id,
-                    Err(ErrorData::new(
-                        ErrorCode::INVALID_PARAMS,
-                        format!(
+                    Err(ToolError::ExecutionError(format!(
                         "Extension '{}' not found. Please check the extension name and try again.",
                         extension_name
-                    ),
-                        None,
-                    )),
+                    ))),
                 )
             }
             Err(e) => {
                 return (
                     request_id,
-                    Err(ErrorData::new(
-                        ErrorCode::INTERNAL_ERROR,
-                        format!("Failed to get extension config: {}", e),
-                        None,
-                    )),
+                    Err(ToolError::ExecutionError(format!(
+                        "Failed to get extension config: {}",
+                        e
+                    ))),
                 )
             }
         };
@@ -531,7 +510,7 @@ impl Agent {
                     extension_name
                 ))]
             })
-            .map_err(|e| ErrorData::new(ErrorCode::INTERNAL_ERROR, e.to_string(), None));
+            .map_err(|e| ToolError::ExecutionError(e.to_string()));
 
         // Update vector index if operation was successful and vector routing is enabled
         if result.is_ok() {
@@ -551,11 +530,10 @@ impl Agent {
                     {
                         return (
                             request_id,
-                            Err(ErrorData::new(
-                                ErrorCode::INTERNAL_ERROR,
-                                format!("Failed to update vector index: {}", e),
-                                None,
-                            )),
+                            Err(ToolError::ExecutionError(format!(
+                                "Failed to update vector index: {}",
+                                e
+                            ))),
                         );
                     }
                 }
@@ -588,7 +566,8 @@ impl Agent {
                 } else {
                     // Default frontend instructions if none provided
                     *frontend_instructions = Some(
-                        "The following tools are provided directly by the frontend and will be executed by the frontend when called.".to_string());
+                        "The following tools are provided directly by the frontend and will be executed by the frontend when called.".to_string(),
+                    );
                 }
             }
             _ => {
@@ -792,7 +771,8 @@ impl Agent {
                 if let Some(final_output_tool) = self.final_output_tool.lock().await.as_ref() {
                     if final_output_tool.final_output.is_some() {
                         let final_event = AgentEvent::Message(
-                            Message::assistant().with_text(final_output_tool.final_output.clone().unwrap()));
+                            Message::assistant().with_text(final_output_tool.final_output.clone().unwrap()),
+                        );
                         yield final_event;
                         break;
                     }
@@ -811,7 +791,8 @@ impl Agent {
                     &system_prompt,
                     &messages,
                     &tools,
-                    &toolshim_tools)
+                    &toolshim_tools,
+                )
                 .await?;
 
                 let mut added_message = false;
@@ -897,7 +878,8 @@ impl Agent {
 
                                 let mut frontend_tool_stream = self.handle_frontend_tool_requests(
                                     &frontend_requests,
-                                    message_tool_response.clone());
+                                    message_tool_response.clone(),
+                                );
 
                                 while let Some(msg) = frontend_tool_stream.try_next().await? {
                                     yield AgentEvent::Message(msg);
@@ -910,7 +892,8 @@ impl Agent {
                                         let mut response = message_tool_response.lock().await;
                                         *response = response.clone().with_tool_response(
                                             request.id.clone(),
-                                            Ok(vec![Content::text(CHAT_MODE_TOOL_SKIPPED_RESPONSE)]));
+                                            Ok(vec![Content::text(CHAT_MODE_TOOL_SKIPPED_RESPONSE)]),
+                                        );
                                     }
                                 } else {
                                     let mut permission_manager = PermissionManager::default();
@@ -921,7 +904,8 @@ impl Agent {
                                             tools_with_readonly_annotation.clone(),
                                             tools_without_annotation.clone(),
                                             &mut permission_manager,
-                                            self.provider().await?)
+                                            self.provider().await?,
+                                        )
                                         .await;
 
                                     let mut tool_futures: Vec<(String, ToolStream)> = Vec::new();
@@ -940,11 +924,14 @@ impl Agent {
                                                         result
                                                             .notification_stream
                                                             .unwrap_or_else(|| Box::new(stream::empty())),
-                                                        result.result),
+                                                        result.result,
+                                                    ),
                                                     Err(e) => tool_stream(
                                                         Box::new(stream::empty()),
-                                                        futures::future::ready(Err(e))),
-                                                }));
+                                                        futures::future::ready(Err(e)),
+                                                    ),
+                                                },
+                                            ));
                                         }
                                     }
 
@@ -952,7 +939,8 @@ impl Agent {
                                         let mut response = message_tool_response.lock().await;
                                         *response = response.clone().with_tool_response(
                                             request.id.clone(),
-                                            Ok(vec![Content::text(DECLINED_RESPONSE)]));
+                                            Ok(vec![Content::text(DECLINED_RESPONSE)]),
+                                        );
                                     }
 
                                     let tool_futures_arc = Arc::new(Mutex::new(tool_futures));
@@ -963,7 +951,8 @@ impl Agent {
                                         tool_futures_arc.clone(),
                                         &mut permission_manager,
                                         message_tool_response.clone(),
-                                        cancel_token.clone());
+                                        cancel_token.clone(),
+                                    );
 
                                     while let Some(msg) = tool_approval_stream.try_next().await? {
                                         yield AgentEvent::Message(msg);
@@ -1001,7 +990,8 @@ impl Agent {
                                             }
                                             ToolStreamItem::Message(msg) => {
                                                 yield AgentEvent::McpNotification((
-                                                    request_id, msg));
+                                                    request_id, msg,
+                                                ));
                                             }
                                         }
                                     }
@@ -1021,7 +1011,8 @@ impl Agent {
                         }
                         Err(ProviderError::ContextLengthExceeded(_)) => {
                             yield AgentEvent::Message(Message::assistant().with_context_length_exceeded(
-                                    "The context length of the model has been exceeded. Please start a new session and try again."));
+                                    "The context length of the model has been exceeded. Please start a new session and try again.",
+                                ));
                             break;
                         }
                         Err(e) => {
@@ -1230,7 +1221,7 @@ impl Agent {
         Ok(plan_prompt)
     }
 
-    pub async fn handle_tool_result(&self, id: String, result: Result<Vec<Content>, ErrorData>) {
+    pub async fn handle_tool_result(&self, id: String, result: ToolResult<Vec<Content>>) {
         if let Err(e) = self.tool_result_tx.send((id, result)).await {
             error!("Failed to send tool result: {}", e);
         }

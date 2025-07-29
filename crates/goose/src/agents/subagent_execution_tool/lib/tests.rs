@@ -18,7 +18,8 @@ fn create_test_task_result(task_id: &str, status: TaskStatus, error: Option<Stri
 
 fn create_test_execution_response(
     results: Vec<TaskResult>,
-    failed_count: usize) -> ExecutionResponse {
+    failed_count: usize,
+) -> ExecutionResponse {
     ExecutionResponse {
         status: "completed".to_string(),
         results: results.clone(),
@@ -38,12 +39,14 @@ fn test_extract_failed_tasks() {
         create_test_task_result(
             "task2",
             TaskStatus::Failed,
-            Some("Error message", None)),
+            Some("Error message".to_string()),
+        ),
         create_test_task_result("task3", TaskStatus::Completed, None),
         create_test_task_result(
             "task4",
             TaskStatus::Failed,
-            Some("Another error", None)),
+            Some("Another error".to_string()),
+        ),
     ];
 
     let failed_tasks = extract_failed_tasks(&results);
@@ -72,7 +75,8 @@ fn test_format_failed_task_error_with_error_message() {
     let result = create_test_task_result(
         "task1",
         TaskStatus::Failed,
-        Some("Test error message", None));
+        Some("Test error message".to_string()),
+    );
 
     let formatted = format_failed_task_error(&result);
 
@@ -96,7 +100,7 @@ fn test_format_failed_task_error_without_error_message() {
 #[test]
 fn test_format_failed_task_error_empty_partial_output() {
     let mut result =
-        create_test_task_result("task3", TaskStatus::Failed, Some("Error", None));
+        create_test_task_result("task3", TaskStatus::Failed, Some("Error".to_string()));
     result.data = Some(json!({"partial_output": ""}));
 
     let formatted = format_failed_task_error(&result);
@@ -107,7 +111,7 @@ fn test_format_failed_task_error_empty_partial_output() {
 #[test]
 fn test_format_failed_task_error_no_partial_output() {
     let mut result =
-        create_test_task_result("task4", TaskStatus::Failed, Some("Error", None));
+        create_test_task_result("task4", TaskStatus::Failed, Some("Error".to_string()));
     result.data = Some(json!({}));
 
     let formatted = format_failed_task_error(&result);
@@ -118,7 +122,7 @@ fn test_format_failed_task_error_no_partial_output() {
 #[test]
 fn test_format_failed_task_error_no_data() {
     let mut result =
-        create_test_task_result("task5", TaskStatus::Failed, Some("Error", None));
+        create_test_task_result("task5", TaskStatus::Failed, Some("Error".to_string()));
     result.data = None;
 
     let formatted = format_failed_task_error(&result);
@@ -170,7 +174,7 @@ fn test_handle_response_success() {
 fn test_handle_response_with_failures() {
     let results = vec![
         create_test_task_result("task1", TaskStatus::Completed, None),
-        create_test_task_result("task2", TaskStatus::Failed, Some("Test error", None)),
+        create_test_task_result("task2", TaskStatus::Failed, Some("Test error".to_string())),
     ];
     let response = create_test_execution_response(results, 1);
 
@@ -186,8 +190,8 @@ fn test_handle_response_with_failures() {
 #[test]
 fn test_handle_response_all_failures() {
     let results = vec![
-        create_test_task_result("task1", TaskStatus::Failed, Some("Error 1", None)),
-        create_test_task_result("task2", TaskStatus::Failed, Some("Error 2", None)),
+        create_test_task_result("task1", TaskStatus::Failed, Some("Error 1".to_string())),
+        create_test_task_result("task2", TaskStatus::Failed, Some("Error 2".to_string())),
     ];
     let response = create_test_execution_response(results, 2);
 

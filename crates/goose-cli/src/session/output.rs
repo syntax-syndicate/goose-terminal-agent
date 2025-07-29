@@ -78,7 +78,7 @@ pub fn set_theme(theme: Theme) {
         Theme::Ansi => "ansi",
     };
 
-    if let Err(e) = config.set_param("GOOSE_CLI_THEME", Value::String(theme_str, None)) {
+    if let Err(e) = config.set_param("GOOSE_CLI_THEME", Value::String(theme_str.to_string())) {
         eprintln!("Failed to save theme setting to config: {}", e);
     }
 }

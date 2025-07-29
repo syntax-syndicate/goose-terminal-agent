@@ -242,7 +242,7 @@ mod tests {
         env::set_var("GOOSE_LEAD_MODEL", "gpt-4o");
 
         // This will try to create a lead/worker provider
-        let result = create("openai", ModelConfig::new("gpt-4o-mini", None));
+        let result = create("openai", ModelConfig::new("gpt-4o-mini".to_string()));
 
         // The creation might succeed or fail depending on API keys, but we can verify the logic path
         match result {
@@ -261,7 +261,7 @@ mod tests {
         env::set_var("GOOSE_LEAD_PROVIDER", "anthropic");
         env::set_var("GOOSE_LEAD_TURNS", "5");
 
-        let _result = create("openai", ModelConfig::new("gpt-4o-mini", None));
+        let _result = create("openai", ModelConfig::new("gpt-4o-mini".to_string()));
         // Similar validation as above - will fail due to missing API keys but confirms the logic
 
         // Restore env vars
@@ -305,7 +305,7 @@ mod tests {
         env::set_var("GOOSE_LEAD_MODEL", "grok-3");
 
         // This should use defaults for all other values
-        let result = create("openai", ModelConfig::new("gpt-4o-mini", None));
+        let result = create("openai", ModelConfig::new("gpt-4o-mini".to_string()));
 
         // Should attempt to create lead/worker provider (will fail due to missing API keys but confirms logic)
         match result {
@@ -324,7 +324,7 @@ mod tests {
         env::set_var("GOOSE_LEAD_FAILURE_THRESHOLD", "4");
         env::set_var("GOOSE_LEAD_FALLBACK_TURNS", "3");
 
-        let _result = create("openai", ModelConfig::new("gpt-4o-mini", None));
+        let _result = create("openai", ModelConfig::new("gpt-4o-mini".to_string()));
         // Should still attempt to create lead/worker provider with custom settings
 
         // Restore all env vars
@@ -353,7 +353,7 @@ mod tests {
         env::remove_var("GOOSE_LEAD_FALLBACK_TURNS");
 
         // This should try to create a regular provider
-        let result = create("openai", ModelConfig::new("gpt-4o-mini", None));
+        let result = create("openai", ModelConfig::new("gpt-4o-mini".to_string()));
 
         // The creation might succeed or fail depending on API keys
         match result {

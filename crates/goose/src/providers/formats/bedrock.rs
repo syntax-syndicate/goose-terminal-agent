@@ -6,8 +6,8 @@ use aws_sdk_bedrockruntime::types as bedrock;
 use aws_smithy_types::{Document, Number};
 use base64::Engine;
 use chrono::Utc;
-use mcp_core::ToolCallToolResult;
-use rmcp::model::{Content, ErrorCode, ErrorData, RawContent, ResourceContents, Role, Tool};
+use mcp_core::{ToolCall, ToolError, ToolResult};
+use rmcp::model::{Content, RawContent, ResourceContents, Role, Tool};
 use serde_json::Value;
 
 use super::super::base::Usage;
@@ -286,8 +286,7 @@ pub fn from_bedrock_content_block(block: &bedrock::ContentBlock) -> Result<Messa
         bedrock::ContentBlock::ToolResult(tool_res) => MessageContent::tool_response(
             tool_res.tool_use_id.to_string(),
             if tool_res.content.is_empty() {
-                Err(ErrorData::new(
-                    ErrorCode::INTERNAL_ERROR,
+                Err(ToolError::ExecutionError(
                     "Empty content for tool use from Bedrock".to_string(),
                 ))
             } else {
@@ -295,7 +294,7 @@ pub fn from_bedrock_content_block(block: &bedrock::ContentBlock) -> Result<Messa
                     .content
                     .iter()
                     .map(from_bedrock_tool_result_content_block)
-                    .collect::<Result<Vec<_, ErrorData>>>()
+                    .collect::<ToolResult<Vec<_>>>()
             },
         ),
         _ => bail!("Unsupported content block type from Bedrock"),
@@ -304,12 +303,11 @@ pub fn from_bedrock_content_block(block: &bedrock::ContentBlock) -> Result<Messa
 
 pub fn from_bedrock_tool_result_content_block(
     content: &bedrock::ToolResultContentBlock,
-) -> Result<Content, ErrorData> {
+) -> ToolResult<Content> {
     Ok(match content {
         bedrock::ToolResultContentBlock::Text(text) => Content::text(text.to_string()),
         _ => {
-            return Err(ErrorData::new(
-                ErrorCode::INTERNAL_ERROR,
+            return Err(ToolError::ExecutionError(
                 "Unsupported tool result from Bedrock".to_string(),
             ))
         }

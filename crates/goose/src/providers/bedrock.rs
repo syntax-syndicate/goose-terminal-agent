@@ -47,7 +47,7 @@ impl BedrockProvider {
             if let Ok(map) = res {
                 map.into_iter()
                     .filter(|(key, _)| key.starts_with("AWS_"))
-                    .filter_map(|(key, value)| value.as_str().map(|s| (key, s, None)))
+                    .filter_map(|(key, value)| value.as_str().map(|s| (key, s.to_string())))
                     .for_each(|(key, s)| std::env::set_var(key, s));
             }
         };
@@ -87,7 +87,8 @@ impl Provider for BedrockProvider {
             BEDROCK_DEFAULT_MODEL,
             BEDROCK_KNOWN_MODELS.to_vec(),
             BEDROCK_DOC_LINK,
-            vec![ConfigKey::new("AWS_PROFILE", true, false, Some("default"))])
+            vec![ConfigKey::new("AWS_PROFILE", true, false, Some("default"))],
+        )
     }
 
     fn get_model_config(&self) -> ModelConfig {
@@ -109,7 +110,7 @@ impl Provider for BedrockProvider {
         let mut request = self
             .client
             .converse()
-            .system(bedrock::SystemContentBlock::Text(system, None))
+            .system(bedrock::SystemContentBlock::Text(system.to_string()))
             .model_id(model_name.to_string())
             .set_messages(Some(
                 messages

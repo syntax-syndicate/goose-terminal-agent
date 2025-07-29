@@ -5,10 +5,8 @@ use crate::providers::utils::{
     sanitize_function_name, ImageFormat,
 };
 use anyhow::{anyhow, Error};
-use mcp_core::ToolCall;
-use rmcp::model::{
-    AnnotateAble, Content, ErrorCode, ErrorData, RawContent, ResourceContents, Role, Tool,
-};
+use mcp_core::{ToolCall, ToolError};
+use rmcp::model::{AnnotateAble, Content, RawContent, ResourceContents, Role, Tool};
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 
@@ -341,10 +339,10 @@ pub fn response_to_message(response: &Value) -> anyhow::Result<Message> {
                 };
 
                 if !is_valid_function_name(&function_name) {
-                    let error = ErrorData::new(ErrorCode::RESOURCE_NOT_FOUND, format!(
+                    let error = ToolError::NotFound(format!(
                         "The provided function name '{}' had invalid characters, it must match this regex [a-zA-Z0-9_-]+",
                         function_name
-                    ), None);
+                    ));
                     content.push(MessageContent::tool_request(id, Err(error)));
                 } else {
                     match safely_parse_json(&arguments_str) {
@@ -355,10 +353,10 @@ pub fn response_to_message(response: &Value) -> anyhow::Result<Message> {
                             ));
                         }
                         Err(e) => {
-                            let error = ErrorData::new(ErrorCode::INVALID_PARAMS, format!(
+                            let error = ToolError::InvalidParameters(format!(
                                 "Could not interpret tool use parameters for id {}: {}. Raw arguments: '{}'",
                                 id, e, arguments_str
-                            ), None);
+                            ));
                             content.push(MessageContent::tool_request(id, Err(error)));
                         }
                     }
@@ -484,7 +482,7 @@ pub fn create_request(
         match *last_part {
             "low" | "medium" | "high" => {
                 let base_name = parts[..parts.len() - 1].join("-");
-                (base_name, Some(last_part, None))
+                (base_name, Some(last_part.to_string()))
             }
             _ => (
                 model_config.model_name.to_string(),
@@ -933,7 +931,7 @@ mod tests {
 
         if let MessageContent::ToolRequest(request) = &message.content[0] {
             match &request.tool_call {
-                Err(ErrorData::new(ErrorCode::RESOURCE_NOT_FOUND, msg, None, None)) => {
+                Err(ToolError::NotFound(msg)) => {
                     assert!(msg.starts_with("The provided function name"));
                 }
                 _ => panic!("Expected ToolNotFound error"),
@@ -955,7 +953,7 @@ mod tests {
 
         if let MessageContent::ToolRequest(request) = &message.content[0] {
             match &request.tool_call {
-                Err(ErrorData::new(ErrorCode::INVALID_PARAMS, msg, None, None)) => {
+                Err(ToolError::InvalidParameters(msg)) => {
                     assert!(msg.starts_with("Could not interpret tool use parameters"));
                 }
                 _ => panic!("Expected InvalidParameters error"),

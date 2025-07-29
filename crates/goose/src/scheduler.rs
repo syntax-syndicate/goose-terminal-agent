@@ -64,7 +64,7 @@ pub fn normalize_cron_expression(src: &str) -> String {
 
 pub fn get_default_scheduler_storage_path() -> Result<PathBuf, io::Error> {
     let strategy = choose_app_strategy(config::APP_STRATEGY.clone())
-        .map_err(|e| io::Error::new(io::ErrorKind::NotFound, e, None))?;
+        .map_err(|e| io::Error::new(io::ErrorKind::NotFound, e.to_string()))?;
     let data_dir = strategy.data_dir();
     fs::create_dir_all(&data_dir)?;
     Ok(data_dir.join("schedules.json"))
@@ -72,7 +72,7 @@ pub fn get_default_scheduler_storage_path() -> Result<PathBuf, io::Error> {
 
 pub fn get_default_scheduled_recipes_dir() -> Result<PathBuf, SchedulerError> {
     let strategy = choose_app_strategy(config::APP_STRATEGY.clone()).map_err(|e| {
-        SchedulerError::StorageError(io::Error::new(io::ErrorKind::NotFound, e, None))
+        SchedulerError::StorageError(io::Error::new(io::ErrorKind::NotFound, e.to_string()))
     })?;
     let data_dir = strategy.data_dir();
     let recipes_dir = data_dir.join("scheduled_recipes");
@@ -186,7 +186,7 @@ impl Scheduler {
     pub async fn new(storage_path: PathBuf) -> Result<Arc<Self>, SchedulerError> {
         let internal_scheduler = TokioJobScheduler::new()
             .await
-            .map_err(|e| SchedulerError::SchedulerInternalError(e, None))?;
+            .map_err(|e| SchedulerError::SchedulerInternalError(e.to_string()))?;
 
         let jobs = Arc::new(Mutex::new(HashMap::new()));
         let running_tasks = Arc::new(Mutex::new(HashMap::new()));
@@ -203,7 +203,7 @@ impl Scheduler {
             .internal_scheduler
             .start()
             .await
-            .map_err(|e| SchedulerError::SchedulerInternalError(e, None))?;
+            .map_err(|e| SchedulerError::SchedulerInternalError(e.to_string()))?;
 
         Ok(arc_self)
     }
@@ -403,13 +403,13 @@ impl Scheduler {
                 }
             })
         })
-        .map_err(|e| SchedulerError::CronParseError(e, None))?;
+        .map_err(|e| SchedulerError::CronParseError(e.to_string()))?;
 
         let job_uuid = self
             .internal_scheduler
             .add(cron_task)
             .await
-            .map_err(|e| SchedulerError::SchedulerInternalError(e, None))?;
+            .map_err(|e| SchedulerError::SchedulerInternalError(e.to_string()))?;
 
         jobs_guard.insert(stored_job.id.clone(), (job_uuid, stored_job));
         // Pass the jobs_guard by reference for the initial persist after adding a job
@@ -584,13 +584,13 @@ impl Scheduler {
                     }
                 })
             })
-            .map_err(|e| SchedulerError::CronParseError(e, None))?;
+            .map_err(|e| SchedulerError::CronParseError(e.to_string()))?;
 
             let job_uuid = self
                 .internal_scheduler
                 .add(cron_task)
                 .await
-                .map_err(|e| SchedulerError::SchedulerInternalError(e, None))?;
+                .map_err(|e| SchedulerError::SchedulerInternalError(e.to_string()))?;
             jobs_guard.insert(job_to_load.id.clone(), (job_uuid, job_to_load));
         }
         Ok(())
@@ -630,7 +630,7 @@ impl Scheduler {
             self.internal_scheduler
                 .remove(&job_uuid)
                 .await
-                .map_err(|e| SchedulerError::SchedulerInternalError(e, None))?;
+                .map_err(|e| SchedulerError::SchedulerInternalError(e.to_string()))?;
 
             let recipe_path = Path::new(&scheduled_job.source);
             if recipe_path.exists() {
@@ -640,7 +640,7 @@ impl Scheduler {
             self.persist_jobs_to_storage_with_guard(&jobs_guard).await?;
             Ok(())
         } else {
-            Err(SchedulerError::JobNotFound(id, None))
+            Err(SchedulerError::JobNotFound(id.to_string()))
         }
     }
 
@@ -697,7 +697,7 @@ impl Scheduler {
                     self.persist_jobs().await?;
                     job_clone
                 }
-                None => return Err(SchedulerError::JobNotFound(sched_id, None)),
+                None => return Err(SchedulerError::JobNotFound(sched_id.to_string())),
             }
         };
 
@@ -774,7 +774,7 @@ impl Scheduler {
                 self.persist_jobs_to_storage_with_guard(&jobs_guard).await?;
                 Ok(())
             }
-            None => Err(SchedulerError::JobNotFound(sched_id, None)),
+            None => Err(SchedulerError::JobNotFound(sched_id.to_string())),
         }
     }
 
@@ -786,7 +786,7 @@ impl Scheduler {
                 self.persist_jobs_to_storage_with_guard(&jobs_guard).await?;
                 Ok(())
             }
-            None => Err(SchedulerError::JobNotFound(sched_id, None)),
+            None => Err(SchedulerError::JobNotFound(sched_id.to_string())),
         }
     }
 
@@ -814,7 +814,7 @@ impl Scheduler {
                 self.internal_scheduler
                     .remove(job_uuid)
                     .await
-                    .map_err(|e| SchedulerError::SchedulerInternalError(e, None))?;
+                    .map_err(|e| SchedulerError::SchedulerInternalError(e.to_string()))?;
 
                 // Create new job with updated cron
                 let job_for_task = job_def.clone();
@@ -973,13 +973,13 @@ impl Scheduler {
                         }
                     })
                 })
-                .map_err(|e| SchedulerError::CronParseError(e, None))?;
+                .map_err(|e| SchedulerError::CronParseError(e.to_string()))?;
 
                 let new_job_uuid = self
                     .internal_scheduler
                     .add(cron_task)
                     .await
-                    .map_err(|e| SchedulerError::SchedulerInternalError(e, None))?;
+                    .map_err(|e| SchedulerError::SchedulerInternalError(e.to_string()))?;
 
                 // Update the job UUID and cron expression
                 *job_uuid = new_job_uuid;
@@ -988,7 +988,7 @@ impl Scheduler {
                 self.persist_jobs_to_storage_with_guard(&jobs_guard).await?;
                 Ok(())
             }
-            None => Err(SchedulerError::JobNotFound(sched_id, None)),
+            None => Err(SchedulerError::JobNotFound(sched_id.to_string())),
         }
     }
 
@@ -1029,7 +1029,7 @@ impl Scheduler {
                 tracing::info!("Successfully killed job '{}'", sched_id);
                 Ok(())
             }
-            None => Err(SchedulerError::JobNotFound(sched_id, None)),
+            None => Err(SchedulerError::JobNotFound(sched_id.to_string())),
         }
     }
 
@@ -1052,7 +1052,7 @@ impl Scheduler {
                     Ok(None)
                 }
             }
-            None => Err(SchedulerError::JobNotFound(sched_id, None)),
+            None => Err(SchedulerError::JobNotFound(sched_id.to_string())),
         }
     }
 }

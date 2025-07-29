@@ -519,7 +519,7 @@ pub fn read_messages_with_truncation(
             Err(e) => {
                 println!("[SESSION] Failed to read first line: {}", e);
                 tracing::error!("Failed to read first line: {}", e);
-                corrupted_lines.push((line_number, "[Unreadable line]", None));
+                corrupted_lines.push((line_number, "[Unreadable line]".to_string()));
             }
         }
         line_number += 1;
@@ -587,7 +587,7 @@ pub fn read_messages_with_truncation(
             Err(e) => {
                 println!("[SESSION] Failed to read line {}: {}", line_number, e);
                 tracing::error!("Failed to read line {}: {}", line_number, e);
-                corrupted_lines.push((line_number, "[Unreadable line]", None));
+                corrupted_lines.push((line_number, "[Unreadable line]".to_string()));
             }
         }
         line_number += 1;
@@ -1959,7 +1959,7 @@ mod tests {
 
         // Verify the schedule_id was set correctly
         let metadata = read_metadata(&file_path)?;
-        assert_eq!(metadata.schedule_id, Some("test_schedule", None));
+        assert_eq!(metadata.schedule_id, Some("test_schedule".to_string()));
 
         Ok(())
     }

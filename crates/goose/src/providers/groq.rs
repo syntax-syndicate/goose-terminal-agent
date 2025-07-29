@@ -182,7 +182,7 @@ impl Provider for GroqProvider {
                 .get("message")
                 .and_then(|v| v.as_str())
                 .unwrap_or("unknown error");
-            return Err(ProviderError::Authentication(msg, None));
+            return Err(ProviderError::Authentication(msg.to_string()));
         }
 
         // Extract model names

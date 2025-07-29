@@ -257,7 +257,7 @@ impl GcpVertexAIProvider {
             .get_param("GCP_LOCATION")
             .ok()
             .filter(|location: &String| !location.trim().is_empty())
-            .unwrap_or_else(|| Iowa, None))
+            .unwrap_or_else(|| Iowa.to_string()))
     }
 
     /// Retrieves an authentication token for API requests.
@@ -266,7 +266,7 @@ impl GcpVertexAIProvider {
             .get_token()
             .await
             .map(|token| format!("Bearer {}", token.token_value))
-            .map_err(|e| GcpVertexAIError::AuthError(e, None))
+            .map_err(|e| GcpVertexAIError::AuthError(e.to_string()))
     }
 
     /// Constructs the appropriate API endpoint URL for a given provider.
@@ -287,7 +287,8 @@ impl GcpVertexAIProvider {
             &self.host.replace(&self.location, location)
         };
 
-        let base_url = Url::parse(host_url).map_err(|e| GcpVertexAIError::InvalidUrl(e, None))?;
+        let base_url =
+            Url::parse(host_url).map_err(|e| GcpVertexAIError::InvalidUrl(e.to_string()))?;
 
         // Determine endpoint based on provider type
         let endpoint = match provider {
@@ -307,7 +308,7 @@ impl GcpVertexAIProvider {
 
         base_url
             .join(&path)
-            .map_err(|e| GcpVertexAIError::InvalidUrl(e, None))
+            .map_err(|e| GcpVertexAIError::InvalidUrl(e.to_string()))
     }
 
     /// Makes an authenticated POST request to the Vertex AI API at a specific location.
@@ -325,7 +326,7 @@ impl GcpVertexAIProvider {
     ) -> Result<Value, ProviderError> {
         let url = self
             .build_request_url(context.provider(), location)
-            .map_err(|e| ProviderError::RequestFailed(e, None))?;
+            .map_err(|e| ProviderError::RequestFailed(e.to_string()))?;
 
         // Initialize separate counters for different error types
         let mut rate_limit_attempts = 0;
@@ -337,7 +338,7 @@ impl GcpVertexAIProvider {
             let auth_header = self
                 .get_auth_header()
                 .await
-                .map_err(|e| ProviderError::Authentication(e, None))?;
+                .map_err(|e| ProviderError::Authentication(e.to_string()))?;
 
             // Make the request
             let response = self
@@ -347,7 +348,7 @@ impl GcpVertexAIProvider {
                 .header("Authorization", auth_header)
                 .send()
                 .await
-                .map_err(|e| ProviderError::RequestFailed(e, None))?;
+                .map_err(|e| ProviderError::RequestFailed(e.to_string()))?;
 
             let status = response.status();
 
@@ -742,9 +743,9 @@ mod tests {
             .iter()
             .map(|m| m.name.clone())
             .collect();
-        assert!(model_names.contains(&"claude-3-5-sonnet-v2@20241022", None));
-        assert!(model_names.contains(&"gemini-1.5-pro-002", None));
-        assert!(model_names.contains(&"gemini-2.5-pro", None));
+        assert!(model_names.contains(&"claude-3-5-sonnet-v2@20241022".to_string()));
+        assert!(model_names.contains(&"gemini-1.5-pro-002".to_string()));
+        assert!(model_names.contains(&"gemini-2.5-pro".to_string()));
         // Should contain the original 2 config keys plus 6 new retry-related ones
         assert_eq!(metadata.config_keys.len(), 8);
     }

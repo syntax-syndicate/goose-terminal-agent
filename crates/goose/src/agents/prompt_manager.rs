@@ -114,7 +114,7 @@ impl PromptManager {
 
         // First check the global store, and only if it's not available, fall back to the provided model_name
         let model_to_use: Option<String> =
-            get_current_model().or_else(|| model_name.map(|s| s, None));
+            get_current_model().or_else(|| model_name.map(|s| s.to_string()));
 
         // Conditionally load the override prompt or the global system prompt
         let base_prompt = if let Some(override_prompt) = &self.system_prompt_override {

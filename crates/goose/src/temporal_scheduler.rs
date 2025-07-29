@@ -1010,10 +1010,10 @@ impl TemporalScheduler {
                         Ok(None)
                     }
                 } else {
-                    Err(SchedulerError::JobNotFound(sched_id, None))
+                    Err(SchedulerError::JobNotFound(sched_id.to_string()))
                 }
             } else {
-                Err(SchedulerError::JobNotFound(sched_id, None))
+                Err(SchedulerError::JobNotFound(sched_id.to_string()))
             }
         } else {
             Err(SchedulerError::SchedulerInternalError(response.message))

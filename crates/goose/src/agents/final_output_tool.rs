@@ -1,8 +1,8 @@
 use crate::agents::tool_execution::ToolCallResult;
 use crate::recipe::Response;
 use indoc::formatdoc;
-use mcp_core::ToolCall;
-use rmcp::model::{Content, ErrorCode, ErrorData, Tool, ToolAnnotations};
+use mcp_core::{ToolCall, ToolError};
+use rmcp::model::{Content, Tool, ToolAnnotations};
 use serde_json::Value;
 
 pub const FINAL_OUTPUT_TOOL_NAME: &str = "recipe__final_output";
@@ -127,18 +127,13 @@ impl FinalOutputTool {
                             "Final output successfully collected.".to_string(),
                         )]))
                     }
-                    Err(error) => ToolCallResult::from(Err(ErrorData::new(
-                        ErrorCode::INVALID_PARAMS,
-                        error,
-                        None,
-                    ))),
+                    Err(error) => ToolCallResult::from(Err(ToolError::InvalidParameters(error))),
                 }
             }
-            _ => ToolCallResult::from(Err(ErrorData::new(
-                ErrorCode::RESOURCE_NOT_FOUND,
-                format!("Unknown tool: {}", tool_call.name),
-                None,
-            ))),
+            _ => ToolCallResult::from(Err(ToolError::NotFound(format!(
+                "Unknown tool: {}",
+                tool_call.name
+            )))),
         }
     }
 
@@ -236,7 +231,7 @@ mod tests {
         let tool_result = result.result.await;
         assert!(tool_result.is_err());
         if let Err(error) = tool_result {
-            assert!(error.message.contains("Validation failed"));
+            assert!(error.to_string().contains("Validation failed"));
         }
     }
 

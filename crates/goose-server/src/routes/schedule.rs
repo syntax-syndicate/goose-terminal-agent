@@ -126,7 +126,7 @@ async fn create_schedule(
         paused: false,
         current_session_id: None,
         process_start_time: None,
-        execution_mode: req.execution_mode.or(Some("background", None)), // Default to background
+        execution_mode: req.execution_mode.or(Some("background".to_string())), // Default to background
     };
     scheduler
         .add_scheduled_job(job.clone())

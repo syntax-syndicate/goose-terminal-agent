@@ -21,7 +21,7 @@ impl ToolRouterIndexManager {
             "add" => {
                 // Get tools for specific extension
                 let tools = extension_manager
-                    .get_prefixed_tools(Some(extension_name, None))
+                    .get_prefixed_tools(Some(extension_name.to_string()))
                     .await?;
 
                 if !tools.is_empty() {
@@ -47,7 +47,7 @@ impl ToolRouterIndexManager {
             "remove" => {
                 // Remove all tools for this extension
                 let tools = extension_manager
-                    .get_prefixed_tools(Some(extension_name, None))
+                    .get_prefixed_tools(Some(extension_name.to_string()))
                     .await?;
 
                 for tool in &tools {

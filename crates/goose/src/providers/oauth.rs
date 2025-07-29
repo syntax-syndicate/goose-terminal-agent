@@ -187,7 +187,7 @@ impl OAuthFlow {
             .get("refresh_token")
             .and_then(|v| v.as_str())
             .map(|s| s.to_string())
-            .or_else(|| old_refresh_token.map(|s| s, None));
+            .or_else(|| old_refresh_token.map(|s| s.to_string()));
 
         // Handle token expiration
         let expires_at =

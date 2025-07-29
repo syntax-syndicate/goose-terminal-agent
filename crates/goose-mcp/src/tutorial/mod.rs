@@ -2,14 +2,12 @@ use anyhow::Result;
 use include_dir::{include_dir, Dir};
 use indoc::formatdoc;
 use mcp_core::{
-    handler::{PromptError, ResourceError},
+    handler::{PromptError, ResourceError, ToolError},
     protocol::ServerCapabilities,
 };
 use mcp_server::router::CapabilitiesBuilder;
 use mcp_server::Router;
-use rmcp::model::{
-    Content, ErrorCode, ErrorData, JsonRpcMessage, Prompt, Resource, Role, Tool, ToolAnnotations,
-};
+use rmcp::model::{Content, JsonRpcMessage, Prompt, Resource, Role, Tool, ToolAnnotations};
 use rmcp::object;
 use serde_json::Value;
 use std::{future::Future, pin::Pin};
@@ -84,7 +82,7 @@ impl TutorialRouter {
             // Use first line for additional context
             let first_line = file
                 .contents_utf8()
-                .and_then(|s| s.lines().next().map(|line| line, None))
+                .and_then(|s| s.lines().next().map(|line| line.to_string()))
                 .unwrap_or_else(String::new);
 
             if let Some(name) = file.path().file_stem() {
@@ -94,13 +92,14 @@ impl TutorialRouter {
         tutorials
     }
 
-    async fn load_tutorial(&self, name: &str) -> Result<String, ErrorData> {
+    async fn load_tutorial(&self, name: &str) -> Result<String, ToolError> {
         let file_name = format!("{}.md", name);
-        let file = TUTORIALS_DIR.get_file(&file_name).ok_or(ErrorData::new(
-            ErrorCode::RESOURCE_NOT_FOUND,
-            format!("Could not locate tutorial '{}'", name),
-            None,
-        ))?;
+        let file = TUTORIALS_DIR
+            .get_file(&file_name)
+            .ok_or(ToolError::ExecutionError(format!(
+                "Could not locate tutorial '{}'",
+                name
+            )))?;
         Ok(String::from_utf8_lossy(file.contents()).into_owned())
     }
 }
@@ -127,7 +126,7 @@ impl Router for TutorialRouter {
         tool_name: &str,
         arguments: Value,
         _notifier: mpsc::Sender<JsonRpcMessage>,
-    ) -> Pin<Box<dyn Future<Output = Result<Vec<Content>, ErrorData>> + Send + 'static>> {
+    ) -> Pin<Box<dyn Future<Output = Result<Vec<Content>, ToolError>> + Send + 'static>> {
         let this = self.clone();
         let tool_name = tool_name.to_string();
 
@@ -138,11 +137,7 @@ impl Router for TutorialRouter {
                         .get("name")
                         .and_then(|v| v.as_str())
                         .ok_or_else(|| {
-                            ErrorData::new(
-                                ErrorCode::INVALID_PARAMS,
-                                "Missing 'name' parameter".to_string(),
-                                None,
-                            )
+                            ToolError::InvalidParameters("Missing 'name' parameter".to_string())
                         })?;
 
                     let content = this.load_tutorial(name).await?;
@@ -150,11 +145,7 @@ impl Router for TutorialRouter {
                         Content::text(content).with_audience(vec![Role::Assistant])
                     ])
                 }
-                _ => Err(ErrorData::new(
-                    ErrorCode::METHOD_NOT_FOUND,
-                    format!("Tool {} not found", tool_name),
-                    None,
-                )),
+                _ => Err(ToolError::NotFound(format!("Tool {} not found", tool_name))),
             }
         })
     }

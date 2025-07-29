@@ -33,7 +33,7 @@ async fn test_pricing_endpoint_basic() {
         .method("POST")
         .header("content-type", "application/json")
         .header("x-secret-key", "test")
-        .body(Body::from(json!({"configured_only": true}), None))
+        .body(Body::from(json!({"configured_only": true}).to_string()))
         .unwrap();
 
     let response = app.oneshot(request).await.unwrap();

@@ -71,7 +71,7 @@ fn extract_identifier(identifier: Identifier) -> session::Identifier {
 
 fn parse_key_val(s: &str) -> Result<(String, String), String> {
     match s.split_once('=') {
-        Some((key, value)) => Ok((key.to_string(), value, None)),
+        Some((key, value)) => Ok((key.to_string(), value.to_string())),
         None => Err(format!("invalid KEY=VALUE: {}", s)),
     }
 }

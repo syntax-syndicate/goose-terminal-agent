@@ -187,7 +187,7 @@ impl GeminiCliProvider {
         let stdout = child
             .stdout
             .take()
-            .ok_or_else(|| ProviderError::RequestFailed("Failed to capture stdout", None))?;
+            .ok_or_else(|| ProviderError::RequestFailed("Failed to capture stdout".to_string()))?;
 
         let mut reader = BufReader::new(stdout);
         let mut lines = Vec::new();

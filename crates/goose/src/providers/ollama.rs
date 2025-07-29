@@ -112,7 +112,7 @@ impl Provider for OllamaProvider {
                     "OLLAMA_TIMEOUT",
                     false,
                     false,
-                    Some(&(OLLAMA_TIMEOUT, None)),
+                    Some(&(OLLAMA_TIMEOUT.to_string())),
                 ),
             ],
         )

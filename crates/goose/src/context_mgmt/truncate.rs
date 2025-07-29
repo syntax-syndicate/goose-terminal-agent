@@ -353,7 +353,7 @@ impl TruncationStrategy for OldestFirstTruncation {
             // If it's a ToolRequest or ToolResponse, mark its pair for removal
             if message.is_tool_call() || message.is_tool_response() {
                 message.get_tool_ids().iter().for_each(|id| {
-                    tool_ids_to_remove.insert((i, id, None));
+                    tool_ids_to_remove.insert((i, id.to_string()));
                 });
             }
         }

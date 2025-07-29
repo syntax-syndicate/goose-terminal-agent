@@ -6,13 +6,14 @@
 /// The content of the messages uses MCP types to avoid additional conversions
 /// when interacting with MCP servers.
 use chrono::Utc;
+use mcp_core::handler::ToolResult;
 use mcp_core::tool::ToolCall;
+use rmcp::model::ResourceContents;
 use rmcp::model::Role;
 use rmcp::model::{
     AnnotateAble, Content, ImageContent, PromptMessage, PromptMessageContent, PromptMessageRole,
     RawContent, RawImageContent, RawTextContent, TextContent,
 };
-use rmcp::model::{ErrorData, ResourceContents};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::collections::HashSet;
@@ -20,8 +21,6 @@ use std::fmt;
 use utoipa::ToSchema;
 
 mod tool_result_serde;
-
-type ToolResult<T> = Result<T, ErrorData>;
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -257,7 +256,7 @@ impl MessageContent {
             if let Ok(contents) = &tool_response.tool_result {
                 let texts: Vec<String> = contents
                     .iter()
-                    .filter_map(|content| content.as_text().map(|t| t.text, None))
+                    .filter_map(|content| content.as_text().map(|t| t.text.to_string()))
                     .collect();
                 if !texts.is_empty() {
                     return Some(texts.join("\n"));
@@ -582,7 +581,7 @@ impl Message {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use rmcp::model::{ErrorCode, ErrorData};
+    use mcp_core::handler::ToolError;
     use rmcp::model::{PromptMessage, PromptMessageContent, RawEmbeddedResource, ResourceContents};
     use serde_json::{json, Value};
 
@@ -630,10 +629,8 @@ mod tests {
     fn test_error_serialization() {
         let message = Message::assistant().with_tool_request(
             "tool123",
-            Err(ErrorData::new(
-                ErrorCode::INTERNAL_ERROR,
+            Err(ToolError::ExecutionError(
                 "Something went wrong".to_string(),
-                None,
             )),
         );
 

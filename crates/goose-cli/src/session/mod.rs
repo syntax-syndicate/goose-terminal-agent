@@ -35,11 +35,11 @@ use goose::message::{Message, MessageContent};
 use goose::providers::pricing::initialize_pricing_cache;
 use goose::session;
 use input::InputResult;
+use mcp_core::handler::ToolError;
+use rmcp::model::PromptMessage;
+use rmcp::model::ServerNotification;
+
 use rand::{distributions::Alphanumeric, Rng};
-use rmcp::model::{
-    ErrorCode, ErrorData, JsonRpcMessage, JsonRpcNotification, Notification, PromptMessage,
-    ServerNotification,
-};
 use rustyline::EditMode;
 use serde_json::Value;
 use std::collections::HashMap;
@@ -611,7 +611,7 @@ impl Session {
                     }
 
                     config
-                        .set_param("GOOSE_MODE", Value::String(mode, None))
+                        .set_param("GOOSE_MODE", Value::String(mode.to_string()))
                         .unwrap();
                     output::goose_mode_message(&format!("Goose mode set to '{}'", mode));
                     continue;
@@ -803,7 +803,7 @@ impl Session {
                         config.get_param("GOOSE_MODE").unwrap_or("auto".to_string());
                     if curr_goose_mode != "auto" {
                         config
-                            .set_param("GOOSE_MODE", Value::String("auto", None))
+                            .set_param("GOOSE_MODE", Value::String("auto".to_string()))
                             .unwrap();
                     }
 
@@ -820,7 +820,7 @@ impl Session {
                     // Reset run & goose mode
                     if curr_goose_mode != "auto" {
                         config
-                            .set_param("GOOSE_MODE", Value::String(curr_goose_mode, None))
+                            .set_param("GOOSE_MODE", Value::String(curr_goose_mode.to_string()))
                             .unwrap();
                     }
                 } else {
@@ -906,7 +906,7 @@ impl Session {
                                     let mut response_message = Message::user();
                                     response_message.content.push(MessageContent::tool_response(
                                         confirmation.id.clone(),
-                                        Err(ErrorData::new(ErrorCode::INTERNAL_ERROR, "Tool call cancelled by user".to_string(), None))
+                                        Err(ToolError::ExecutionError("Tool call cancelled by user".to_string()))
                                     ));
                                     push_message(&mut self.messages, response_message);
                                     if let Some(session_file) = &self.session_file {
@@ -1079,7 +1079,7 @@ impl Session {
                                                         msg.to_string()
                                                     }
                                                 };
-                                                (formatted, Some(subagent_id.to_string()), Some(notification_type, None))
+                                                (formatted, Some(subagent_id.to_string()), Some(notification_type.to_string()))
                                             } else if let Some(Value::String(output)) = o.get("output") {
                                                 // Fallback for other MCP notification types
                                                 (output.to_owned(), None, None)
@@ -1216,11 +1216,7 @@ impl Session {
             for (req_id, _) in &tool_requests {
                 response_message.content.push(MessageContent::tool_response(
                     req_id.clone(),
-                    Err(ErrorData::new(
-                        ErrorCode::INTERNAL_ERROR,
-                        notification.clone(),
-                        None,
-                    )),
+                    Err(ToolError::ExecutionError(notification.clone())),
                 ));
             }
             self.push_message(response_message);

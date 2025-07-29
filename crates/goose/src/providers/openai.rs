@@ -195,10 +195,10 @@ impl Provider for OpenAiProvider {
     async fn fetch_supported_models_async(&self) -> Result<Option<Vec<String>>, ProviderError> {
         // List available models via OpenAI API
         let base_url =
-            url::Url::parse(&self.host).map_err(|e| ProviderError::RequestFailed(e, None))?;
+            url::Url::parse(&self.host).map_err(|e| ProviderError::RequestFailed(e.to_string()))?;
         let url = base_url
             .join(&self.base_path.replace("v1/chat/completions", "v1/models"))
-            .map_err(|e| ProviderError::RequestFailed(e, None))?;
+            .map_err(|e| ProviderError::RequestFailed(e.to_string()))?;
         let mut request = self.client.get(url).bearer_auth(&self.api_key);
         if let Some(org) = &self.organization {
             request = request.header("OpenAI-Organization", org);
@@ -218,7 +218,7 @@ impl Provider for OpenAiProvider {
                 .get("message")
                 .and_then(|v| v.as_str())
                 .unwrap_or("unknown error");
-            return Err(ProviderError::Authentication(msg, None));
+            return Err(ProviderError::Authentication(msg.to_string()));
         }
         let data = json.get("data").and_then(|v| v.as_array()).ok_or_else(|| {
             ProviderError::UsageError("Missing data field in JSON response".into())
@@ -238,7 +238,7 @@ impl Provider for OpenAiProvider {
     async fn create_embeddings(&self, texts: Vec<String>) -> Result<Vec<Vec<f32>>, ProviderError> {
         EmbeddingCapable::create_embeddings(self, texts)
             .await
-            .map_err(|e| ProviderError::ExecutionError(e, None))
+            .map_err(|e| ProviderError::ExecutionError(e.to_string()))
     }
 
     fn supports_streaming(&self) -> bool {

@@ -4,7 +4,7 @@ use crate::providers::base::Usage;
 use crate::providers::errors::ProviderError;
 use anyhow::{anyhow, Result};
 use mcp_core::tool::ToolCall;
-use rmcp::model::{ErrorCode, ErrorData, Role, Tool};
+use rmcp::model::{Role, Tool};
 use serde_json::{json, Value};
 use std::collections::HashSet;
 
@@ -542,7 +542,8 @@ where
                                 let mut message = Message::new(
                                     Role::Assistant,
                                     chrono::Utc::now().timestamp(),
-                                    vec![MessageContent::text(text)]);
+                                    vec![MessageContent::text(text)],
+                                );
                                 message.id = message_id.clone();
                                 yield (Some(message), None);
                             }
@@ -571,11 +572,14 @@ where
                                     Ok(parsed) => parsed,
                                     Err(_) => {
                                         // If parsing fails, create an error tool request
-                                        let error = mcp_core::handler::ErrorData::new(ErrorCode::INVALID_PARAMS, format!("Could not parse tool arguments: {}", args), None);
+                                        let error = mcp_core::handler::ToolError::InvalidParameters(
+                                            format!("Could not parse tool arguments: {}", args)
+                                        );
                                         let mut message = Message::new(
                                             Role::Assistant,
                                             chrono::Utc::now().timestamp(),
-                                            vec![MessageContent::tool_request(tool_id, Err(error))]);
+                                            vec![MessageContent::tool_request(tool_id, Err(error))],
+                                        );
                                         message.id = message_id.clone();
                                         yield (Some(message), None);
                                         continue;
@@ -587,7 +591,8 @@ where
                             let mut message = Message::new(
                                 rmcp::model::Role::Assistant,
                                 chrono::Utc::now().timestamp(),
-                                vec![MessageContent::tool_request(tool_id, Ok(tool_call))]);
+                                vec![MessageContent::tool_request(tool_id, Ok(tool_call))],
+                            );
                             message.id = message_id.clone();
                             yield (Some(message), None);
                         }
@@ -982,6 +987,8 @@ mod tests {
 
     #[test]
     fn test_tool_error_handling_maintains_pairing() {
+        use mcp_core::handler::ToolError;
+
         let messages = vec![
             Message::assistant().with_tool_request(
                 "tool_1",
@@ -989,11 +996,7 @@ mod tests {
             ),
             Message::user().with_tool_response(
                 "tool_1",
-                Err(ErrorData::new(
-                    ErrorCode::INTERNAL_ERROR,
-                    "Tool failed",
-                    None,
-                )),
+                Err(ToolError::ExecutionError("Tool failed".to_string())),
             ),
         ];
 

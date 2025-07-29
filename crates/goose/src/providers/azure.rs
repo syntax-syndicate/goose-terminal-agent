@@ -193,7 +193,8 @@ impl AzureProvider {
                         e,
                         e.is_timeout(),
                         e.is_connect(),
-                        e.is_request());
+                        e.is_request(),
+                    );
 
                     // For timeout errors, we should retry
                     if e.is_timeout() {

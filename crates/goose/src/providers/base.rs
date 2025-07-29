@@ -436,14 +436,14 @@ mod tests {
 
         // Get the model and verify
         let model = get_current_model();
-        assert_eq!(model, Some("gpt-4o", None));
+        assert_eq!(model, Some("gpt-4o".to_string()));
 
         // Change the model
         set_current_model("claude-3.5-sonnet");
 
         // Get the updated model and verify
         let model = get_current_model();
-        assert_eq!(model, Some("claude-3.5-sonnet", None));
+        assert_eq!(model, Some("claude-3.5-sonnet".to_string()));
     }
 
     #[test]
@@ -522,6 +522,6 @@ mod tests {
         assert_eq!(info.context_limit, 128000);
         assert_eq!(info.input_token_cost, Some(0.0000025));
         assert_eq!(info.output_token_cost, Some(0.00001));
-        assert_eq!(info.currency, Some("$", None));
+        assert_eq!(info.currency, Some("$".to_string()));
     }
 }

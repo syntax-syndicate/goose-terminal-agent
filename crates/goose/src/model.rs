@@ -245,8 +245,8 @@ mod tests {
 
         // Test tool interpreter model
         let config = ModelConfig::new("test-model".to_string())
-            .with_toolshim_model(Some("mistral-nemo", None));
-        assert_eq!(config.toolshim_model, Some("mistral-nemo", None));
+            .with_toolshim_model(Some("mistral-nemo".to_string()));
+        assert_eq!(config.toolshim_model, Some("mistral-nemo".to_string()));
     }
 
     #[test]

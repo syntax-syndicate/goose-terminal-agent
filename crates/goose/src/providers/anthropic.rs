@@ -105,7 +105,7 @@ impl AnthropicProvider {
                     tracing::debug!("Bad Request Error: {error:?}");
                     error_msg = error.get("message").and_then(|m| m.as_str()).unwrap_or("Unknown error").to_string();
                     if error_msg.to_lowercase().contains("too long") || error_msg.to_lowercase().contains("too many") {
-                        return Err(ProviderError::ContextLengthExceeded(error_msg, None));
+                        return Err(ProviderError::ContextLengthExceeded(error_msg.to_string()));
                     }
                 }}
                 tracing::debug!(

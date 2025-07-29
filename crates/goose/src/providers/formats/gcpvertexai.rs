@@ -35,7 +35,7 @@ impl TryFrom<&str> for GcpLocation {
         match s {
             "us-central1" => Ok(Self::Iowa),
             "us-east5" => Ok(Self::Ohio),
-            _ => Err(ModelError::UnsupportedLocation(s, None)),
+            _ => Err(ModelError::UnsupportedLocation(s.to_string())),
         }
     }
 }
@@ -175,9 +175,13 @@ impl TryFrom<&str> for GcpVertexAIModel {
             "gemini-2.5-flash" => Ok(Self::Gemini(GeminiVersion::Flash25)),
             "gemini-2.5-pro" => Ok(Self::Gemini(GeminiVersion::Pro25)),
             // Generic models based on prefix matching
-            _ if s.starts_with("claude-") => Ok(Self::Claude(ClaudeVersion::Generic(s, None))),
-            _ if s.starts_with("gemini-") => Ok(Self::Gemini(GeminiVersion::Generic(s, None))),
-            _ => Err(ModelError::UnsupportedModel(s, None)),
+            _ if s.starts_with("claude-") => {
+                Ok(Self::Claude(ClaudeVersion::Generic(s.to_string())))
+            }
+            _ if s.starts_with("gemini-") => {
+                Ok(Self::Gemini(GeminiVersion::Generic(s.to_string())))
+            }
+            _ => Err(ModelError::UnsupportedModel(s.to_string())),
         }
     }
 }
@@ -256,7 +260,7 @@ fn create_anthropic_request(
 
     let obj = request
         .as_object_mut()
-        .ok_or_else(|| ModelError::InvalidRequest("Request is not a JSON object", None))?;
+        .ok_or_else(|| ModelError::InvalidRequest("Request is not a JSON object".to_string()))?;
 
     // Note: We don't need to specify the model in the request body
     // The model is determined by the endpoint URL in GCP Vertex AI
@@ -399,14 +403,14 @@ mod tests {
             assert_eq!(
                 model.known_location(),
                 expected_location,
-                "Model {model_id} should have default location {expected_location:?}"
+                "Model {model_id} should have default location {expected_location:?}",
             );
 
             let context = RequestContext::new(model_id)?;
             assert_eq!(
                 context.model.known_location(),
                 expected_location,
-                "RequestContext for {model_id} should have default location {expected_location:?}"
+                "RequestContext for {model_id} should have default location {expected_location:?}",
             );
         }
 

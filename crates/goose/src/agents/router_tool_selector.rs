@@ -1,4 +1,6 @@
-use rmcp::model::{Content, ErrorCode, ErrorData, Tool};
+use mcp_core::ToolError;
+use rmcp::model::Content;
+use rmcp::model::Tool;
 
 use anyhow::{Context, Result};
 use async_trait::async_trait;
@@ -22,11 +24,11 @@ pub enum RouterToolSelectionStrategy {
 
 #[async_trait]
 pub trait RouterToolSelector: Send + Sync {
-    async fn select_tools(&self, params: Value) -> Result<Vec<Content>, ErrorData>;
-    async fn index_tools(&self, tools: &[Tool], extension_name: &str) -> Result<(), ErrorData>;
-    async fn remove_tool(&self, tool_name: &str) -> Result<(), ErrorData>;
-    async fn record_tool_call(&self, tool_name: &str) -> Result<(), ErrorData>;
-    async fn get_recent_tool_calls(&self, limit: usize) -> Result<Vec<String>, ErrorData>;
+    async fn select_tools(&self, params: Value) -> Result<Vec<Content>, ToolError>;
+    async fn index_tools(&self, tools: &[Tool], extension_name: &str) -> Result<(), ToolError>;
+    async fn remove_tool(&self, tool_name: &str) -> Result<(), ToolError>;
+    async fn record_tool_call(&self, tool_name: &str) -> Result<(), ToolError>;
+    async fn get_recent_tool_calls(&self, limit: usize) -> Result<Vec<String>, ToolError>;
     fn selector_type(&self) -> RouterToolSelectionStrategy;
 }
 
@@ -69,17 +71,11 @@ impl VectorToolSelector {
 
 #[async_trait]
 impl RouterToolSelector for VectorToolSelector {
-    async fn select_tools(&self, params: Value) -> Result<Vec<Content>, ErrorData> {
+    async fn select_tools(&self, params: Value) -> Result<Vec<Content>, ToolError> {
         let query = params
             .get("query")
             .and_then(|v| v.as_str())
-            .ok_or_else(|| {
-                ErrorData::new(
-                    ErrorCode::INVALID_PARAMS,
-                    "Missing 'query' parameter".to_string(),
-                    None,
-                )
-            })?;
+            .ok_or_else(|| ToolError::InvalidParameters("Missing 'query' parameter".to_string()))?;
 
         let k = params.get("k").and_then(|v| v.as_u64()).unwrap_or(5) as usize;
 
@@ -88,10 +84,8 @@ impl RouterToolSelector for VectorToolSelector {
 
         // Check if provider supports embeddings
         if !self.embedding_provider.supports_embeddings() {
-            return Err(ErrorData::new(
-                ErrorCode::INTERNAL_ERROR,
+            return Err(ToolError::ExecutionError(
                 "Embedding provider does not support embeddings".to_string(),
-                None,
             ));
         }
 
@@ -100,32 +94,19 @@ impl RouterToolSelector for VectorToolSelector {
             .create_embeddings(vec![query.to_string()])
             .await
             .map_err(|e| {
-                ErrorData::new(
-                    ErrorCode::INTERNAL_ERROR,
-                    format!("Failed to generate query embedding: {}", e),
-                    None,
-                )
+                ToolError::ExecutionError(format!("Failed to generate query embedding: {}", e))
             })?;
 
-        let query_embedding = embeddings.into_iter().next().ok_or_else(|| {
-            ErrorData::new(
-                ErrorCode::INTERNAL_ERROR,
-                "No embedding returned".to_string(),
-                None,
-            )
-        })?;
+        let query_embedding = embeddings
+            .into_iter()
+            .next()
+            .ok_or_else(|| ToolError::ExecutionError("No embedding returned".to_string()))?;
 
         let vector_db = self.vector_db.read().await;
         let tools = vector_db
             .search_tools(query_embedding, k, extension_name)
             .await
-            .map_err(|e| {
-                ErrorData::new(
-                    ErrorCode::INTERNAL_ERROR,
-                    format!("Failed to search tools: {}", e),
-                    None,
-                )
-            })?;
+            .map_err(|e| ToolError::ExecutionError(format!("Failed to search tools: {}", e)))?;
 
         let selected_tools: Vec<Content> = tools
             .into_iter()
@@ -141,7 +122,7 @@ impl RouterToolSelector for VectorToolSelector {
         Ok(selected_tools)
     }
 
-    async fn index_tools(&self, tools: &[Tool], extension_name: &str) -> Result<(), ErrorData> {
+    async fn index_tools(&self, tools: &[Tool], extension_name: &str) -> Result<(), ToolError> {
         let texts_to_embed: Vec<String> = tools
             .iter()
             .map(|tool| {
@@ -160,10 +141,8 @@ impl RouterToolSelector for VectorToolSelector {
             .collect();
 
         if !self.embedding_provider.supports_embeddings() {
-            return Err(ErrorData::new(
-                ErrorCode::INTERNAL_ERROR,
+            return Err(ToolError::ExecutionError(
                 "Embedding provider does not support embeddings".to_string(),
-                None,
             ));
         }
 
@@ -172,11 +151,7 @@ impl RouterToolSelector for VectorToolSelector {
             .create_embeddings(texts_to_embed)
             .await
             .map_err(|e| {
-                ErrorData::new(
-                    ErrorCode::INTERNAL_ERROR,
-                    format!("Failed to generate tool embeddings: {}", e),
-                    None,
-                )
+                ToolError::ExecutionError(format!("Failed to generate tool embeddings: {}", e))
             })?;
 
         // Create tool records
@@ -211,11 +186,7 @@ impl RouterToolSelector for VectorToolSelector {
                 .search_tools(record.vector.clone(), 1, Some(&record.extension_name))
                 .await
                 .map_err(|e| {
-                    ErrorData::new(
-                        ErrorCode::INTERNAL_ERROR,
-                        format!("Failed to search for existing tools: {}", e),
-                        None,
-                    )
+                    ToolError::ExecutionError(format!("Failed to search for existing tools: {}", e))
                 })?;
 
             // Only add if no exact match found
@@ -229,31 +200,24 @@ impl RouterToolSelector for VectorToolSelector {
 
         // Only index if there are new tools to add
         if !new_tool_records.is_empty() {
-            vector_db.index_tools(new_tool_records).await.map_err(|e| {
-                ErrorData::new(
-                    ErrorCode::INTERNAL_ERROR,
-                    format!("Failed to index tools: {}", e),
-                    None,
-                )
-            })?;
+            vector_db
+                .index_tools(new_tool_records)
+                .await
+                .map_err(|e| ToolError::ExecutionError(format!("Failed to index tools: {}", e)))?;
         }
 
         Ok(())
     }
 
-    async fn remove_tool(&self, tool_name: &str) -> Result<(), ErrorData> {
+    async fn remove_tool(&self, tool_name: &str) -> Result<(), ToolError> {
         let vector_db = self.vector_db.read().await;
         vector_db.remove_tool(tool_name).await.map_err(|e| {
-            ErrorData::new(
-                ErrorCode::INTERNAL_ERROR,
-                format!("Failed to remove tool {}: {}", tool_name, e),
-                None,
-            )
+            ToolError::ExecutionError(format!("Failed to remove tool {}: {}", tool_name, e))
         })?;
         Ok(())
     }
 
-    async fn record_tool_call(&self, tool_name: &str) -> Result<(), ErrorData> {
+    async fn record_tool_call(&self, tool_name: &str) -> Result<(), ToolError> {
         let mut recent_calls = self.recent_tool_calls.write().await;
         if recent_calls.len() >= 100 {
             recent_calls.pop_front();
@@ -262,7 +226,7 @@ impl RouterToolSelector for VectorToolSelector {
         Ok(())
     }
 
-    async fn get_recent_tool_calls(&self, limit: usize) -> Result<Vec<String>, ErrorData> {
+    async fn get_recent_tool_calls(&self, limit: usize) -> Result<Vec<String>, ToolError> {
         let recent_calls = self.recent_tool_calls.read().await;
         Ok(recent_calls.iter().rev().take(limit).cloned().collect())
     }
@@ -290,17 +254,11 @@ impl LLMToolSelector {
 
 #[async_trait]
 impl RouterToolSelector for LLMToolSelector {
-    async fn select_tools(&self, params: Value) -> Result<Vec<Content>, ErrorData> {
+    async fn select_tools(&self, params: Value) -> Result<Vec<Content>, ToolError> {
         let query = params
             .get("query")
             .and_then(|v| v.as_str())
-            .ok_or_else(|| {
-                ErrorData::new(
-                    ErrorCode::INVALID_PARAMS,
-                    "Missing 'query' parameter".to_string(),
-                    None,
-                )
-            })?;
+            .ok_or_else(|| ToolError::InvalidParameters("Missing 'query' parameter".to_string()))?;
 
         let extension_name = params
             .get("extension_name")
@@ -333,13 +291,7 @@ impl RouterToolSelector for LLMToolSelector {
                 .llm_provider
                 .complete(&prompt, &[system_message], &[])
                 .await
-                .map_err(|e| {
-                    ErrorData::new(
-                        ErrorCode::INTERNAL_ERROR,
-                        format!("Failed to search tools: {}", e),
-                        None,
-                    )
-                })?;
+                .map_err(|e| ToolError::ExecutionError(format!("Failed to search tools: {}", e)))?;
 
             // Extract just the message content from the response
             let (message, _usage) = response;
@@ -349,7 +301,7 @@ impl RouterToolSelector for LLMToolSelector {
             let tool_entries: Vec<Content> = text
                 .split("\n\n")
                 .filter(|entry| entry.trim().starts_with("Tool:"))
-                .map(|entry| Content::text(entry.trim(), None))
+                .map(|entry| Content::text(entry.trim().to_string()))
                 .collect();
 
             Ok(tool_entries)
@@ -358,7 +310,7 @@ impl RouterToolSelector for LLMToolSelector {
         }
     }
 
-    async fn index_tools(&self, tools: &[Tool], extension_name: &str) -> Result<(), ErrorData> {
+    async fn index_tools(&self, tools: &[Tool], extension_name: &str) -> Result<(), ToolError> {
         let mut tool_strings = self.tool_strings.write().await;
 
         for tool in tools {
@@ -387,7 +339,7 @@ impl RouterToolSelector for LLMToolSelector {
 
         Ok(())
     }
-    async fn remove_tool(&self, tool_name: &str) -> Result<(), ErrorData> {
+    async fn remove_tool(&self, tool_name: &str) -> Result<(), ToolError> {
         let mut tool_strings = self.tool_strings.write().await;
         if let Some(extension_name) = tool_name.split("__").next() {
             tool_strings.remove(extension_name);
@@ -395,7 +347,7 @@ impl RouterToolSelector for LLMToolSelector {
         Ok(())
     }
 
-    async fn record_tool_call(&self, tool_name: &str) -> Result<(), ErrorData> {
+    async fn record_tool_call(&self, tool_name: &str) -> Result<(), ToolError> {
         let mut recent_calls = self.recent_tool_calls.write().await;
         if recent_calls.len() >= 100 {
             recent_calls.pop_front();
@@ -404,7 +356,7 @@ impl RouterToolSelector for LLMToolSelector {
         Ok(())
     }
 
-    async fn get_recent_tool_calls(&self, limit: usize) -> Result<Vec<String>, ErrorData> {
+    async fn get_recent_tool_calls(&self, limit: usize) -> Result<Vec<String>, ToolError> {
         let recent_calls = self.recent_tool_calls.read().await;
         Ok(recent_calls.iter().rev().take(limit).cloned().collect())
     }

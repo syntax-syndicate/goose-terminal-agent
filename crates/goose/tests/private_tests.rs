@@ -1,6 +1,6 @@
 #![cfg(test)]
 
-use rmcp::model::{ErrorCode, ErrorData};
+use mcp_core::ToolError;
 use serde_json::json;
 
 use goose::agents::platform_tools::PLATFORM_MANAGE_SCHEDULE_TOOL_NAME;
@@ -43,7 +43,7 @@ async fn test_schedule_tool_list_action() {
 
     // Verify the scheduler was called
     let calls = scheduler.get_calls().await;
-    assert!(calls.contains(&"list_scheduled_jobs", None));
+    assert!(calls.contains(&"list_scheduled_jobs".to_string()));
 }
 
 #[tokio::test]
@@ -69,7 +69,7 @@ async fn test_schedule_tool_list_action_empty() {
 
     // Verify the scheduler was called
     let calls = scheduler.get_calls().await;
-    assert!(calls.contains(&"list_scheduled_jobs", None));
+    assert!(calls.contains(&"list_scheduled_jobs".to_string()));
 }
 
 #[tokio::test]
@@ -94,7 +94,7 @@ async fn test_schedule_tool_list_action_error() {
         .await;
     assert!(result.is_err());
 
-    if let Err(ErrorData::new(ErrorCode::INTERNAL_ERROR, msg, None)) = result {
+    if let Err(ToolError::ExecutionError(msg)) = result {
         assert!(msg.contains("Failed to list jobs"));
         assert!(msg.contains("Database error"));
     } else {
@@ -103,7 +103,7 @@ async fn test_schedule_tool_list_action_error() {
 
     // Verify the scheduler was called
     let calls = scheduler.get_calls().await;
-    assert!(calls.contains(&"list_scheduled_jobs", None));
+    assert!(calls.contains(&"list_scheduled_jobs".to_string()));
 }
 
 #[tokio::test]
@@ -135,7 +135,7 @@ async fn test_schedule_tool_create_action() {
 
     // Verify the scheduler was called
     let calls = scheduler.get_calls().await;
-    assert!(calls.contains(&"add_scheduled_job", None));
+    assert!(calls.contains(&"add_scheduled_job".to_string()));
 }
 
 #[tokio::test]
@@ -153,7 +153,7 @@ async fn test_schedule_tool_create_action_missing_params() {
         .await;
     assert!(result.is_err());
 
-    if let Err(ErrorData::new(ErrorCode::INVALID_PARAMS, msg, None)) = result {
+    if let Err(ToolError::ExecutionError(msg)) = result {
         assert!(msg.contains("Missing 'recipe_path' parameter"));
     } else {
         panic!("Expected ExecutionError");
@@ -171,7 +171,7 @@ async fn test_schedule_tool_create_action_missing_params() {
         .await;
     assert!(result.is_err());
 
-    if let Err(ErrorData::new(ErrorCode::INVALID_PARAMS, msg, None)) = result {
+    if let Err(ToolError::ExecutionError(msg)) = result {
         assert!(msg.contains("Missing 'cron_expression' parameter"));
     } else {
         panic!("Expected ExecutionError");
@@ -194,7 +194,7 @@ async fn test_schedule_tool_create_action_nonexistent_recipe() {
         .await;
     assert!(result.is_err());
 
-    if let Err(ErrorData::new(ErrorCode::RESOURCE_NOT_FOUND, msg, None)) = result {
+    if let Err(ToolError::ExecutionError(msg)) = result {
         assert!(msg.contains("Recipe file not found"));
     } else {
         panic!("Expected ExecutionError");
@@ -220,7 +220,7 @@ async fn test_schedule_tool_create_action_invalid_recipe() {
         .await;
     assert!(result.is_err());
 
-    if let Err(ErrorData::new(ErrorCode::INVALID_REQUEST, msg, None)) = result {
+    if let Err(ToolError::ExecutionError(msg)) = result {
         assert!(msg.contains("Invalid JSON recipe"));
     } else {
         panic!("Expected ExecutionError");
@@ -253,7 +253,7 @@ async fn test_schedule_tool_create_action_scheduler_error() {
         .await;
     assert!(result.is_err());
 
-    if let Err(ErrorData::new(ErrorCode::INTERNAL_ERROR, msg, None)) = result {
+    if let Err(ToolError::ExecutionError(msg)) = result {
         assert!(msg.contains("Failed to create job"));
         assert!(msg.contains("job1"));
     } else {
@@ -262,7 +262,7 @@ async fn test_schedule_tool_create_action_scheduler_error() {
 
     // Verify the scheduler was called
     let calls = scheduler.get_calls().await;
-    assert!(calls.contains(&"add_scheduled_job", None));
+    assert!(calls.contains(&"add_scheduled_job".to_string()));
 }
 
 #[tokio::test]
@@ -294,7 +294,7 @@ async fn test_schedule_tool_run_now_action() {
 
     // Verify the scheduler was called
     let calls = scheduler.get_calls().await;
-    assert!(calls.contains(&"run_now", None));
+    assert!(calls.contains(&"run_now".to_string()));
 }
 
 #[tokio::test]
@@ -311,7 +311,7 @@ async fn test_schedule_tool_run_now_action_missing_job_id() {
         .await;
     assert!(result.is_err());
 
-    if let Err(ErrorData::new(ErrorCode::INVALID_PARAMS, msg, None)) = result {
+    if let Err(ToolError::ExecutionError(msg)) = result {
         assert!(msg.contains("Missing 'job_id' parameter"));
     } else {
         panic!("Expected ExecutionError");
@@ -321,7 +321,7 @@ async fn test_schedule_tool_run_now_action_missing_job_id() {
 #[tokio::test]
 async fn test_schedule_tool_run_now_action_nonexistent_job() {
     let (agent, scheduler) = ScheduleToolTestBuilder::new()
-        .with_scheduler_behavior("run_now", MockBehavior::NotFound("nonexistent", None))
+        .with_scheduler_behavior("run_now", MockBehavior::NotFound("nonexistent".to_string()))
         .await
         .build()
         .await;
@@ -337,7 +337,7 @@ async fn test_schedule_tool_run_now_action_nonexistent_job() {
         .await;
     assert!(result.is_err());
 
-    if let Err(ErrorData::new(ErrorCode::INTERNAL_ERROR, msg, None)) = result {
+    if let Err(ToolError::ExecutionError(msg)) = result {
         assert!(msg.contains("Failed to run job"));
         assert!(msg.contains("nonexistent"));
     } else {
@@ -346,7 +346,7 @@ async fn test_schedule_tool_run_now_action_nonexistent_job() {
 
     // Verify the scheduler was called
     let calls = scheduler.get_calls().await;
-    assert!(calls.contains(&"run_now", None));
+    assert!(calls.contains(&"run_now".to_string()));
 }
 
 #[tokio::test]
@@ -376,7 +376,7 @@ async fn test_schedule_tool_pause_action() {
 
     // Verify the scheduler was called
     let calls = scheduler.get_calls().await;
-    assert!(calls.contains(&"pause_schedule", None));
+    assert!(calls.contains(&"pause_schedule".to_string()));
 }
 
 #[tokio::test]
@@ -393,7 +393,7 @@ async fn test_schedule_tool_pause_action_missing_job_id() {
         .await;
     assert!(result.is_err());
 
-    if let Err(ErrorData::new(ErrorCode::INVALID_PARAMS, msg, None)) = result {
+    if let Err(ToolError::ExecutionError(msg)) = result {
         assert!(msg.contains("Missing 'job_id' parameter"));
     } else {
         panic!("Expected ExecutionError");
@@ -422,7 +422,7 @@ async fn test_schedule_tool_pause_action_running_job() {
         .await;
     assert!(result.is_err());
 
-    if let Err(ErrorData::new(ErrorCode::INTERNAL_ERROR, msg, None)) = result {
+    if let Err(ToolError::ExecutionError(msg)) = result {
         assert!(msg.contains("Failed to pause job"));
         assert!(msg.contains("job1"));
     } else {
@@ -431,7 +431,7 @@ async fn test_schedule_tool_pause_action_running_job() {
 
     // Verify the scheduler was called
     let calls = scheduler.get_calls().await;
-    assert!(calls.contains(&"pause_schedule", None));
+    assert!(calls.contains(&"pause_schedule".to_string()));
 }
 
 #[tokio::test]
@@ -463,7 +463,7 @@ async fn test_schedule_tool_unpause_action() {
 
     // Verify the scheduler was called
     let calls = scheduler.get_calls().await;
-    assert!(calls.contains(&"unpause_schedule", None));
+    assert!(calls.contains(&"unpause_schedule".to_string()));
 }
 
 #[tokio::test]
@@ -495,7 +495,7 @@ async fn test_schedule_tool_delete_action() {
 
     // Verify the scheduler was called
     let calls = scheduler.get_calls().await;
-    assert!(calls.contains(&"remove_scheduled_job", None));
+    assert!(calls.contains(&"remove_scheduled_job".to_string()));
 }
 
 #[tokio::test]
@@ -529,7 +529,7 @@ async fn test_schedule_tool_kill_action() {
 
     // Verify the scheduler was called
     let calls = scheduler.get_calls().await;
-    assert!(calls.contains(&"kill_running_job", None));
+    assert!(calls.contains(&"kill_running_job".to_string()));
 }
 
 #[tokio::test]
@@ -551,7 +551,7 @@ async fn test_schedule_tool_kill_action_not_running() {
         .await;
     assert!(result.is_err());
 
-    if let Err(ErrorData::new(ErrorCode::INTERNAL_ERROR, msg, None)) = result {
+    if let Err(ToolError::ExecutionError(msg)) = result {
         assert!(msg.contains("Failed to kill job"));
     } else {
         panic!("Expected ExecutionError");
@@ -559,7 +559,7 @@ async fn test_schedule_tool_kill_action_not_running() {
 
     // Verify the scheduler was called
     let calls = scheduler.get_calls().await;
-    assert!(calls.contains(&"kill_running_job", None));
+    assert!(calls.contains(&"kill_running_job".to_string()));
 }
 
 #[tokio::test]
@@ -593,7 +593,7 @@ async fn test_schedule_tool_inspect_action_running() {
 
     // Verify the scheduler was called
     let calls = scheduler.get_calls().await;
-    assert!(calls.contains(&"get_running_job_info", None));
+    assert!(calls.contains(&"get_running_job_info".to_string()));
 }
 
 #[tokio::test]
@@ -625,7 +625,7 @@ async fn test_schedule_tool_inspect_action_not_running() {
 
     // Verify the scheduler was called
     let calls = scheduler.get_calls().await;
-    assert!(calls.contains(&"get_running_job_info", None));
+    assert!(calls.contains(&"get_running_job_info".to_string()));
 }
 
 #[tokio::test]
@@ -671,7 +671,7 @@ async fn test_schedule_tool_sessions_action() {
 
     // Verify the scheduler was called
     let calls = scheduler.get_calls().await;
-    assert!(calls.contains(&"sessions", None));
+    assert!(calls.contains(&"sessions".to_string()));
 }
 
 #[tokio::test]
@@ -714,7 +714,7 @@ async fn test_schedule_tool_sessions_action_with_limit() {
 
     // Verify the scheduler was called
     let calls = scheduler.get_calls().await;
-    assert!(calls.contains(&"sessions", None));
+    assert!(calls.contains(&"sessions".to_string()));
 }
 
 #[tokio::test]
@@ -746,7 +746,7 @@ async fn test_schedule_tool_sessions_action_empty() {
 
     // Verify the scheduler was called
     let calls = scheduler.get_calls().await;
-    assert!(calls.contains(&"sessions", None));
+    assert!(calls.contains(&"sessions".to_string()));
 }
 
 #[tokio::test]
@@ -764,7 +764,7 @@ async fn test_schedule_tool_session_content_action() {
         .await;
     assert!(result.is_err());
 
-    if let Err(ErrorData::new(ErrorCode::RESOURCE_NOT_FOUND, msg, None)) = result {
+    if let Err(ToolError::ExecutionError(msg)) = result {
         assert!(msg.contains("Session 'non_existent_session' not found"));
     } else {
         panic!("Expected ExecutionError");
@@ -840,7 +840,7 @@ async fn test_schedule_tool_session_content_action_missing_session_id() {
         .await;
     assert!(result.is_err());
 
-    if let Err(ErrorData::new(ErrorCode::INVALID_PARAMS, msg, None)) = result {
+    if let Err(ToolError::ExecutionError(msg)) = result {
         assert!(msg.contains("Missing 'session_id' parameter"));
     } else {
         panic!("Expected ExecutionError");
@@ -861,7 +861,7 @@ async fn test_schedule_tool_unknown_action() {
         .await;
     assert!(result.is_err());
 
-    if let Err(ErrorData::new(ErrorCode::INTERNAL_ERROR, msg, None)) = result {
+    if let Err(ToolError::ExecutionError(msg)) = result {
         assert!(msg.contains("Unknown action"));
     } else {
         panic!("Expected ExecutionError");
@@ -897,5 +897,5 @@ async fn test_schedule_tool_dispatch() {
 
     // Verify the scheduler was called
     let calls = scheduler.get_calls().await;
-    assert!(calls.contains(&"list_scheduled_jobs", None));
+    assert!(calls.contains(&"list_scheduled_jobs".to_string()));
 }

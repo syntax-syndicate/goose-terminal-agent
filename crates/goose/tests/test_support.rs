@@ -134,7 +134,7 @@ impl SchedulerTrait for ConfigurableMockScheduler {
                 if jobs.remove(id).is_some() {
                     Ok(())
                 } else {
-                    Err(SchedulerError::JobNotFound(id, None))
+                    Err(SchedulerError::JobNotFound(id.to_string()))
                 }
             }
             MockBehavior::NotFound(job_id) => Err(SchedulerError::JobNotFound(job_id)),
@@ -152,7 +152,7 @@ impl SchedulerTrait for ConfigurableMockScheduler {
                 if jobs.contains_key(id) {
                     Ok(())
                 } else {
-                    Err(SchedulerError::JobNotFound(id, None))
+                    Err(SchedulerError::JobNotFound(id.to_string()))
                 }
             }
             MockBehavior::NotFound(job_id) => Err(SchedulerError::JobNotFound(job_id)),
@@ -176,7 +176,7 @@ impl SchedulerTrait for ConfigurableMockScheduler {
                 if jobs.contains_key(id) {
                     Ok(())
                 } else {
-                    Err(SchedulerError::JobNotFound(id, None))
+                    Err(SchedulerError::JobNotFound(id.to_string()))
                 }
             }
             MockBehavior::NotFound(job_id) => Err(SchedulerError::JobNotFound(job_id)),
@@ -194,7 +194,7 @@ impl SchedulerTrait for ConfigurableMockScheduler {
                 if jobs.contains_key(id) {
                     Ok(format!("{}_session_{}", id, chrono::Utc::now().timestamp()))
                 } else {
-                    Err(SchedulerError::JobNotFound(id, None))
+                    Err(SchedulerError::JobNotFound(id.to_string()))
                 }
             }
             MockBehavior::NotFound(job_id) => Err(SchedulerError::JobNotFound(job_id)),
@@ -235,7 +235,7 @@ impl SchedulerTrait for ConfigurableMockScheduler {
                 if jobs.contains_key(sched_id) {
                     Ok(())
                 } else {
-                    Err(SchedulerError::JobNotFound(sched_id, None))
+                    Err(SchedulerError::JobNotFound(sched_id.to_string()))
                 }
             }
             MockBehavior::NotFound(job_id) => Err(SchedulerError::JobNotFound(job_id)),

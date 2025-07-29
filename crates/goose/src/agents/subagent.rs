@@ -9,7 +9,8 @@ use crate::{
 };
 use anyhow::anyhow;
 use chrono::{DateTime, Utc};
-use rmcp::model::{ErrorCode, ErrorData, Tool};
+use mcp_core::handler::ToolError;
+use rmcp::model::Tool;
 use serde::{Deserialize, Serialize};
 // use serde_json::{self};
 use std::{collections::HashMap, sync::Arc};
@@ -205,7 +206,7 @@ impl SubAgent {
                         messages.push(response.clone());
 
                         // Set status back to ready
-                        self.set_status(SubAgentStatus::Completed("Completed!", None))
+                        self.set_status(SubAgentStatus::Completed("Completed!".to_string()))
                             .await;
                         break;
                     }
@@ -225,11 +226,7 @@ impl SubAgent {
                                 .await
                             {
                                 Ok(result) => result.result.await,
-                                Err(e) => Err(ErrorData::new(
-                                    ErrorCode::INTERNAL_ERROR,
-                                    e.to_string(),
-                                    None,
-                                )),
+                                Err(e) => Err(ToolError::ExecutionError(e.to_string())),
                             };
 
                             match tool_result {
@@ -243,11 +240,7 @@ impl SubAgent {
                                     // Create a user message with the tool error
                                     let tool_error_message = Message::user().with_tool_response(
                                         request.id.clone(),
-                                        Err(ErrorData::new(
-                                            ErrorCode::INTERNAL_ERROR,
-                                            e.message.clone(),
-                                            None,
-                                        )),
+                                        Err(ToolError::ExecutionError(e.to_string())),
                                     );
                                     messages.push(tool_error_message);
                                 }
@@ -266,7 +259,7 @@ impl SubAgent {
                     break;
                 }
                 Err(ProviderError::RateLimitExceeded(_)) => {
-                    self.set_status(SubAgentStatus::Completed("Rate limit exceeded", None))
+                    self.set_status(SubAgentStatus::Completed("Rate limit exceeded".to_string()))
                         .await;
                     last_error = Some(anyhow::anyhow!("Rate limit exceeded"));
                     break;

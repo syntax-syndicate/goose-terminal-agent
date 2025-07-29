@@ -340,7 +340,7 @@ impl SnowflakeProvider {
                     "context limit",
                 ];
                 if check_phrases.iter().any(|c| payload_str.contains(c)) {
-                    return Err(ProviderError::ContextLengthExceeded("Request exceeds maximum context length. Please reduce the number of messages or content size.", None));
+                    return Err(ProviderError::ContextLengthExceeded("Request exceeds maximum context length. Please reduce the number of messages or content size.".to_string()));
                 }
 
                 // Try to parse a clean error message from the response

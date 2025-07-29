@@ -953,7 +953,7 @@ mod tests {
         let (otx, _orx) = mpsc::channel(32);
 
         // Create the actor with an existing session ID
-        let session_id = Arc::new(RwLock::new(Some("old-session", None)));
+        let session_id = Arc::new(RwLock::new(Some("old-session".to_string())));
         let session_id_clone = Arc::clone(&session_id);
         let mut actor = StreamableHttpActor::new(
             rx,

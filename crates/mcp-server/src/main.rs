@@ -1,11 +1,10 @@
 use anyhow::Result;
 use mcp_core::handler::{PromptError, ResourceError};
-use mcp_core::protocol::ServerCapabilities;
+use mcp_core::{handler::ToolError, protocol::ServerCapabilities};
 use mcp_server::router::{CapabilitiesBuilder, RouterService};
 use mcp_server::{ByteTransport, Router, Server};
 use rmcp::model::{
-    Content, ErrorCode, ErrorData, JsonRpcMessage, Prompt, PromptArgument, RawResource, Resource,
-    Tool, ToolAnnotations,
+    Content, JsonRpcMessage, Prompt, PromptArgument, RawResource, Resource, Tool, ToolAnnotations,
 };
 use rmcp::object;
 use serde_json::Value;
@@ -31,19 +30,19 @@ impl CounterRouter {
         }
     }
 
-    async fn increment(&self) -> Result<i32, ErrorData> {
+    async fn increment(&self) -> Result<i32, ToolError> {
         let mut counter = self.counter.lock().await;
         *counter += 1;
         Ok(*counter)
     }
 
-    async fn decrement(&self) -> Result<i32, ErrorData> {
+    async fn decrement(&self) -> Result<i32, ToolError> {
         let mut counter = self.counter.lock().await;
         *counter -= 1;
         Ok(*counter)
     }
 
-    async fn get_value(&self) -> Result<i32, ErrorData> {
+    async fn get_value(&self) -> Result<i32, ToolError> {
         let counter = self.counter.lock().await;
         Ok(*counter)
     }
@@ -128,7 +127,7 @@ impl Router for CounterRouter {
         tool_name: &str,
         _arguments: Value,
         _notifier: mpsc::Sender<JsonRpcMessage>,
-    ) -> Pin<Box<dyn Future<Output = Result<Vec<Content>, ErrorData>> + Send + 'static>> {
+    ) -> Pin<Box<dyn Future<Output = Result<Vec<Content>, ToolError>> + Send + 'static>> {
         let this = self.clone();
         let tool_name = tool_name.to_string();
 
@@ -146,11 +145,7 @@ impl Router for CounterRouter {
                     let value = this.get_value().await?;
                     Ok(vec![Content::text(value.to_string())])
                 }
-                _ => Err(ErrorData::new(
-                    ErrorCode::RESOURCE_NOT_FOUND,
-                    format!("Tool {} not found", tool_name),
-                    None,
-                )),
+                _ => Err(ToolError::NotFound(format!("Tool {} not found", tool_name))),
             }
         })
     }

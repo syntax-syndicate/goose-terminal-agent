@@ -166,7 +166,7 @@ impl GithubCopilotProvider {
             let mut collector = OAIStreamCollector::new();
             let mut stream = response.bytes_stream();
             while let Some(chunk) = stream.next().await {
-                let chunk = chunk.map_err(|e| ProviderError::RequestFailed(e, None))?;
+                let chunk = chunk.map_err(|e| ProviderError::RequestFailed(e.to_string()))?;
                 let text = String::from_utf8_lossy(&chunk);
                 for line in text.lines() {
                     let tline = line.trim();
@@ -185,7 +185,7 @@ impl GithubCopilotProvider {
             }
             let final_response = collector.build_response();
             let value = serde_json::to_value(final_response)
-                .map_err(|e| ProviderError::RequestFailed(e, None))?;
+                .map_err(|e| ProviderError::RequestFailed(e.to_string()))?;
             Ok(value)
         } else {
             handle_response_openai_compat(response).await
@@ -341,7 +341,7 @@ impl GithubCopilotProvider {
                 .await
                 .context("failed to parse response while polling for access token")?;
             if resp.access_token.is_some() {
-                tracing::trace!("successful authorization: {:#?}", resp);
+                tracing::trace!("successful authorization: {:#?}", resp,);
             }
             if let Some(access_token) = resp.access_token {
                 return Ok(access_token);

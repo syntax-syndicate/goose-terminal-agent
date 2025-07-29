@@ -224,7 +224,7 @@ impl ModelRunner {
         if let Some(model) = self.config.models.first() {
             if let Some(shim_opt) = &model.tool_shim {
                 if shim_opt.use_tool_shim {
-                    shim_envs.push(("GOOSE_TOOLSHIM".to_string(), "true", None));
+                    shim_envs.push(("GOOSE_TOOLSHIM".to_string(), "true".to_string()));
                     if let Some(shim_model) = &shim_opt.tool_shim_model {
                         shim_envs.push((
                             "GOOSE_TOOLSHIM_OLLAMA_MODEL".to_string(),

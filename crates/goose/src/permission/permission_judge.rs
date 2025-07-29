@@ -5,7 +5,7 @@ use crate::message::{Message, MessageContent, ToolRequest};
 use crate::providers::base::Provider;
 use chrono::Utc;
 use indoc::indoc;
-use rmcp::model::{ErrorCode, ErrorData, Tool, ToolAnnotations};
+use rmcp::model::{Tool, ToolAnnotations};
 use rmcp::object;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -90,7 +90,9 @@ fn create_check_messages(tool_requests: Vec<&ToolRequest>) -> Vec<Message> {
                 \n- Examples include file reading, SELECT queries in SQL, and directory listing. \
                 \n- Write operations include INSERT, UPDATE, DELETE, and file writing. \
                 \n\nPlease provide a list of tool names that qualify as read-only:",
-                tool_names.join(", ")))]));
+                tool_names.join(", "),
+            ))],
+    ));
     check_messages
 }
 
@@ -134,7 +136,8 @@ pub async fn detect_read_only_tools(
         .complete(
             "You are a good analyst and can detect operations whether they have read-only operations.",
             &check_messages,
-            &[tool.clone()])
+            &[tool.clone()],
+        )
         .await;
 
     // Process the response and return an empty vector if the response is invalid
@@ -262,8 +265,8 @@ mod tests {
     use crate::providers::base::{Provider, ProviderMetadata, ProviderUsage, Usage};
     use crate::providers::errors::ProviderError;
     use chrono::Utc;
-    use mcp_core::ToolCall;
-    use rmcp::model::{ErrorCode, ErrorData, Role, Tool};
+    use mcp_core::{ToolCall, ToolResult};
+    use rmcp::model::{Role, Tool};
     use serde_json::json;
     use tempfile::NamedTempFile;
 
@@ -294,7 +297,7 @@ mod tests {
                     Utc::now().timestamp(),
                     vec![MessageContent::ToolRequest(ToolRequest {
                         id: "mock_tool_request".to_string(),
-                        tool_call: Ok(ToolCall {
+                        tool_call: ToolResult::Ok(ToolCall {
                             name: "platform__tool_by_tool_permission".to_string(),
                             arguments: json!({
                                 "read_only_tools": ["file_reader", "data_fetcher"]
@@ -329,7 +332,7 @@ mod tests {
     fn test_create_check_messages() {
         let tool_request = ToolRequest {
             id: "tool_1".to_string(),
-            tool_call: Ok(ToolCall {
+            tool_call: ToolResult::Ok(ToolCall {
                 name: "file_reader".to_string(),
                 arguments: json!({"path": "/path/to/file"}),
             }),
@@ -355,7 +358,7 @@ mod tests {
             Utc::now().timestamp(),
             vec![MessageContent::ToolRequest(ToolRequest {
                 id: "tool_2".to_string(),
-                tool_call: Ok(ToolCall {
+                tool_call: ToolResult::Ok(ToolCall {
                     name: "platform__tool_by_tool_permission".to_string(),
                     arguments: json!({
                         "read_only_tools": ["file_reader", "data_fetcher"]
@@ -375,7 +378,7 @@ mod tests {
         let provider = create_mock_provider();
         let tool_request = ToolRequest {
             id: "tool_1".to_string(),
-            tool_call: Ok(ToolCall {
+            tool_call: ToolResult::Ok(ToolCall {
                 name: "file_reader".to_string(),
                 arguments: json!({"path": "/path/to/file"}),
             }),

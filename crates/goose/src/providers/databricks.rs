@@ -520,7 +520,7 @@ impl Provider for DatabricksProvider {
     async fn create_embeddings(&self, texts: Vec<String>) -> Result<Vec<Vec<f32>>, ProviderError> {
         EmbeddingCapable::create_embeddings(self, texts)
             .await
-            .map_err(|e| ProviderError::ExecutionError(e, None))
+            .map_err(|e| ProviderError::ExecutionError(e.to_string()))
     }
 
     async fn fetch_supported_models_async(&self) -> Result<Option<Vec<String>>, ProviderError> {

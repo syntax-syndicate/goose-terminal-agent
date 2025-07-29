@@ -77,7 +77,7 @@ fn test_format_task_execution_notification_line_output() {
     let (formatted, second, third) = result.unwrap();
     assert_eq!(formatted, "Hello World\n");
     assert_eq!(second, None);
-    assert_eq!(third, Some("task_execution", None));
+    assert_eq!(third, Some("task_execution".to_string()));
 }
 
 #[test]

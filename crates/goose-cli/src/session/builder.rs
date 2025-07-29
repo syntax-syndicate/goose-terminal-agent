@@ -587,7 +587,7 @@ mod tests {
     #[test]
     fn test_session_builder_config_creation() {
         let config = SessionBuilderConfig {
-            identifier: Some(Identifier::Name("test", None)),
+            identifier: Some(Identifier::Name("test".to_string())),
             resume: false,
             no_session: false,
             extensions: vec!["echo test".to_string()],

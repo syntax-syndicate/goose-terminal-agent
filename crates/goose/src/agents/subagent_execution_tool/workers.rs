@@ -31,7 +31,8 @@ async fn worker_loop(state: Arc<SharedState>, _worker_id: usize, task_config: Ta
                             &task,
                             state.task_execution_tracker.clone(),
                             task_config.clone(),
-                            state.cancellation_token.clone())
+                            state.cancellation_token.clone(),
+                        )
                         .await;
 
                         if let Err(e) = state.result_sender.send(result).await {

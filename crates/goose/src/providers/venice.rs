@@ -281,7 +281,7 @@ impl Provider for VeniceProvider {
 
         let mut models = json["data"]
             .as_array()
-            .ok_or_else(|| ProviderError::RequestFailed("No data field in JSON", None))?
+            .ok_or_else(|| ProviderError::RequestFailed("No data field in JSON".to_string()))?
             .iter()
             .filter_map(|model| {
                 let id = model["id"].as_str()?.to_owned();

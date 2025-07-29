@@ -339,7 +339,7 @@ async fn update_session_config(
             "Session config updated with final output tool".to_string(),
         ))
     } else {
-        Ok(Json("Nothing provided to update.", None))
+        Ok(Json("Nothing provided to update.".to_string()))
     }
 }
 

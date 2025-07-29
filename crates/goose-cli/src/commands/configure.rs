@@ -417,7 +417,7 @@ pub async fn configure_provider_dialog() -> Result<bool, Box<dyn Error>> {
     match result {
         Ok((_message, _usage)) => {
             // Update config with new values only if the test succeeds
-            config.set_param("GOOSE_PROVIDER", Value::String(provider_name, None))?;
+            config.set_param("GOOSE_PROVIDER", Value::String(provider_name.to_string()))?;
             config.set_param("GOOSE_MODEL", Value::String(model.clone()))?;
             cliclack::outro("Configuration saved successfully")?;
             Ok(true)
@@ -1065,19 +1065,19 @@ pub fn configure_goose_mode_dialog() -> Result<(), Box<dyn Error>> {
 
     match mode {
         "auto" => {
-            config.set_param("GOOSE_MODE", Value::String("auto", None))?;
+            config.set_param("GOOSE_MODE", Value::String("auto".to_string()))?;
             cliclack::outro("Set to Auto Mode - full file modification enabled")?;
         }
         "approve" => {
-            config.set_param("GOOSE_MODE", Value::String("approve", None))?;
+            config.set_param("GOOSE_MODE", Value::String("approve".to_string()))?;
             cliclack::outro("Set to Approve Mode - all tools and modifications require approval")?;
         }
         "smart_approve" => {
-            config.set_param("GOOSE_MODE", Value::String("smart_approve", None))?;
+            config.set_param("GOOSE_MODE", Value::String("smart_approve".to_string()))?;
             cliclack::outro("Set to Smart Approve Mode - modifications require approval")?;
         }
         "chat" => {
-            config.set_param("GOOSE_MODE", Value::String("chat", None))?;
+            config.set_param("GOOSE_MODE", Value::String("chat".to_string()))?;
             cliclack::outro("Set to Chat Mode - no tools or modifications enabled")?;
         }
         _ => unreachable!(),
@@ -1407,7 +1407,7 @@ fn configure_scheduler_dialog() -> Result<(), Box<dyn Error>> {
 
     match scheduler_type {
         "legacy" => {
-            config.set_param("GOOSE_SCHEDULER_TYPE", Value::String("legacy", None))?;
+            config.set_param("GOOSE_SCHEDULER_TYPE", Value::String("legacy".to_string()))?;
             cliclack::outro(
                 "Set to Built-in Cron scheduler - simple and reliable for basic scheduling",
             )?;

@@ -605,8 +605,8 @@ async fn test_litellm_provider() -> Result<()> {
     }
 
     let env_mods = HashMap::from_iter([
-        ("LITELLM_HOST", Some("http://localhost:4000", None)),
-        ("LITELLM_API_KEY", Some("", None)),
+        ("LITELLM_HOST", Some("http://localhost:4000".to_string())),
+        ("LITELLM_API_KEY", Some("".to_string())),
     ]);
 
     test_provider(

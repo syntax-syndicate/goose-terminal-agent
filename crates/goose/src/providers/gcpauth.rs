@@ -431,7 +431,7 @@ impl GcpAuth {
     fn create_jwt_token(&self, creds: &ServiceAccountCredentials) -> Result<String, AuthError> {
         let now = SystemTime::now()
             .duration_since(UNIX_EPOCH)
-            .map_err(|e| AuthError::TokenCreation(e, None))?
+            .map_err(|e| AuthError::TokenCreation(e.to_string()))?
             .as_secs();
 
         let claims = JwtClaims {
@@ -473,7 +473,7 @@ impl GcpAuth {
             .form(params)
             .send()
             .await
-            .map_err(|e| AuthError::TokenExchange(e, None))?;
+            .map_err(|e| AuthError::TokenExchange(e.to_string()))?;
 
         let status = response.status();
         if !status.is_success() {
@@ -870,7 +870,7 @@ iXVBc2YmAuU8hiOFUPxtyQfNzG5fQ0rhJSewdtyWxIadJSLj6fsK+AEsNQ==
             .expect_get_var()
             .with(eq("GOOGLE_APPLICATION_CREDENTIALS"))
             .times(1)
-            .return_once(|_| Ok("/path/to/credentials.json", None));
+            .return_once(|_| Ok("/path/to/credentials.json".to_string()));
 
         // Mock file content - convert &str to String for comparison
         let creds_content = r#"{
@@ -883,9 +883,9 @@ iXVBc2YmAuU8hiOFUPxtyQfNzG5fQ0rhJSewdtyWxIadJSLj6fsK+AEsNQ==
         context
             .fs_mock
             .expect_read_to_string()
-            .with(eq("/path/to/credentials.json", None)) // Convert to String
+            .with(eq("/path/to/credentials.json".to_string())) // Convert to String
             .times(1)
-            .return_once(move |_| Ok(creds_content, None));
+            .return_once(move |_| Ok(creds_content.to_string()));
 
         let result = AdcCredentials::load_impl(
             &context.fs_mock,
@@ -921,7 +921,7 @@ iXVBc2YmAuU8hiOFUPxtyQfNzG5fQ0rhJSewdtyWxIadJSLj6fsK+AEsNQ==
             .expect_get_var()
             .with(eq(home_var))
             .times(1)
-            .return_once(|_| Ok("/home/testuser", None));
+            .return_once(|_| Ok("/home/testuser".to_string()));
 
         // Mock file content
         let creds_content = r#"{
@@ -942,7 +942,7 @@ iXVBc2YmAuU8hiOFUPxtyQfNzG5fQ0rhJSewdtyWxIadJSLj6fsK+AEsNQ==
             .expect_read_to_string()
             .with(eq(expected_path.clone())) // Use clone() to avoid borrowing issues
             .times(1)
-            .return_once(move |_| Ok(creds_content, None));
+            .return_once(move |_| Ok(creds_content.to_string()));
 
         let result = AdcCredentials::load_impl(
             &context.fs_mock,
@@ -1038,15 +1038,15 @@ iXVBc2YmAuU8hiOFUPxtyQfNzG5fQ0rhJSewdtyWxIadJSLj6fsK+AEsNQ==
             .expect_get_var()
             .with(eq("GOOGLE_APPLICATION_CREDENTIALS"))
             .times(1)
-            .return_once(|_| Ok("/path/to/credentials.json", None));
+            .return_once(|_| Ok("/path/to/credentials.json".to_string()));
 
         // Mock filesystem read for the invalid credentials file
         context
             .fs_mock
             .expect_read_to_string()
-            .with(eq("/path/to/credentials.json", None))
+            .with(eq("/path/to/credentials.json".to_string()))
             .times(1)
-            .return_once(|_| Ok("invalid json", None));
+            .return_once(|_| Ok("invalid json".to_string()));
 
         // Mock HOME/APPDATA environment variable
         let home_var = if cfg!(windows) { "APPDATA" } else { "HOME" };
@@ -1055,7 +1055,7 @@ iXVBc2YmAuU8hiOFUPxtyQfNzG5fQ0rhJSewdtyWxIadJSLj6fsK+AEsNQ==
             .expect_get_var()
             .with(eq(home_var))
             .times(1)
-            .return_once(|_| Ok("/home/user", None));
+            .return_once(|_| Ok("/home/user".to_string()));
 
         // Mock filesystem read for the default credentials path
         let default_creds_path = if cfg!(windows) {
@@ -1066,7 +1066,7 @@ iXVBc2YmAuU8hiOFUPxtyQfNzG5fQ0rhJSewdtyWxIadJSLj6fsK+AEsNQ==
         context
             .fs_mock
             .expect_read_to_string()
-            .with(eq(default_creds_path, None))
+            .with(eq(default_creds_path.to_string()))
             .times(1)
             .return_once(|_| {
                 Err(std::io::Error::new(

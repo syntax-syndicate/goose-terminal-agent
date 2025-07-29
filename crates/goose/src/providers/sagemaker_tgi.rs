@@ -45,7 +45,7 @@ impl SageMakerTgiProvider {
             if let Ok(map) = res {
                 map.into_iter()
                     .filter(|(key, _)| key.starts_with("AWS_"))
-                    .filter_map(|(key, value)| value.as_str().map(|s| (key, s, None)))
+                    .filter_map(|(key, value)| value.as_str().map(|s| (key, s.to_string())))
                     .for_each(|(key, s)| std::env::set_var(key, s));
             }
         };
@@ -169,7 +169,7 @@ impl SageMakerTgiProvider {
         let response_body = response
             .body
             .as_ref()
-            .ok_or_else(|| ProviderError::RequestFailed("Empty response body", None))?;
+            .ok_or_else(|| ProviderError::RequestFailed("Empty response body".to_string()))?;
         let response_text = std::str::from_utf8(response_body.as_ref()).map_err(|e| {
             ProviderError::RequestFailed(format!("Failed to decode response: {}", e))
         })?;
@@ -183,7 +183,7 @@ impl SageMakerTgiProvider {
         // Handle standard TGI response: [{"generated_text": "..."}]
         let response_array = response
             .as_array()
-            .ok_or_else(|| ProviderError::RequestFailed("Expected array response", None))?;
+            .ok_or_else(|| ProviderError::RequestFailed("Expected array response".to_string()))?;
 
         if response_array.is_empty() {
             return Err(ProviderError::RequestFailed(
@@ -275,7 +275,8 @@ impl Provider for SageMakerTgiProvider {
                 ConfigKey::new("SAGEMAKER_ENDPOINT_NAME", false, false, None),
                 ConfigKey::new("AWS_REGION", true, false, Some("us-east-1")),
                 ConfigKey::new("AWS_PROFILE", true, false, Some("default")),
-            ])
+            ],
+        )
     }
 
     fn get_model_config(&self) -> ModelConfig {

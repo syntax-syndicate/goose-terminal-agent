@@ -5,7 +5,8 @@
 use crate::agents::subagent_execution_tool::tasks_manager::TasksManager;
 use crate::agents::subagent_execution_tool::{lib::ExecutionMode, task_types::Task};
 use crate::agents::tool_execution::ToolCallResult;
-use rmcp::model::{Content, ErrorCode, ErrorData, Tool, ToolAnnotations};
+use mcp_core::ToolError;
+use rmcp::model::{Content, Tool, ToolAnnotations};
 use rmcp::object;
 use serde_json::{json, Value};
 
@@ -109,10 +110,8 @@ pub async fn create_dynamic_task(params: Value, tasks_manager: &TasksManager) ->
     let task_params_array = extract_task_parameters(&params);
 
     if task_params_array.is_empty() {
-        return ToolCallResult::from(Err(ErrorData::new(
-            ErrorCode::INVALID_PARAMS,
+        return ToolCallResult::from(Err(ToolError::ExecutionError(
             "No task parameters provided".to_string(),
-            None,
         )));
     }
 
@@ -130,11 +129,10 @@ pub async fn create_dynamic_task(params: Value, tasks_manager: &TasksManager) ->
     let tasks_json = match serde_json::to_string(&task_execution_payload) {
         Ok(json) => json,
         Err(e) => {
-            return ToolCallResult::from(Err(ErrorData::new(
-                ErrorCode::INTERNAL_ERROR,
-                format!("Failed to serialize task list: {}", e),
-                None,
-            )))
+            return ToolCallResult::from(Err(ToolError::ExecutionError(format!(
+                "Failed to serialize task list: {}",
+                e
+            ))))
         }
     };
     tasks_manager.save_tasks(tasks.clone()).await;

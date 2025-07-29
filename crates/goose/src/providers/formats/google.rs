@@ -6,7 +6,7 @@ use crate::providers::utils::{is_valid_function_name, sanitize_function_name};
 use anyhow::Result;
 use mcp_core::tool::ToolCall;
 use rand::{distributions::Alphanumeric, Rng};
-use rmcp::model::{AnnotateAble, ErrorCode, ErrorData, RawContent, Role, Tool};
+use rmcp::model::{AnnotateAble, RawContent, Role, Tool};
 
 use serde_json::{json, Map, Value};
 use std::ops::Deref;
@@ -242,7 +242,7 @@ pub fn response_to_message(response: Value) -> Result<Message> {
 
     for part in parts {
         if let Some(text) = part.get("text").and_then(|v| v.as_str()) {
-            content.push(MessageContent::text(text, None));
+            content.push(MessageContent::text(text.to_string()));
         } else if let Some(function_call) = part.get("functionCall") {
             let id: String = rand::thread_rng()
                 .sample_iter(&Alphanumeric)
@@ -254,10 +254,10 @@ pub fn response_to_message(response: Value) -> Result<Message> {
                 .unwrap_or_default()
                 .to_string();
             if !is_valid_function_name(&name) {
-                let error = mcp_core::ErrorData::new(ErrorCode::RESOURCE_NOT_FOUND, format!(
+                let error = mcp_core::ToolError::NotFound(format!(
                     "The provided function name '{}' had invalid characters, it must match this regex [a-zA-Z0-9_-]+",
                     name
-                , None));
+                ));
                 content.push(MessageContent::tool_request(id, Err(error)));
             } else {
                 let parameters = function_call.get("args");
@@ -747,10 +747,7 @@ mod tests {
         assert_eq!(message.role, Role::Assistant);
         assert_eq!(message.content.len(), 1);
         if let Err(error) = &message.content[0].as_tool_request().unwrap().tool_call {
-            assert!(matches!(
-                error,
-                mcp_core::ErrorData::new(ErrorCode::RESOURCE_NOT_FOUND, _, None, None)
-            ));
+            assert!(matches!(error, mcp_core::ToolError::NotFound(_)));
         } else {
             panic!("Expected tool request error");
         }

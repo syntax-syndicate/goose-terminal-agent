@@ -488,8 +488,8 @@ mod tests {
         assert_eq!(recipe.version, "1.0.0");
         assert_eq!(recipe.title, "Test Recipe");
         assert_eq!(recipe.description, "A test recipe");
-        assert_eq!(recipe.instructions, Some("Test instructions", None));
-        assert_eq!(recipe.prompt, Some("Test prompt", None));
+        assert_eq!(recipe.instructions, Some("Test instructions".to_string()));
+        assert_eq!(recipe.prompt, Some("Test prompt".to_string()));
 
         assert!(recipe.extensions.is_some());
         let extensions = recipe.extensions.unwrap();
@@ -571,8 +571,8 @@ sub_recipes:
         assert_eq!(recipe.version, "1.0.0");
         assert_eq!(recipe.title, "Test Recipe");
         assert_eq!(recipe.description, "A test recipe");
-        assert_eq!(recipe.instructions, Some("Test instructions", None));
-        assert_eq!(recipe.prompt, Some("Test prompt", None));
+        assert_eq!(recipe.instructions, Some("Test instructions".to_string()));
+        assert_eq!(recipe.prompt, Some("Test prompt".to_string()));
 
         assert!(recipe.extensions.is_some());
         let extensions = recipe.extensions.unwrap();
@@ -650,7 +650,7 @@ sub_recipes:
 
         assert!(recipe.author.is_some());
         let author = recipe.author.unwrap();
-        assert_eq!(author.contact, Some("test@example.com", None));
+        assert_eq!(author.contact, Some("test@example.com".to_string()));
     }
 
     #[test]
@@ -692,8 +692,8 @@ sub_recipes:
                 assert_eq!(timeout, &Some(300));
                 assert!(dependencies.is_some());
                 let deps = dependencies.as_ref().unwrap();
-                assert!(deps.contains(&"numpy", None));
-                assert!(deps.contains(&"matplotlib", None));
+                assert!(deps.contains(&"numpy".to_string()));
+                assert!(deps.contains(&"matplotlib".to_string()));
             }
             _ => panic!("Expected InlinePython extension"),
         }
@@ -737,7 +737,7 @@ isGlobal: true"#;
             recipe.instructions,
             Some("Test instructions for nested recipe".to_string())
         );
-        assert_eq!(recipe.prompt, Some("Test prompt", None));
+        assert_eq!(recipe.prompt, Some("Test prompt".to_string()));
         assert!(recipe.activities.is_some());
         let activities = recipe.activities.unwrap();
         assert_eq!(activities, vec!["Test activity 1", "Test activity 2"]);

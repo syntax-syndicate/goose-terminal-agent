@@ -8,10 +8,8 @@ use crate::providers::utils::{
 use anyhow::{anyhow, Error};
 use async_stream::try_stream;
 use futures::Stream;
-use mcp_core::ToolCall;
-use rmcp::model::{
-    AnnotateAble, Content, ErrorCode, ErrorData, RawContent, ResourceContents, Role, Tool,
-};
+use mcp_core::{ToolCall, ToolError};
+use rmcp::model::{AnnotateAble, Content, RawContent, ResourceContents, Role, Tool};
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use std::ops::Deref;
@@ -301,10 +299,10 @@ pub fn response_to_message(response: &Value) -> anyhow::Result<Message> {
                 };
 
                 if !is_valid_function_name(&function_name) {
-                    let error = ErrorData::new(ErrorCode::RESOURCE_NOT_FOUND, format!(
+                    let error = ToolError::NotFound(format!(
                         "The provided function name '{}' had invalid characters, it must match this regex [a-zA-Z0-9_-]+",
                         function_name
-                    , None));
+                    ));
                     content.push(MessageContent::tool_request(id, Err(error)));
                 } else {
                     match safely_parse_json(&arguments_str) {
@@ -315,10 +313,10 @@ pub fn response_to_message(response: &Value) -> anyhow::Result<Message> {
                             ));
                         }
                         Err(e) => {
-                            let error = ErrorData::new(ErrorCode::INVALID_PARAMS, format!(
+                            let error = ToolError::InvalidParameters(format!(
                                 "Could not interpret tool use parameters for id {}: {}. Raw arguments: '{}'",
                                 id, e, arguments_str
-                            , None));
+                            ));
                             content.push(MessageContent::tool_request(id, Err(error)));
                         }
                     }
@@ -499,12 +497,13 @@ where
                         let content = match parsed {
                             Ok(params) => MessageContent::tool_request(
                                 id.clone(),
-                                Ok(ToolCall::new(function_name.clone(), params))),
+                                Ok(ToolCall::new(function_name.clone(), params)),
+                            ),
                             Err(e) => {
-                                let error = ErrorData::new(ErrorCode::INVALID_PARAMS, format!(
+                                let error = ToolError::InvalidParameters(format!(
                                     "Could not interpret tool use parameters for id {}: {}",
                                     id, e
-                                , None));
+                                ));
                                 MessageContent::tool_request(id.clone(), Err(error))
                             }
                         };
@@ -519,7 +518,8 @@ where
                         created: chrono::Utc::now().timestamp(),
                         content: contents,
                     }),
-                    usage)
+                    usage,
+                )
             } else if let Some(text) = &chunk.choices[0].delta.content {
                 yield (
                     Some(Message {
@@ -532,7 +532,8 @@ where
                         usage
                     } else {
                         None
-                    })
+                    },
+                )
             }
         }
     }
@@ -561,7 +562,7 @@ pub fn create_request(
         match *last_part {
             "low" | "medium" | "high" => {
                 let base_name = parts[..parts.len() - 1].join("-");
-                (base_name, Some(last_part, None))
+                (base_name, Some(last_part.to_string()))
             }
             _ => (
                 model_config.model_name.to_string(),
@@ -978,7 +979,7 @@ mod tests {
 
         if let MessageContent::ToolRequest(request) = &message.content[0] {
             match &request.tool_call {
-                Err(ErrorData::new(ErrorCode::RESOURCE_NOT_FOUND, msg, None, None)) => {
+                Err(ToolError::NotFound(msg)) => {
                     assert!(msg.starts_with("The provided function name"));
                 }
                 _ => panic!("Expected ToolNotFound error"),
@@ -1000,7 +1001,7 @@ mod tests {
 
         if let MessageContent::ToolRequest(request) = &message.content[0] {
             match &request.tool_call {
-                Err(ErrorData::new(ErrorCode::INVALID_PARAMS, msg, None, None)) => {
+                Err(ToolError::InvalidParameters(msg)) => {
                     assert!(msg.starts_with("Could not interpret tool use parameters"));
                 }
                 _ => panic!("Expected InvalidParameters error"),
@@ -1150,7 +1151,8 @@ data: {"model":"us.anthropic.claude-sonnet-4-20250514-v1:0","choices":[{"delta":
 data: [DONE]
 "#;
 
-        let response_stream = tokio_stream::iter(response_lines.lines().map(|line| Ok(line, None)));
+        let response_stream =
+            tokio_stream::iter(response_lines.lines().map(|line| Ok(line.to_string())));
         let messages = response_to_streaming_message(response_stream);
         pin!(messages);
 
