@@ -4,8 +4,10 @@ use super::utils::{get_model, handle_response_openai_compat};
 use crate::message::Message;
 use crate::model::ModelConfig;
 use crate::providers::formats::openai::{create_request, get_usage, response_to_message};
+use crate::utils::safe_truncate;
 use anyhow::Result;
 use async_trait::async_trait;
+use regex::Regex;
 use reqwest::Client;
 use rmcp::model::Tool;
 use serde_json::Value;
@@ -153,5 +155,78 @@ impl Provider for OllamaProvider {
         let model = get_model(&response);
         super::utils::emit_debug_trace(&self.model, &payload, &response, &usage);
         Ok((message, ProviderUsage::new(model, usage)))
+    }
+
+    /// Generate a session name based on the conversation history
+    /// This override filters out reasoning tokens that some Ollama models produce
+    async fn generate_session_name(&self, messages: &[Message]) -> Result<String, ProviderError> {
+        let message = Message::user().with_text(&self.create_session_name_prompt(messages));
+        let result = self
+            .complete(
+                "You are a title generator. Output only the requested title with no additional text, reasoning, or explanations.",
+                &[message],
+                &[],
+            )
+            .await?;
+
+        let mut description = result.0.as_concat_text();
+        description = Self::filter_reasoning_tokens(&description);
+
+        let sanitized_description = if description.chars().count() > 100 {
+            safe_truncate(&description, 100)
+        } else {
+            description
+        };
+
+        // If the description is too long, the model failed to give us a short description, provide a fallback instead
+        if sanitized_description.split_whitespace().count() > 6 {
+            Ok("Ollama Chat Session".to_string())
+        } else {
+            Ok(sanitized_description)
+        }
+    }
+}
+
+impl OllamaProvider {
+    /// Filter out reasoning tokens and thinking patterns from model responses
+    fn filter_reasoning_tokens(text: &str) -> String {
+        let mut filtered = text.to_string();
+
+        // Remove common reasoning patterns
+        let reasoning_patterns = [
+            r"<think>.*?</think>",
+            r"<thinking>.*?</thinking>",
+            r"Let me think.*?\n",
+            r"I need to.*?\n",
+            r"First, I.*?\n",
+            r"Okay, .*?\n",
+            r"So, .*?\n",
+            r"Well, .*?\n",
+            r"Hmm, .*?\n",
+            r"Actually, .*?\n",
+            r"Based on.*?I think",
+            r"Looking at.*?I would say",
+        ];
+
+        for pattern in reasoning_patterns {
+            if let Ok(re) = Regex::new(pattern) {
+                filtered = re.replace_all(&filtered, "").to_string();
+            }
+        }
+        // Remove any remaining thinking markers
+        filtered = filtered
+            .replace("<think>", "")
+            .replace("</think>", "")
+            .replace("<thinking>", "")
+            .replace("</thinking>", "");
+        // Clean up extra whitespace
+        filtered = filtered
+            .lines()
+            .map(|line| line.trim())
+            .filter(|line| !line.is_empty())
+            .collect::<Vec<_>>()
+            .join(" ");
+
+        filtered
     }
 }

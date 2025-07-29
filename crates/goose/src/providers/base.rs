@@ -344,26 +344,8 @@ pub trait Provider: Send + Sync {
     /// This method can be overridden by providers to implement custom session naming strategies.
     /// The default implementation creates a prompt asking for a concise description in 4 words or less.
     async fn generate_session_name(&self, messages: &[Message]) -> Result<String, ProviderError> {
-        // Create a prompt for a concise description
-        let mut description_prompt = "Based on the conversation so far, provide a concise description of this session in 4 words or less. This will be used for finding the session later in a UI with limited space - reply *ONLY* with the description".to_string();
-
-        // Get context from the first 3 user messages
-        let context: Vec<String> = messages
-            .iter()
-            .filter(|m| m.role == rmcp::model::Role::User)
-            .take(3)
-            .map(|m| m.as_concat_text())
-            .collect();
-
-        if !context.is_empty() {
-            description_prompt = format!(
-                "Here are the first few user messages:\n{}\n\n{}",
-                context.join("\n"),
-                description_prompt
-            );
-        }
-
-        let message = Message::user().with_text(&description_prompt);
+        let prompt = self.create_session_name_prompt(messages);
+        let message = Message::user().with_text(&prompt);
         let result = self
             .complete(
                 "Reply with only a description in four words or less",
@@ -380,6 +362,29 @@ pub trait Provider: Send + Sync {
         };
 
         Ok(sanitized_description)
+    }
+
+    // Generate a prompt for a session name based on the conversation history
+    fn create_session_name_prompt(&self, messages: &[Message]) -> String {
+        // Create a prompt for a concise description
+        let mut prompt = "Based on the conversation so far, provide a concise description of this session in 4 words or less. This will be used for finding the session later in a UI with limited space - reply *ONLY* with the description".to_string();
+
+        // Get context from the first 3 user messages
+        let context: Vec<String> = messages
+            .iter()
+            .filter(|m| m.role == rmcp::model::Role::User)
+            .take(3)
+            .map(|m| m.as_concat_text())
+            .collect();
+
+        if !context.is_empty() {
+            prompt = format!(
+                "Here are the first few user messages:\n{}\n\n{}",
+                context.join("\n"),
+                prompt
+            );
+        }
+        return prompt;
     }
 }
 
