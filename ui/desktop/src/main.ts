@@ -672,7 +672,6 @@ const createChat = async (
   // We need to wait for the window to load before we can access localStorage
   mainWindow.webContents.on('did-finish-load', () => {
     const configStr = JSON.stringify(windowConfig).replace(/'/g, "\\'");
-    // Optimized localStorage access with single retry
     mainWindow.webContents
       .executeJavaScript(
         `
