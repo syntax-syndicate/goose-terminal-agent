@@ -26,6 +26,8 @@ pub const OPENROUTER_KNOWN_MODELS: &[&str] = &[
     "anthropic/claude-sonnet-4",
     "google/gemini-2.5-pro",
     "deepseek/deepseek-r1-0528",
+    "qwen/qwen3-coder",
+    "moonshotai/kimi-k2",
 ];
 pub const OPENROUTER_DOC_URL: &str = "https://openrouter.ai/models";
 
