@@ -164,7 +164,6 @@ pub use self::PkceAuthFlow as OpenRouterAuth;
 use crate::config::Config;
 use serde_json::Value;
 
-
 pub fn configure_openrouter(config: &Config, api_key: String) -> Result<()> {
     config.set_secret("OPENROUTER_API_KEY", Value::String(api_key))?;
     config.set_param("GOOSE_PROVIDER", Value::String("openrouter".to_string()))?;
