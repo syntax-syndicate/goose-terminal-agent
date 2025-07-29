@@ -11,272 +11,275 @@ use goose::permission::permission_confirmation::PrincipalType;
 use goose::providers::base::{ConfigKey, ModelInfo, ProviderMetadata};
 use goose::session::info::SessionInfo;
 use goose::session::SessionMetadata;
-use rmcp::model::{
-    Annotations, Content, EmbeddedResource, ImageContent, ResourceContents, Role, TextContent,
-    Tool, ToolAnnotations,
-};
+use rmcp::model::Annotations;
+use rmcp::model::Content;
+use rmcp::model::EmbeddedResource;
+use rmcp::model::ImageContent;
+use rmcp::model::ResourceContents;
+use rmcp::model::Role;
+use rmcp::model::TextContent;
+use rmcp::model::Tool;
+use rmcp::model::ToolAnnotations;
+use serde_json::Map;
+use utoipa::openapi::schema::AdditionalProperties;
+use utoipa::openapi::schema::AnyOfBuilder;
+use utoipa::openapi::AllOfBuilder;
+use utoipa::openapi::ArrayBuilder;
+use utoipa::openapi::ObjectBuilder;
+use utoipa::openapi::OneOfBuilder;
+use utoipa::openapi::Ref;
+use utoipa::openapi::SchemaFormat;
+use utoipa::openapi::SchemaType;
 use utoipa::{OpenApi, ToSchema};
 
-use rmcp::schemars::schema::{InstanceType, SchemaObject, SingleOrVec};
-use utoipa::openapi::schema::{
-    AdditionalProperties, AnyOfBuilder, ArrayBuilder, ObjectBuilder, OneOfBuilder, Schema,
-    SchemaFormat, SchemaType,
-};
-use utoipa::openapi::{AllOfBuilder, Ref, RefOr};
+use utoipa::openapi::RefOr;
+
+// use rmcp::schemars::schema::Schema;
+use utoipa::openapi::schema::Schema;
 
 macro_rules! derive_utoipa {
     ($inner_type:ident as $schema_name:ident) => {
         struct $schema_name {}
 
         impl<'__s> ToSchema<'__s> for $schema_name {
-            fn schema() -> (&'__s str, utoipa::openapi::RefOr<utoipa::openapi::Schema>) {
-                let settings = rmcp::schemars::gen::SchemaSettings::openapi3();
-                let generator = settings.into_generator();
-                let schema = generator.into_root_schema_for::<$inner_type>();
-                let schema = convert_schemars_to_utoipa(schema);
-                (stringify!($inner_type), schema)
-            }
-
-            fn aliases() -> Vec<(&'__s str, utoipa::openapi::schema::Schema)> {
-                Vec::new()
+            fn schema() -> (
+                &'__s str,
+                utoipa::openapi::RefOr<utoipa::openapi::schema::Schema>,
+            ) {
+                let settings = rmcp::schemars::generate::SchemaSettings::openapi3();
+                let schemars_schema = settings.into_generator().root_schema_for::<$inner_type>();
+                (
+                    stringify!($inner_type),
+                    RefOr::T(from_json(schemars_schema.to_value())),
+                )
             }
         }
     };
 }
 
-fn convert_schemars_to_utoipa(schema: rmcp::schemars::schema::RootSchema) -> RefOr<Schema> {
-    convert_schema_object(&rmcp::schemars::schema::Schema::Object(
-        schema.schema.clone(),
-    ))
-}
+use serde_json::Value;
+use utoipa::openapi::schema::{AllOf, AnyOf, Array, Object, OneOf};
 
-fn convert_schema_object(schema: &rmcp::schemars::schema::Schema) -> RefOr<Schema> {
-    match schema {
-        rmcp::schemars::schema::Schema::Object(schema_object) => {
-            convert_schema_object_inner(schema_object)
-        }
-        rmcp::schemars::schema::Schema::Bool(true) => {
-            RefOr::T(Schema::Object(ObjectBuilder::new().build()))
-        }
-        rmcp::schemars::schema::Schema::Bool(false) => {
-            RefOr::T(Schema::Object(ObjectBuilder::new().build()))
-        }
-    }
-}
+fn from_json_to_refor(value: serde_json::Value) -> RefOr<Schema> {
+    match &value {
+        Value::Object(map) => {
+            // Check if this has both $ref and other properties (like properties, required, type)
+            if let Some(ref_value) = map.get("$ref").and_then(|v| v.as_str()) {
+                let has_other_properties = map.keys().any(|k| k != "$ref");
 
-fn convert_schema_object_inner(schema: &SchemaObject) -> RefOr<Schema> {
-    // Handle references first
-    if let Some(reference) = &schema.reference {
-        return RefOr::Ref(Ref::new(reference.clone()));
-    }
+                if has_other_properties {
+                    // This has both $ref and other properties - create AllOf
+                    let mut all_of_schema = AllOf::new();
 
-    // Handle subschemas (oneOf, allOf, anyOf)
-    if let Some(subschemas) = &schema.subschemas {
-        if let Some(one_of) = &subschemas.one_of {
-            let schemas: Vec<RefOr<Schema>> = one_of.iter().map(convert_schema_object).collect();
-            let mut builder = OneOfBuilder::new();
-            for schema in schemas {
-                builder = builder.item(schema);
-            }
-            return RefOr::T(Schema::OneOf(builder.build()));
-        }
-        if let Some(all_of) = &subschemas.all_of {
-            let schemas: Vec<RefOr<Schema>> = all_of.iter().map(convert_schema_object).collect();
-            let mut all_of = AllOfBuilder::new();
-            for schema in schemas {
-                all_of = all_of.item(schema);
-            }
-            return RefOr::T(Schema::AllOf(all_of.build()));
-        }
-        if let Some(any_of) = &subschemas.any_of {
-            let schemas: Vec<RefOr<Schema>> = any_of.iter().map(convert_schema_object).collect();
-            let mut any_of = AnyOfBuilder::new();
-            for schema in schemas {
-                any_of = any_of.item(schema);
-            }
-            return RefOr::T(Schema::AnyOf(any_of.build()));
-        }
-    }
+                    // First item: the reference
+                    all_of_schema.items.push(RefOr::Ref(Ref::new(ref_value)));
 
-    // Handle based on instance type
-    match &schema.instance_type {
-        Some(SingleOrVec::Single(instance_type)) => {
-            convert_single_instance_type(instance_type, schema)
-        }
-        Some(SingleOrVec::Vec(instance_types)) => {
-            // Multiple types - use AnyOf
-            let schemas: Vec<RefOr<Schema>> = instance_types
-                .iter()
-                .map(|instance_type| convert_single_instance_type(instance_type, schema))
-                .collect();
-            let mut any_of = AnyOfBuilder::new();
-            for schema in schemas {
-                any_of = any_of.item(schema);
-            }
-            RefOr::T(Schema::AnyOf(any_of.build()))
-        }
-        None => {
-            // No type specified - create a generic schema
-            RefOr::T(Schema::Object(ObjectBuilder::new().build()))
-        }
-    }
-}
+                    // Second item: the object without $ref
+                    let mut object_map = map.clone();
+                    object_map.remove("$ref");
+                    let object_schema = from_json(Value::Object(object_map));
+                    all_of_schema.items.push(RefOr::T(object_schema));
 
-fn convert_single_instance_type(
-    instance_type: &InstanceType,
-    schema: &SchemaObject,
-) -> RefOr<Schema> {
-    match instance_type {
-        InstanceType::Object => {
-            let mut object_builder = ObjectBuilder::new();
-
-            if let Some(object_validation) = &schema.object {
-                // Add properties
-                for (name, prop_schema) in &object_validation.properties {
-                    let prop = convert_schema_object(prop_schema);
-                    object_builder = object_builder.property(name, prop);
+                    RefOr::T(Schema::AllOf(all_of_schema))
+                } else {
+                    // Just a reference
+                    RefOr::Ref(Ref::new(ref_value))
                 }
+            } else {
+                RefOr::T(from_json(value))
+            }
+        }
+        _ => RefOr::T(from_json(value)),
+    }
+}
 
-                // Add required fields
-                for required_field in &object_validation.required {
-                    object_builder = object_builder.required(required_field);
-                }
+fn from_json(value: serde_json::Value) -> Schema {
+    match value {
+        Value::Object(map) => {
+            // Handle composite schemas - but check if this is a mixed object+oneOf case
+            if let Some(one_of) = map.get("oneOf").and_then(|v| v.as_array()) {
+                // Check if this object has other properties besides oneOf
+                let has_other_properties = map
+                    .keys()
+                    .any(|k| k != "oneOf" && k != "$schema" && k != "title" && k != "$defs");
 
-                // Handle additional properties
-                if let Some(additional) = &object_validation.additional_properties {
-                    match &**additional {
-                        rmcp::schemars::schema::Schema::Bool(false) => {
-                            object_builder = object_builder
-                                .additional_properties(Some(AdditionalProperties::FreeForm(false)));
-                        }
-                        rmcp::schemars::schema::Schema::Bool(true) => {
-                            object_builder = object_builder
-                                .additional_properties(Some(AdditionalProperties::FreeForm(true)));
-                        }
-                        rmcp::schemars::schema::Schema::Object(obj) => {
-                            let schema = convert_schema_object(
-                                &rmcp::schemars::schema::Schema::Object(obj.clone()),
-                            );
-                            object_builder = object_builder
-                                .additional_properties(Some(AdditionalProperties::RefOr(schema)));
-                        }
+                if has_other_properties {
+                    // This is an object with oneOf - create AllOf with object + oneOf
+                    let mut all_of_schema = AllOf::new();
+
+                    // First item: the object without oneOf
+                    let mut object_map = map.clone();
+                    object_map.remove("oneOf");
+                    object_map.remove("$schema");
+                    object_map.remove("title");
+                    object_map.remove("$defs");
+                    let object_schema = from_json(Value::Object(object_map));
+                    all_of_schema.items.push(RefOr::T(object_schema));
+
+                    // Second item: the oneOf
+                    let mut one_of_schema = OneOf::new();
+                    for schema_value in one_of {
+                        let ref_or_schema = from_json_to_refor(schema_value.clone());
+                        one_of_schema.items.push(ref_or_schema);
                     }
+                    all_of_schema
+                        .items
+                        .push(RefOr::T(Schema::OneOf(one_of_schema)));
+
+                    Schema::AllOf(all_of_schema)
+                } else {
+                    // Simple oneOf without other properties
+                    let mut one_of_schema = OneOf::new();
+                    for schema_value in one_of {
+                        let ref_or_schema = from_json_to_refor(schema_value.clone());
+                        one_of_schema.items.push(ref_or_schema);
+                    }
+                    Schema::OneOf(one_of_schema)
                 }
+            } else if let Some(all_of) = map.get("allOf").and_then(|v| v.as_array()) {
+                let mut all_of_schema = AllOf::new();
+                for schema_value in all_of {
+                    let ref_or_schema = from_json_to_refor(schema_value.clone());
+                    all_of_schema.items.push(ref_or_schema);
+                }
+                Schema::AllOf(all_of_schema)
+            } else if let Some(any_of) = map.get("anyOf").and_then(|v| v.as_array()) {
+                let mut any_of_schema = AnyOf::new();
+                for schema_value in any_of {
+                    let ref_or_schema = from_json_to_refor(schema_value.clone());
+                    any_of_schema.items.push(ref_or_schema);
+                }
+                Schema::AnyOf(any_of_schema)
             }
+            // Check for schema type
+            else if let Some(schema_type) = map.get("type") {
+                // Handle union types (array of types)
+                if let Some(type_array) = schema_type.as_array() {
+                    let mut any_of_schema = AnyOf::new();
+                    for type_value in type_array {
+                        if let Some(type_str) = type_value.as_str() {
+                            let mut type_map = serde_json::Map::new();
+                            type_map
+                                .insert("type".to_string(), Value::String(type_str.to_string()));
 
-            RefOr::T(Schema::Object(object_builder.build()))
-        }
-        InstanceType::Array => {
-            let mut array_builder = ArrayBuilder::new();
-
-            if let Some(array_validation) = &schema.array {
-                // Add items schema
-                if let Some(items) = &array_validation.items {
-                    match items {
-                        rmcp::schemars::schema::SingleOrVec::Single(item_schema) => {
-                            let item_schema = convert_schema_object(item_schema);
-                            array_builder = array_builder.items(item_schema);
-                        }
-                        rmcp::schemars::schema::SingleOrVec::Vec(item_schemas) => {
-                            // Multiple item types - use AnyOf
-                            let schemas: Vec<RefOr<Schema>> =
-                                item_schemas.iter().map(convert_schema_object).collect();
-                            let mut any_of = AnyOfBuilder::new();
-                            for schema in schemas {
-                                any_of = any_of.item(schema);
+                            // Copy other properties from original map except "type"
+                            for (key, value) in &map {
+                                if key != "type" {
+                                    type_map.insert(key.clone(), value.clone());
+                                }
                             }
-                            let any_of_schema = RefOr::T(Schema::AnyOf(any_of.build()));
-                            array_builder = array_builder.items(any_of_schema);
+
+                            let type_schema = from_json(Value::Object(type_map));
+                            any_of_schema.items.push(RefOr::T(type_schema));
                         }
                     }
-                }
+                    Schema::AnyOf(any_of_schema)
+                } else {
+                    // Single type
+                    match schema_type.as_str() {
+                        Some("array") => {
+                            // Create items schema
+                            let items_ref_or = if let Some(items) = map.get("items") {
+                                from_json_to_refor(items.clone())
+                            } else {
+                                RefOr::T(Schema::Object(Object::new()))
+                            };
 
-                // Add constraints
-                if let Some(min_items) = array_validation.min_items {
-                    array_builder = array_builder.min_items(Some(min_items as usize));
+                            let mut array = Array::new(RefOr::T(Schema::Object(Object::new())));
+                            array.items = Box::new(items_ref_or);
+
+                            // Handle min/max items
+                            if let Some(min_items) = map.get("minItems").and_then(|v| v.as_u64()) {
+                                array.min_items = Some(min_items as usize);
+                            }
+                            if let Some(max_items) = map.get("maxItems").and_then(|v| v.as_u64()) {
+                                array.max_items = Some(max_items as usize);
+                            }
+
+                            Schema::Array(array)
+                        }
+                        Some("object") => {
+                            let mut object = Object::new();
+
+                            // Handle properties
+                            if let Some(properties) =
+                                map.get("properties").and_then(|v| v.as_object())
+                            {
+                                for (prop_name, prop_schema) in properties {
+                                    let ref_or_schema = from_json_to_refor(prop_schema.clone());
+                                    object.properties.insert(prop_name.clone(), ref_or_schema);
+                                }
+                            }
+
+                            // Handle required properties
+                            if let Some(required) = map.get("required").and_then(|v| v.as_array()) {
+                                for req in required {
+                                    if let Some(req_str) = req.as_str() {
+                                        object.required.push(req_str.to_string());
+                                    }
+                                }
+                            }
+
+                            Schema::Object(object)
+                        }
+                        Some("string") => {
+                            let mut object = Object::with_type(SchemaType::String);
+
+                            // Handle string constraints
+                            if let Some(min_length) = map.get("minLength").and_then(|v| v.as_u64())
+                            {
+                                object.min_length = Some(min_length as usize);
+                            }
+                            if let Some(max_length) = map.get("maxLength").and_then(|v| v.as_u64())
+                            {
+                                object.max_length = Some(max_length as usize);
+                            }
+                            if let Some(pattern) = map.get("pattern").and_then(|v| v.as_str()) {
+                                object.pattern = Some(pattern.to_string());
+                            }
+
+                            // Handle const values
+                            if let Some(const_value) = map.get("const") {
+                                // For const string values, we can set enum with single value
+                                if let Some(const_str) = const_value.as_str() {
+                                    object.enum_values = Some(vec![const_str.into()]);
+                                }
+                            }
+
+                            Schema::Object(object)
+                        }
+                        Some("number") | Some("integer") => {
+                            let schema_type = if schema_type.as_str() == Some("integer") {
+                                SchemaType::Integer
+                            } else {
+                                SchemaType::Number
+                            };
+
+                            let mut object = Object::with_type(schema_type);
+
+                            // Handle numeric constraints
+                            if let Some(minimum) = map.get("minimum").and_then(|v| v.as_f64()) {
+                                object.minimum = Some(minimum);
+                            }
+                            if let Some(maximum) = map.get("maximum").and_then(|v| v.as_f64()) {
+                                object.maximum = Some(maximum);
+                            }
+
+                            Schema::Object(object)
+                        }
+                        Some("boolean") => Schema::Object(Object::with_type(SchemaType::Boolean)),
+                        _ => Schema::Object(Object::new()),
+                    }
                 }
-                if let Some(max_items) = array_validation.max_items {
-                    array_builder = array_builder.max_items(Some(max_items as usize));
-                }
+            } else {
+                // Default to object schema
+                Schema::Object(Object::new())
             }
-
-            RefOr::T(Schema::Array(array_builder.build()))
         }
-        InstanceType::String => {
-            let mut object_builder = ObjectBuilder::new().schema_type(SchemaType::String);
-
-            if let Some(string_validation) = &schema.string {
-                if let Some(min_length) = string_validation.min_length {
-                    object_builder = object_builder.min_length(Some(min_length as usize));
-                }
-                if let Some(max_length) = string_validation.max_length {
-                    object_builder = object_builder.max_length(Some(max_length as usize));
-                }
-                if let Some(pattern) = &string_validation.pattern {
-                    object_builder = object_builder.pattern(Some(pattern.clone()));
-                }
-            }
-
-            if let Some(format) = &schema.format {
-                object_builder = object_builder.format(Some(SchemaFormat::Custom(format.clone())));
-            }
-
-            RefOr::T(Schema::Object(object_builder.build()))
+        _ => {
+            // For non-object values, create a basic object schema
+            Schema::Object(Object::new())
         }
-        InstanceType::Number => {
-            let mut object_builder = ObjectBuilder::new().schema_type(SchemaType::Number);
-
-            if let Some(number_validation) = &schema.number {
-                if let Some(minimum) = number_validation.minimum {
-                    object_builder = object_builder.minimum(Some(minimum));
-                }
-                if let Some(maximum) = number_validation.maximum {
-                    object_builder = object_builder.maximum(Some(maximum));
-                }
-                if let Some(exclusive_minimum) = number_validation.exclusive_minimum {
-                    object_builder = object_builder.exclusive_minimum(Some(exclusive_minimum));
-                }
-                if let Some(exclusive_maximum) = number_validation.exclusive_maximum {
-                    object_builder = object_builder.exclusive_maximum(Some(exclusive_maximum));
-                }
-                if let Some(multiple_of) = number_validation.multiple_of {
-                    object_builder = object_builder.multiple_of(Some(multiple_of));
-                }
-            }
-
-            RefOr::T(Schema::Object(object_builder.build()))
-        }
-        InstanceType::Integer => {
-            let mut object_builder = ObjectBuilder::new().schema_type(SchemaType::Integer);
-
-            if let Some(number_validation) = &schema.number {
-                if let Some(minimum) = number_validation.minimum {
-                    object_builder = object_builder.minimum(Some(minimum));
-                }
-                if let Some(maximum) = number_validation.maximum {
-                    object_builder = object_builder.maximum(Some(maximum));
-                }
-                if let Some(exclusive_minimum) = number_validation.exclusive_minimum {
-                    object_builder = object_builder.exclusive_minimum(Some(exclusive_minimum));
-                }
-                if let Some(exclusive_maximum) = number_validation.exclusive_maximum {
-                    object_builder = object_builder.exclusive_maximum(Some(exclusive_maximum));
-                }
-                if let Some(multiple_of) = number_validation.multiple_of {
-                    object_builder = object_builder.multiple_of(Some(multiple_of));
-                }
-            }
-
-            RefOr::T(Schema::Object(object_builder.build()))
-        }
-        InstanceType::Boolean => RefOr::T(Schema::Object(
-            ObjectBuilder::new()
-                .schema_type(SchemaType::Boolean)
-                .build(),
-        )),
-        InstanceType::Null => RefOr::T(Schema::Object(
-            ObjectBuilder::new().schema_type(SchemaType::String).build(),
-        )),
     }
 }
 

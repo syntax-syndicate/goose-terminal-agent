@@ -1104,8 +1104,7 @@
             "type": "number"
           },
           "timestamp": {
-            "type": "string",
-            "format": "date-time"
+            "type": "string"
           }
         }
       },
@@ -1186,81 +1185,53 @@
         }
       },
       "Content": {
-        "oneOf": [
+        "allOf": [
           {
             "type": "object",
-            "required": [
-              "text",
-              "type"
-            ],
-            "properties": {
-              "text": {
-                "type": "string"
-              },
-              "type": {
-                "type": "string"
-              }
-            }
-          },
-          {
-            "type": "object",
-            "required": [
-              "data",
-              "mimeType",
-              "type"
-            ],
-            "properties": {
-              "data": {
-                "type": "string"
-              },
-              "mimeType": {
-                "type": "string"
-              },
-              "type": {
-                "type": "string"
-              }
-            }
-          },
-          {
-            "type": "object",
-            "required": [
-              "resource",
-              "type"
-            ],
-            "properties": {
-              "resource": {
-                "$ref": "#/components/schemas/ResourceContents"
-              },
-              "type": {
-                "type": "string"
-              }
-            }
-          },
-          {
-            "type": "object",
-            "required": [
-              "data",
-              "mimeType",
-              "type"
-            ],
             "properties": {
               "annotations": {
-                "allOf": [
+                "anyOf": [
                   {
                     "$ref": "#/components/schemas/Annotations"
+                  },
+                  {
+                    "type": "object"
+                  }
+                ]
+              }
+            }
+          },
+          {
+            "oneOf": [
+              {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/RawTextContent"
                   }
                 ]
               },
-              "data": {
-                "type": "string"
+              {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/RawImageContent"
+                  }
+                ]
               },
-              "mimeType": {
-                "type": "string"
+              {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/RawEmbeddedResource"
+                  }
+                ]
               },
-              "type": {
-                "type": "string"
+              {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/Annotated"
+                  }
+                ]
               }
-            }
+            ]
           }
         ]
       },
@@ -1427,9 +1398,12 @@
         ],
         "properties": {
           "annotations": {
-            "allOf": [
+            "anyOf": [
               {
                 "$ref": "#/components/schemas/Annotations"
+              },
+              {
+                "type": "object"
               }
             ]
           },
@@ -1828,9 +1802,12 @@
         ],
         "properties": {
           "annotations": {
-            "allOf": [
+            "anyOf": [
               {
                 "$ref": "#/components/schemas/Annotations"
+              },
+              {
+                "type": "object"
               }
             ]
           },
@@ -2451,8 +2428,8 @@
           {
             "type": "object",
             "required": [
-              "text",
-              "uri"
+              "uri",
+              "text"
             ],
             "properties": {
               "mime_type": {
@@ -2469,8 +2446,8 @@
           {
             "type": "object",
             "required": [
-              "blob",
-              "uri"
+              "uri",
+              "blob"
             ],
             "properties": {
               "blob": {
@@ -2537,12 +2514,19 @@
         }
       },
       "Role": {
-        "oneOf": [
+        "allOf": [
           {
-            "type": "string"
+            "type": "object"
           },
           {
-            "type": "string"
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "string"
+              }
+            ]
           }
         ]
       },
@@ -2898,9 +2882,12 @@
         ],
         "properties": {
           "annotations": {
-            "allOf": [
+            "anyOf": [
               {
                 "$ref": "#/components/schemas/Annotations"
+              },
+              {
+                "type": "object"
               }
             ]
           },
@@ -2927,14 +2914,17 @@
       "Tool": {
         "type": "object",
         "required": [
-          "inputSchema",
-          "name"
+          "name",
+          "inputSchema"
         ],
         "properties": {
           "annotations": {
-            "allOf": [
+            "anyOf": [
               {
                 "$ref": "#/components/schemas/ToolAnnotations"
+              },
+              {
+                "type": "object"
               }
             ]
           },
@@ -2942,8 +2932,7 @@
             "type": "string"
           },
           "inputSchema": {
-            "type": "object",
-            "additionalProperties": true
+            "type": "object"
           },
           "name": {
             "type": "string"
