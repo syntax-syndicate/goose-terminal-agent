@@ -75,9 +75,9 @@ export default function ProviderGuard({ children }: ProviderGuardProps) {
           setShowFirstTimeSetup(true);
         }
       } catch (error) {
+        // On error, assume no provider and redirect to welcome
         console.error('Error checking provider configuration:', error);
-        // On error, show first time setup
-        setShowFirstTimeSetup(true);
+        navigate('/welcome', { replace: true });
       } finally {
         setIsChecking(false);
       }
