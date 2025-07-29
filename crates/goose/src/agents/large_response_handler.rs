@@ -3,13 +3,14 @@ use mcp_core::ToolError;
 use rmcp::model::Content;
 use std::fs::File;
 use std::io::Write;
+use rmcp::model::{ErrorData, ErrorCode};
 
 const LARGE_TEXT_THRESHOLD: usize = 200_000;
 
 /// Process tool response and handle large text content
 pub fn process_tool_response(
-    response: Result<Vec<Content>, ToolError>,
-) -> Result<Vec<Content>, ToolError> {
+    response: Result<Vec<Content>, ErrorData>,
+) -> Result<Vec<Content>, ErrorData> {
     match response {
         Ok(contents) => {
             let mut processed_contents = Vec::new();
@@ -214,7 +215,7 @@ mod tests {
     fn test_error_response_passes_through() {
         // Create an error response
         let error = ToolError::ExecutionError("Test error".to_string());
-        let response: Result<Vec<Content>, ToolError> = Err(error);
+        let response: Result<Vec<Content>, ErrorData> = Err(error);
 
         // Process the response
         let processed = process_tool_response(response);
@@ -222,7 +223,7 @@ mod tests {
         // Verify the error is passed through unchanged
         assert!(processed.is_err());
         match processed {
-            Err(ToolError::ExecutionError(msg)) => {
+            Err(ErrorData::new(ErrorCode::INTERNAL_ERROR, msg, None)) => {
                 assert_eq!(msg, "Test error");
             }
             _ => panic!("Expected execution error"),

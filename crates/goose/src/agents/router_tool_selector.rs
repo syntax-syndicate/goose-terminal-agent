@@ -15,6 +15,7 @@ use crate::agents::tool_vectordb::ToolVectorDB;
 use crate::message::Message;
 use crate::model::ModelConfig;
 use crate::providers::{self, base::Provider};
+use rmcp::model::{ErrorData, ErrorCode};
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum RouterToolSelectionStrategy {
@@ -24,11 +25,11 @@ pub enum RouterToolSelectionStrategy {
 
 #[async_trait]
 pub trait RouterToolSelector: Send + Sync {
-    async fn select_tools(&self, params: Value) -> Result<Vec<Content>, ToolError>;
-    async fn index_tools(&self, tools: &[Tool], extension_name: &str) -> Result<(), ToolError>;
-    async fn remove_tool(&self, tool_name: &str) -> Result<(), ToolError>;
-    async fn record_tool_call(&self, tool_name: &str) -> Result<(), ToolError>;
-    async fn get_recent_tool_calls(&self, limit: usize) -> Result<Vec<String>, ToolError>;
+    async fn select_tools(&self, params: Value) -> Result<Vec<Content>, ErrorData>;
+    async fn index_tools(&self, tools: &[Tool], extension_name: &str) -> Result<(), ErrorData>;
+    async fn remove_tool(&self, tool_name: &str) -> Result<(), ErrorData>;
+    async fn record_tool_call(&self, tool_name: &str) -> Result<(), ErrorData>;
+    async fn get_recent_tool_calls(&self, limit: usize) -> Result<Vec<String>, ErrorData>;
     fn selector_type(&self) -> RouterToolSelectionStrategy;
 }
 
@@ -71,7 +72,7 @@ impl VectorToolSelector {
 
 #[async_trait]
 impl RouterToolSelector for VectorToolSelector {
-    async fn select_tools(&self, params: Value) -> Result<Vec<Content>, ToolError> {
+    async fn select_tools(&self, params: Value) -> Result<Vec<Content>, ErrorData> {
         let query = params
             .get("query")
             .and_then(|v| v.as_str())
@@ -94,7 +95,7 @@ impl RouterToolSelector for VectorToolSelector {
             .create_embeddings(vec![query.to_string()])
             .await
             .map_err(|e| {
-                ToolError::ExecutionError(format!("Failed to generate query embedding: {}", e))
+                ErrorData::new(ErrorCode::INTERNAL_ERROR, format!("Failed to generate query embedding: {}", e), None)
             })?;
 
         let query_embedding = embeddings
@@ -106,7 +107,7 @@ impl RouterToolSelector for VectorToolSelector {
         let tools = vector_db
             .search_tools(query_embedding, k, extension_name)
             .await
-            .map_err(|e| ToolError::ExecutionError(format!("Failed to search tools: {}", e)))?;
+            .map_err(|e| ErrorData::new(ErrorCode::INTERNAL_ERROR, format!("Failed to search tools: {}", e), None))?;
 
         let selected_tools: Vec<Content> = tools
             .into_iter()
@@ -122,7 +123,7 @@ impl RouterToolSelector for VectorToolSelector {
         Ok(selected_tools)
     }
 
-    async fn index_tools(&self, tools: &[Tool], extension_name: &str) -> Result<(), ToolError> {
+    async fn index_tools(&self, tools: &[Tool], extension_name: &str) -> Result<(), ErrorData> {
         let texts_to_embed: Vec<String> = tools
             .iter()
             .map(|tool| {
@@ -151,7 +152,7 @@ impl RouterToolSelector for VectorToolSelector {
             .create_embeddings(texts_to_embed)
             .await
             .map_err(|e| {
-                ToolError::ExecutionError(format!("Failed to generate tool embeddings: {}", e))
+                ErrorData::new(ErrorCode::INTERNAL_ERROR, format!("Failed to generate tool embeddings: {}", e), None)
             })?;
 
         // Create tool records
@@ -186,7 +187,7 @@ impl RouterToolSelector for VectorToolSelector {
                 .search_tools(record.vector.clone(), 1, Some(&record.extension_name))
                 .await
                 .map_err(|e| {
-                    ToolError::ExecutionError(format!("Failed to search for existing tools: {}", e))
+                    ErrorData::new(ErrorCode::INTERNAL_ERROR, format!("Failed to search for existing tools: {}", e), None)
                 })?;
 
             // Only add if no exact match found
@@ -203,21 +204,21 @@ impl RouterToolSelector for VectorToolSelector {
             vector_db
                 .index_tools(new_tool_records)
                 .await
-                .map_err(|e| ToolError::ExecutionError(format!("Failed to index tools: {}", e)))?;
+                .map_err(|e| ErrorData::new(ErrorCode::INTERNAL_ERROR, format!("Failed to index tools: {}", e), None))?;
         }
 
         Ok(())
     }
 
-    async fn remove_tool(&self, tool_name: &str) -> Result<(), ToolError> {
+    async fn remove_tool(&self, tool_name: &str) -> Result<(), ErrorData> {
         let vector_db = self.vector_db.read().await;
         vector_db.remove_tool(tool_name).await.map_err(|e| {
-            ToolError::ExecutionError(format!("Failed to remove tool {}: {}", tool_name, e))
+            ErrorData::new(ErrorCode::INTERNAL_ERROR, format!("Failed to remove tool {}: {}", tool_name, e), None)
         })?;
         Ok(())
     }
 
-    async fn record_tool_call(&self, tool_name: &str) -> Result<(), ToolError> {
+    async fn record_tool_call(&self, tool_name: &str) -> Result<(), ErrorData> {
         let mut recent_calls = self.recent_tool_calls.write().await;
         if recent_calls.len() >= 100 {
             recent_calls.pop_front();
@@ -226,7 +227,7 @@ impl RouterToolSelector for VectorToolSelector {
         Ok(())
     }
 
-    async fn get_recent_tool_calls(&self, limit: usize) -> Result<Vec<String>, ToolError> {
+    async fn get_recent_tool_calls(&self, limit: usize) -> Result<Vec<String>, ErrorData> {
         let recent_calls = self.recent_tool_calls.read().await;
         Ok(recent_calls.iter().rev().take(limit).cloned().collect())
     }
@@ -254,7 +255,7 @@ impl LLMToolSelector {
 
 #[async_trait]
 impl RouterToolSelector for LLMToolSelector {
-    async fn select_tools(&self, params: Value) -> Result<Vec<Content>, ToolError> {
+    async fn select_tools(&self, params: Value) -> Result<Vec<Content>, ErrorData> {
         let query = params
             .get("query")
             .and_then(|v| v.as_str())
@@ -291,7 +292,7 @@ impl RouterToolSelector for LLMToolSelector {
                 .llm_provider
                 .complete(&prompt, &[system_message], &[])
                 .await
-                .map_err(|e| ToolError::ExecutionError(format!("Failed to search tools: {}", e)))?;
+                .map_err(|e| ErrorData::new(ErrorCode::INTERNAL_ERROR, format!("Failed to search tools: {}", e), None))?;
 
             // Extract just the message content from the response
             let (message, _usage) = response;
@@ -310,7 +311,7 @@ impl RouterToolSelector for LLMToolSelector {
         }
     }
 
-    async fn index_tools(&self, tools: &[Tool], extension_name: &str) -> Result<(), ToolError> {
+    async fn index_tools(&self, tools: &[Tool], extension_name: &str) -> Result<(), ErrorData> {
         let mut tool_strings = self.tool_strings.write().await;
 
         for tool in tools {
@@ -339,7 +340,7 @@ impl RouterToolSelector for LLMToolSelector {
 
         Ok(())
     }
-    async fn remove_tool(&self, tool_name: &str) -> Result<(), ToolError> {
+    async fn remove_tool(&self, tool_name: &str) -> Result<(), ErrorData> {
         let mut tool_strings = self.tool_strings.write().await;
         if let Some(extension_name) = tool_name.split("__").next() {
             tool_strings.remove(extension_name);
@@ -347,7 +348,7 @@ impl RouterToolSelector for LLMToolSelector {
         Ok(())
     }
 
-    async fn record_tool_call(&self, tool_name: &str) -> Result<(), ToolError> {
+    async fn record_tool_call(&self, tool_name: &str) -> Result<(), ErrorData> {
         let mut recent_calls = self.recent_tool_calls.write().await;
         if recent_calls.len() >= 100 {
             recent_calls.pop_front();
@@ -356,7 +357,7 @@ impl RouterToolSelector for LLMToolSelector {
         Ok(())
     }
 
-    async fn get_recent_tool_calls(&self, limit: usize) -> Result<Vec<String>, ToolError> {
+    async fn get_recent_tool_calls(&self, limit: usize) -> Result<Vec<String>, ErrorData> {
         let recent_calls = self.recent_tool_calls.read().await;
         Ok(recent_calls.iter().rev().take(limit).cloned().collect())
     }

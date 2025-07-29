@@ -1,3 +1,4 @@
+use rmcp::model::{ErrorCode, ErrorData};
 use serde::{Deserialize, Serialize};
 #[allow(unused_imports)] // this is used in schema below
 use serde_json::json;
@@ -16,7 +17,7 @@ pub enum ToolError {
     NotFound(String),
 }
 
-pub type ToolResult<T> = std::result::Result<T, ToolError>;
+pub type ToolResult<T> = std::result::Result<T, ErrorData>;
 
 #[derive(Error, Debug)]
 pub enum ResourceError {

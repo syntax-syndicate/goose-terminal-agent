@@ -44,7 +44,7 @@ use crate::recipe::{Author, Recipe, Response, Settings, SubRecipe};
 use crate::scheduler_trait::SchedulerTrait;
 use crate::tool_monitor::{ToolCall, ToolMonitor};
 use crate::utils::is_token_cancelled;
-use mcp_core::{ToolError, ToolResult};
+use mcp_core::{ToolResult};
 use regex::Regex;
 use rmcp::model::{Content, GetPromptResult, Prompt, ServerNotification, Tool};
 use serde_json::Value;
@@ -58,6 +58,7 @@ use super::router_tools;
 use super::tool_execution::{ToolCallResult, CHAT_MODE_TOOL_SKIPPED_RESPONSE, DECLINED_RESPONSE};
 use crate::agents::subagent_task_config::TaskConfig;
 use crate::conversation_fixer::{debug_conversation_fix, ConversationFixer};
+use rmcp::model::{ErrorData, ErrorCode};
 
 const DEFAULT_MAX_TURNS: u32 = 1000;
 
@@ -270,7 +271,7 @@ impl Agent {
         tool_call: mcp_core::tool::ToolCall,
         request_id: String,
         cancellation_token: Option<CancellationToken>,
-    ) -> (String, Result<ToolCallResult, ToolError>) {
+    ) -> (String, Result<ToolCallResult, ErrorData>) {
         // Check if this tool call should be allowed based on repetition monitoring
         if let Some(monitor) = self.tool_monitor.lock().await.as_mut() {
             let tool_call_info = ToolCall::new(tool_call.name.clone(), tool_call.arguments.clone());
@@ -379,10 +380,10 @@ impl Agent {
                     Err(e) => {
                         return (
                             request_id,
-                            Err(ToolError::ExecutionError(format!(
+                            Err(ErrorData::new(ErrorCode::INTERNAL_ERROR, format!(
                                 "Failed to select tools: {}",
                                 e
-                            ))),
+                            ), None)),
                         )
                     }
                 },
@@ -437,7 +438,7 @@ impl Agent {
         action: String,
         extension_name: String,
         request_id: String,
-    ) -> (String, Result<Vec<Content>, ToolError>) {
+    ) -> (String, Result<Vec<Content>, ErrorData>) {
         let mut extension_manager = self.extension_manager.write().await;
 
         let selector = self.router_tool_selector.lock().await.clone();
@@ -456,10 +457,10 @@ impl Agent {
                 {
                     return (
                         request_id,
-                        Err(ToolError::ExecutionError(format!(
+                        Err(ErrorData::new(ErrorCode::INTERNAL_ERROR, format!(
                             "Failed to update vector index: {}",
                             e
-                        ))),
+                        ), None)),
                     );
                 }
             }
@@ -484,19 +485,19 @@ impl Agent {
             Ok(None) => {
                 return (
                     request_id,
-                    Err(ToolError::ExecutionError(format!(
+                    Err(ErrorData::new(ErrorCode::INTERNAL_ERROR, format!(
                         "Extension '{}' not found. Please check the extension name and try again.",
                         extension_name
-                    ))),
+                    ), None)),
                 )
             }
             Err(e) => {
                 return (
                     request_id,
-                    Err(ToolError::ExecutionError(format!(
+                    Err(ErrorData::new(ErrorCode::INTERNAL_ERROR, format!(
                         "Failed to get extension config: {}",
                         e
-                    ))),
+                    ), None)),
                 )
             }
         };
@@ -530,10 +531,10 @@ impl Agent {
                     {
                         return (
                             request_id,
-                            Err(ToolError::ExecutionError(format!(
+                            Err(ErrorData::new(ErrorCode::INTERNAL_ERROR, format!(
                                 "Failed to update vector index: {}",
                                 e
-                            ))),
+                            ), None)),
                         );
                     }
                 }

@@ -6,15 +6,16 @@ use mcp_core::protocol::{
     CallToolResult, Implementation, InitializeResult, ListPromptsResult, ListResourcesResult,
     ListToolsResult, ReadResourceResult, ServerCapabilities, ToolsCapability,
 };
-use mcp_core::{Tool, ToolError};
+use mcp_core::Tool;
 use rmcp::model::{Content, GetPromptResult, ServerNotification};
+use rmcp::model::{ErrorCode, ErrorData};
 use serde_json::Value;
 use std::collections::HashMap;
 use tokio::sync::mpsc::{self, Receiver};
 
 pub struct MockClient {
     tools: HashMap<String, Tool>,
-    handlers: HashMap<String, Box<dyn Fn(&Value) -> Result<Vec<Content>, ToolError> + Send + Sync>>,
+    handlers: HashMap<String, Box<dyn Fn(&Value) -> Result<Vec<Content>, ErrorData> + Send + Sync>>,
 }
 
 impl MockClient {
@@ -27,7 +28,7 @@ impl MockClient {
 
     pub(crate) fn add_tool<F>(mut self, tool: Tool, handler: F) -> Self
     where
-        F: Fn(&Value) -> Result<Vec<Content>, ToolError> + Send + Sync + 'static,
+        F: Fn(&Value) -> Result<Vec<Content>, ErrorData> + Send + Sync + 'static,
     {
         let tool_name = tool.name.to_string();
         self.tools.insert(tool_name.clone(), tool);

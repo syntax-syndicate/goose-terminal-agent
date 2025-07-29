@@ -2,6 +2,7 @@ use docx_rs::*;
 use image::{self, ImageFormat};
 use mcp_core::ToolError;
 use rmcp::model::Content;
+use rmcp::model::{ErrorCode, ErrorData};
 use std::{fs, io::Cursor};
 
 #[derive(Debug)]
@@ -90,15 +91,23 @@ pub async fn docx_tool(
     operation: &str,
     content: Option<&str>,
     params: Option<&serde_json::Value>,
-) -> Result<Vec<Content>, ToolError> {
+) -> Result<Vec<Content>, ErrorData> {
     match operation {
         "extract_text" => {
             let file = fs::read(path).map_err(|e| {
-                ToolError::ExecutionError(format!("Failed to read DOCX file: {}", e))
+                ErrorData::new(
+                    ErrorCode::INTERNAL_ERROR,
+                    format!("Failed to read DOCX file: {}", e),
+                    None,
+                )
             })?;
 
             let docx = read_docx(&file).map_err(|e| {
-                ToolError::ExecutionError(format!("Failed to parse DOCX file: {}", e))
+                ErrorData::new(
+                    ErrorCode::INTERNAL_ERROR,
+                    format!("Failed to parse DOCX file: {}", e),
+                    None,
+                )
             })?;
 
             let mut text = String::new();
@@ -251,10 +260,18 @@ pub async fn docx_tool(
                     // Read existing document if it exists, or create new one
                     let mut doc = if std::path::Path::new(path).exists() {
                         let file = fs::read(path).map_err(|e| {
-                            ToolError::ExecutionError(format!("Failed to read DOCX file: {}", e))
+                            ErrorData::new(
+                                ErrorCode::INTERNAL_ERROR,
+                                format!("Failed to read DOCX file: {}", e),
+                                None,
+                            )
                         })?;
                         read_docx(&file).map_err(|e| {
-                            ToolError::ExecutionError(format!("Failed to parse DOCX file: {}", e))
+                            ErrorData::new(
+                                ErrorCode::INTERNAL_ERROR,
+                                format!("Failed to parse DOCX file: {}", e),
+                                None,
+                            )
                         })?
                     } else {
                         Docx::new()
@@ -279,12 +296,20 @@ pub async fn docx_tool(
                     {
                         let mut cursor = Cursor::new(&mut buf);
                         doc.build().pack(&mut cursor).map_err(|e| {
-                            ToolError::ExecutionError(format!("Failed to build DOCX: {}", e))
+                            ErrorData::new(
+                                ErrorCode::INTERNAL_ERROR,
+                                format!("Failed to build DOCX: {}", e),
+                                None,
+                            )
                         })?;
                     }
 
                     fs::write(path, &buf).map_err(|e| {
-                        ToolError::ExecutionError(format!("Failed to write DOCX file: {}", e))
+                        ErrorData::new(
+                            ErrorCode::INTERNAL_ERROR,
+                            format!("Failed to write DOCX file: {}", e),
+                            None,
+                        )
                     })?;
 
                     Ok(vec![Content::text(format!(
@@ -296,11 +321,19 @@ pub async fn docx_tool(
                 UpdateMode::Replace { old_text } => {
                     // Read existing document
                     let file = fs::read(path).map_err(|e| {
-                        ToolError::ExecutionError(format!("Failed to read DOCX file: {}", e))
+                        ErrorData::new(
+                            ErrorCode::INTERNAL_ERROR,
+                            format!("Failed to read DOCX file: {}", e),
+                            None,
+                        )
                     })?;
 
                     let docx = read_docx(&file).map_err(|e| {
-                        ToolError::ExecutionError(format!("Failed to parse DOCX file: {}", e))
+                        ErrorData::new(
+                            ErrorCode::INTERNAL_ERROR,
+                            format!("Failed to parse DOCX file: {}", e),
+                            None,
+                        )
                     })?;
 
                     let mut new_doc = Docx::new();
@@ -371,22 +404,31 @@ pub async fn docx_tool(
                     }
 
                     if !found_text {
-                        return Err(ToolError::ExecutionError(format!(
-                            "Could not find text to replace: {}",
-                            old_text
-                        )));
+                        return Err(ErrorData::new(
+                            ErrorCode::INTERNAL_ERROR,
+                            format!("Could not find text to replace: {}", old_text),
+                            None,
+                        ));
                     }
 
                     let mut buf = Vec::new();
                     {
                         let mut cursor = Cursor::new(&mut buf);
                         new_doc.build().pack(&mut cursor).map_err(|e| {
-                            ToolError::ExecutionError(format!("Failed to build DOCX: {}", e))
+                            ErrorData::new(
+                                ErrorCode::INTERNAL_ERROR,
+                                format!("Failed to build DOCX: {}", e),
+                                None,
+                            )
                         })?;
                     }
 
                     fs::write(path, &buf).map_err(|e| {
-                        ToolError::ExecutionError(format!("Failed to write DOCX file: {}", e))
+                        ErrorData::new(
+                            ErrorCode::INTERNAL_ERROR,
+                            format!("Failed to write DOCX file: {}", e),
+                            None,
+                        )
                     })?;
 
                     Ok(vec![Content::text(format!(
@@ -398,10 +440,18 @@ pub async fn docx_tool(
                 UpdateMode::InsertStructured { level, style } => {
                     let mut doc = if std::path::Path::new(path).exists() {
                         let file = fs::read(path).map_err(|e| {
-                            ToolError::ExecutionError(format!("Failed to read DOCX file: {}", e))
+                            ErrorData::new(
+                                ErrorCode::INTERNAL_ERROR,
+                                format!("Failed to read DOCX file: {}", e),
+                                None,
+                            )
                         })?;
                         read_docx(&file).map_err(|e| {
-                            ToolError::ExecutionError(format!("Failed to parse DOCX file: {}", e))
+                            ErrorData::new(
+                                ErrorCode::INTERNAL_ERROR,
+                                format!("Failed to parse DOCX file: {}", e),
+                                None,
+                            )
                         })?
                     } else {
                         Docx::new()
@@ -432,12 +482,20 @@ pub async fn docx_tool(
                     {
                         let mut cursor = Cursor::new(&mut buf);
                         doc.build().pack(&mut cursor).map_err(|e| {
-                            ToolError::ExecutionError(format!("Failed to build DOCX: {}", e))
+                            ErrorData::new(
+                                ErrorCode::INTERNAL_ERROR,
+                                format!("Failed to build DOCX: {}", e),
+                                None,
+                            )
                         })?;
                     }
 
                     fs::write(path, &buf).map_err(|e| {
-                        ToolError::ExecutionError(format!("Failed to write DOCX file: {}", e))
+                        ErrorData::new(
+                            ErrorCode::INTERNAL_ERROR,
+                            format!("Failed to write DOCX file: {}", e),
+                            None,
+                        )
                     })?;
 
                     Ok(vec![Content::text(format!(
@@ -453,10 +511,18 @@ pub async fn docx_tool(
                 } => {
                     let mut doc = if std::path::Path::new(path).exists() {
                         let file = fs::read(path).map_err(|e| {
-                            ToolError::ExecutionError(format!("Failed to read DOCX file: {}", e))
+                            ErrorData::new(
+                                ErrorCode::INTERNAL_ERROR,
+                                format!("Failed to read DOCX file: {}", e),
+                                None,
+                            )
                         })?;
                         read_docx(&file).map_err(|e| {
-                            ToolError::ExecutionError(format!("Failed to parse DOCX file: {}", e))
+                            ErrorData::new(
+                                ErrorCode::INTERNAL_ERROR,
+                                format!("Failed to parse DOCX file: {}", e),
+                                None,
+                            )
                         })?
                     } else {
                         Docx::new()
@@ -464,7 +530,11 @@ pub async fn docx_tool(
 
                     // Read the image file
                     let image_data = fs::read(&image_path).map_err(|e| {
-                        ToolError::ExecutionError(format!("Failed to read image file: {}", e))
+                        ErrorData::new(
+                            ErrorCode::INTERNAL_ERROR,
+                            format!("Failed to read image file: {}", e),
+                            None,
+                        )
                     })?;
 
                     // Get image format and extension
@@ -480,15 +550,20 @@ pub async fn docx_tool(
                     let image_data = if extension != "png" {
                         // Try to convert to PNG using the image crate
                         let img = image::load_from_memory(&image_data).map_err(|e| {
-                            ToolError::ExecutionError(format!("Failed to load image: {}", e))
+                            ErrorData::new(
+                                ErrorCode::INTERNAL_ERROR,
+                                format!("Failed to load image: {}", e),
+                                None,
+                            )
                         })?;
                         let mut png_data = Vec::new();
                         img.write_to(&mut Cursor::new(&mut png_data), ImageFormat::Png)
                             .map_err(|e| {
-                                ToolError::ExecutionError(format!(
-                                    "Failed to convert image to PNG: {}",
-                                    e
-                                ))
+                                ErrorData::new(
+                                    ErrorCode::INTERNAL_ERROR,
+                                    format!("Failed to convert image to PNG: {}", e),
+                                    None,
+                                )
                             })?;
                         png_data
                     } else {
@@ -527,12 +602,20 @@ pub async fn docx_tool(
                     {
                         let mut cursor = Cursor::new(&mut buf);
                         doc.build().pack(&mut cursor).map_err(|e| {
-                            ToolError::ExecutionError(format!("Failed to build DOCX: {}", e))
+                            ErrorData::new(
+                                ErrorCode::INTERNAL_ERROR,
+                                format!("Failed to build DOCX: {}", e),
+                                None,
+                            )
                         })?;
                     }
 
                     fs::write(path, &buf).map_err(|e| {
-                        ToolError::ExecutionError(format!("Failed to write DOCX file: {}", e))
+                        ErrorData::new(
+                            ErrorCode::INTERNAL_ERROR,
+                            format!("Failed to write DOCX file: {}", e),
+                            None,
+                        )
                     })?;
 
                     Ok(vec![Content::text(format!(
@@ -543,10 +626,14 @@ pub async fn docx_tool(
             }
         }
 
-        _ => Err(ToolError::InvalidParameters(format!(
-            "Invalid operation: {}. Valid operations are: 'extract_text', 'update_doc'",
-            operation
-        ))),
+        _ => Err(ErrorData::new(
+            ErrorCode::INVALID_PARAMS,
+            format!(
+                "Invalid operation: {}. Valid operations are: 'extract_text', 'update_doc'",
+                operation
+            ),
+            None,
+        )),
     }
 }
 

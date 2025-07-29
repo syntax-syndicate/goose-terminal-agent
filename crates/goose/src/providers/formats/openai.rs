@@ -8,11 +8,12 @@ use crate::providers::utils::{
 use anyhow::{anyhow, Error};
 use async_stream::try_stream;
 use futures::Stream;
-use mcp_core::{ToolCall, ToolError};
+use mcp_core::{ToolCall};
 use rmcp::model::{AnnotateAble, Content, RawContent, ResourceContents, Role, Tool};
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use std::ops::Deref;
+use rmcp::model::{ErrorData, ErrorCode};
 
 #[derive(Serialize, Deserialize, Debug)]
 struct DeltaToolCallFunction {
@@ -299,10 +300,10 @@ pub fn response_to_message(response: &Value) -> anyhow::Result<Message> {
                 };
 
                 if !is_valid_function_name(&function_name) {
-                    let error = ToolError::NotFound(format!(
+                    let error = ErrorData::new(ErrorCode::INVALID_REQUEST, format!(
                         "The provided function name '{}' had invalid characters, it must match this regex [a-zA-Z0-9_-]+",
                         function_name
-                    ));
+                    ), None);
                     content.push(MessageContent::tool_request(id, Err(error)));
                 } else {
                     match safely_parse_json(&arguments_str) {
@@ -313,10 +314,10 @@ pub fn response_to_message(response: &Value) -> anyhow::Result<Message> {
                             ));
                         }
                         Err(e) => {
-                            let error = ToolError::InvalidParameters(format!(
+                            let error = ErrorData::new(ErrorCode::INVALID_PARAMS, format!(
                                 "Could not interpret tool use parameters for id {}: {}. Raw arguments: '{}'",
                                 id, e, arguments_str
-                            ));
+                            ), None);
                             content.push(MessageContent::tool_request(id, Err(error)));
                         }
                     }
@@ -500,10 +501,10 @@ where
                                 Ok(ToolCall::new(function_name.clone(), params)),
                             ),
                             Err(e) => {
-                                let error = ToolError::InvalidParameters(format!(
+                                let error = ErrorData::new(ErrorCode::INVALID_PARAMS, format!(
                                     "Could not interpret tool use parameters for id {}: {}",
                                     id, e
-                                ));
+                                ), None);
                                 MessageContent::tool_request(id.clone(), Err(error))
                             }
                         };
@@ -979,7 +980,7 @@ mod tests {
 
         if let MessageContent::ToolRequest(request) = &message.content[0] {
             match &request.tool_call {
-                Err(ToolError::NotFound(msg)) => {
+                Err(ErrorData::new(ErrorCode::INVALID_REQUEST, msg, None)) => {
                     assert!(msg.starts_with("The provided function name"));
                 }
                 _ => panic!("Expected ToolNotFound error"),
@@ -1001,7 +1002,7 @@ mod tests {
 
         if let MessageContent::ToolRequest(request) = &message.content[0] {
             match &request.tool_call {
-                Err(ToolError::InvalidParameters(msg)) => {
+                Err(ErrorData::new(ErrorCode::INVALID_PARAMS, msg, None)) => {
                     assert!(msg.starts_with("Could not interpret tool use parameters"));
                 }
                 _ => panic!("Expected InvalidParameters error"),

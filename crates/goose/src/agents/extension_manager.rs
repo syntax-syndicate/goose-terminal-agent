@@ -20,9 +20,10 @@ use crate::config::{Config, ExtensionConfigManager};
 use crate::prompt_template;
 use mcp_client::client::{ClientCapabilities, ClientInfo, McpClient, McpClientTrait};
 use mcp_client::transport::{SseTransport, StdioTransport, StreamableHttpTransport, Transport};
-use mcp_core::{ToolCall, ToolError};
+use mcp_core::{ToolCall};
 use rmcp::model::{Content, Prompt, Resource, ResourceContents, Tool};
 use serde_json::Value;
+use rmcp::model::{ErrorData, ErrorCode};
 
 // By default, we set it to Jan 1, 2020 if the resource does not have a timestamp
 // This is to ensure that the resource is considered less important than resources with a more recent timestamp
@@ -527,7 +528,7 @@ impl ExtensionManager {
     }
 
     // Function that gets executed for read_resource tool
-    pub async fn read_resource(&self, params: Value) -> Result<Vec<Content>, ToolError> {
+    pub async fn read_resource(&self, params: Value) -> Result<Vec<Content>, ErrorData> {
         let uri = params
             .get("uri")
             .and_then(|v| v.as_str())
@@ -567,14 +568,14 @@ impl ExtensionManager {
             uri, available_extensions
         );
 
-        Err(ToolError::InvalidParameters(error_msg))
+        Err(ErrorData::new(ErrorCode::INVALID_PARAMS, error_msg, None))
     }
 
     async fn read_resource_from_extension(
         &self,
         uri: &str,
         extension_name: &str,
-    ) -> Result<Vec<Content>, ToolError> {
+    ) -> Result<Vec<Content>, ErrorData> {
         let available_extensions = self
             .clients
             .keys()
@@ -589,11 +590,11 @@ impl ExtensionManager {
         let client = self
             .clients
             .get(extension_name)
-            .ok_or(ToolError::InvalidParameters(error_msg))?;
+            .ok_or(ErrorData::new(ErrorCode::INVALID_PARAMS, error_msg, None))?;
 
         let client_guard = client.lock().await;
         let read_result = client_guard.read_resource(uri).await.map_err(|_| {
-            ToolError::ExecutionError(format!("Could not read resource with uri: {}", uri))
+            ErrorData::new(ErrorCode::INTERNAL_ERROR, format!("Could not read resource with uri: {}", uri), None)
         })?;
 
         let mut result = Vec::new();
@@ -611,9 +612,9 @@ impl ExtensionManager {
     async fn list_resources_from_extension(
         &self,
         extension_name: &str,
-    ) -> Result<Vec<Content>, ToolError> {
+    ) -> Result<Vec<Content>, ErrorData> {
         let client = self.clients.get(extension_name).ok_or_else(|| {
-            ToolError::InvalidParameters(format!("Extension {} is not valid", extension_name))
+            ErrorData::new(ErrorCode::INVALID_PARAMS, format!("Extension {} is not valid", extension_name), None)
         })?;
 
         let client_guard = client.lock().await;
@@ -621,10 +622,10 @@ impl ExtensionManager {
             .list_resources(None)
             .await
             .map_err(|e| {
-                ToolError::ExecutionError(format!(
+                ErrorData::new(ErrorCode::INTERNAL_ERROR, format!(
                     "Unable to list resources for {}, {:?}",
                     extension_name, e
-                ))
+                ), None)
             })
             .map(|lr| {
                 let resource_list = lr
@@ -638,7 +639,7 @@ impl ExtensionManager {
             })
     }
 
-    pub async fn list_resources(&self, params: Value) -> Result<Vec<Content>, ToolError> {
+    pub async fn list_resources(&self, params: Value) -> Result<Vec<Content>, ErrorData> {
         let extension = params.get("extension").and_then(|v| v.as_str());
 
         match extension {
@@ -724,9 +725,9 @@ impl ExtensionManager {
     pub async fn list_prompts_from_extension(
         &self,
         extension_name: &str,
-    ) -> Result<Vec<Prompt>, ToolError> {
+    ) -> Result<Vec<Prompt>, ErrorData> {
         let client = self.clients.get(extension_name).ok_or_else(|| {
-            ToolError::InvalidParameters(format!("Extension {} is not valid", extension_name))
+            ErrorData::new(ErrorCode::INVALID_PARAMS, format!("Extension {} is not valid", extension_name), None)
         })?;
 
         let client_guard = client.lock().await;
@@ -734,10 +735,10 @@ impl ExtensionManager {
             .list_prompts(None)
             .await
             .map_err(|e| {
-                ToolError::ExecutionError(format!(
+                ErrorData::new(ErrorCode::INTERNAL_ERROR, format!(
                     "Unable to list prompts for {}, {:?}",
                     extension_name, e
-                ))
+                ), None)
             })
             .map(|lp| lp.prompts)
     }
@@ -802,7 +803,7 @@ impl ExtensionManager {
             .map_err(|e| anyhow::anyhow!("Failed to get prompt: {}", e))
     }
 
-    pub async fn search_available_extensions(&self) -> Result<Vec<Content>, ToolError> {
+    pub async fn search_available_extensions(&self) -> Result<Vec<Content>, ErrorData> {
         let mut output_parts = vec![];
 
         // First get disabled extensions from current config
@@ -1075,7 +1076,7 @@ mod tests {
             .await;
         assert!(matches!(
             result.err().unwrap(),
-            ToolError::ExecutionError(_)
+            ErrorData::new(ErrorCode::INTERNAL_ERROR, _, None)
         ));
 
         // this should error out, specifically with an ToolError::NotFound
@@ -1090,7 +1091,7 @@ mod tests {
             .await;
         if let Err(err) = result {
             let tool_err = err.downcast_ref::<ToolError>().expect("Expected ToolError");
-            assert!(matches!(tool_err, ToolError::NotFound(_)));
+            assert!(matches!(tool_err, ErrorData::new(ErrorCode::INVALID_REQUEST, _, None)));
         } else {
             panic!("Expected ToolError::NotFound");
         }

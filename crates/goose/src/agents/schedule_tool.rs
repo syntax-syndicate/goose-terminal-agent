@@ -6,13 +6,14 @@
 use std::sync::Arc;
 
 use chrono::Utc;
-use mcp_core::{ToolError, ToolResult};
+use mcp_core::{ToolResult};
 use rmcp::model::Content;
 
 use crate::recipe::Recipe;
 use crate::scheduler_trait::SchedulerTrait;
 
 use super::Agent;
+use rmcp::model::{ErrorData, ErrorCode};
 
 impl Agent {
     /// Handle schedule management tool calls
@@ -46,10 +47,10 @@ impl Agent {
             "inspect" => self.handle_inspect_job(scheduler, arguments).await,
             "sessions" => self.handle_list_sessions(scheduler, arguments).await,
             "session_content" => self.handle_session_content(arguments).await,
-            _ => Err(ToolError::ExecutionError(format!(
+            _ => Err(ErrorData::new(ErrorCode::INTERNAL_ERROR, format!(
                 "Unknown action: {}",
                 action
-            ))),
+            ), None)),
         }
     }
 
@@ -61,17 +62,17 @@ impl Agent {
         match scheduler.list_scheduled_jobs().await {
             Ok(jobs) => {
                 let jobs_json = serde_json::to_string_pretty(&jobs).map_err(|e| {
-                    ToolError::ExecutionError(format!("Failed to serialize jobs: {}", e))
+                    ErrorData::new(ErrorCode::INTERNAL_ERROR, format!("Failed to serialize jobs: {}", e), None)
                 })?;
                 Ok(vec![Content::text(format!(
                     "Scheduled Jobs:\n{}",
                     jobs_json
                 ))])
             }
-            Err(e) => Err(ToolError::ExecutionError(format!(
+            Err(e) => Err(ErrorData::new(ErrorCode::INTERNAL_ERROR, format!(
                 "Failed to list jobs: {}",
                 e
-            ))),
+            ), None)),
         }
     }
 
@@ -103,18 +104,18 @@ impl Agent {
 
         // Validate execution_mode is either "foreground" or "background"
         if execution_mode != "foreground" && execution_mode != "background" {
-            return Err(ToolError::ExecutionError(format!(
+            return Err(ErrorData::new(ErrorCode::INTERNAL_ERROR, format!(
                 "Invalid execution_mode: {}. Must be 'foreground' or 'background'",
                 execution_mode
-            )));
+            ), None));
         }
 
         // Validate recipe file exists and is readable
         if !std::path::Path::new(recipe_path).exists() {
-            return Err(ToolError::ExecutionError(format!(
+            return Err(ErrorData::new(ErrorCode::INTERNAL_ERROR, format!(
                 "Recipe file not found: {}",
                 recipe_path
-            )));
+            ), None));
         }
 
         // Validate it's a valid recipe by trying to parse it
@@ -122,19 +123,19 @@ impl Agent {
             Ok(content) => {
                 if recipe_path.ends_with(".json") {
                     serde_json::from_str::<Recipe>(&content).map_err(|e| {
-                        ToolError::ExecutionError(format!("Invalid JSON recipe: {}", e))
+                        ErrorData::new(ErrorCode::INTERNAL_ERROR, format!("Invalid JSON recipe: {}", e), None)
                     })?;
                 } else {
                     serde_yaml::from_str::<Recipe>(&content).map_err(|e| {
-                        ToolError::ExecutionError(format!("Invalid YAML recipe: {}", e))
+                        ErrorData::new(ErrorCode::INTERNAL_ERROR, format!("Invalid YAML recipe: {}", e), None)
                     })?;
                 }
             }
             Err(e) => {
-                return Err(ToolError::ExecutionError(format!(
+                return Err(ErrorData::new(ErrorCode::INTERNAL_ERROR, format!(
                     "Cannot read recipe file: {}",
                     e
-                )))
+                ), None))
             }
         }
 
@@ -158,10 +159,10 @@ impl Agent {
                 "Successfully created scheduled job '{}' for recipe '{}' with cron expression '{}' in {} mode",
                 job_id, recipe_path, cron_expression, execution_mode
             ))]),
-            Err(e) => Err(ToolError::ExecutionError(format!(
+            Err(e) => Err(ErrorData::new(ErrorCode::INTERNAL_ERROR, format!(
                 "Failed to create job: {}",
                 e
-            ))),
+            ), None)),
         }
     }
 
@@ -181,10 +182,10 @@ impl Agent {
                 "Successfully started job '{}'. Session ID: {}",
                 job_id, session_id
             ))]),
-            Err(e) => Err(ToolError::ExecutionError(format!(
+            Err(e) => Err(ErrorData::new(ErrorCode::INTERNAL_ERROR, format!(
                 "Failed to run job: {}",
                 e
-            ))),
+            ), None)),
         }
     }
 
@@ -204,10 +205,10 @@ impl Agent {
                 "Successfully paused job '{}'",
                 job_id
             ))]),
-            Err(e) => Err(ToolError::ExecutionError(format!(
+            Err(e) => Err(ErrorData::new(ErrorCode::INTERNAL_ERROR, format!(
                 "Failed to pause job: {}",
                 e
-            ))),
+            ), None)),
         }
     }
 
@@ -227,10 +228,10 @@ impl Agent {
                 "Successfully unpaused job '{}'",
                 job_id
             ))]),
-            Err(e) => Err(ToolError::ExecutionError(format!(
+            Err(e) => Err(ErrorData::new(ErrorCode::INTERNAL_ERROR, format!(
                 "Failed to unpause job: {}",
                 e
-            ))),
+            ), None)),
         }
     }
 
@@ -250,10 +251,10 @@ impl Agent {
                 "Successfully deleted job '{}'",
                 job_id
             ))]),
-            Err(e) => Err(ToolError::ExecutionError(format!(
+            Err(e) => Err(ErrorData::new(ErrorCode::INTERNAL_ERROR, format!(
                 "Failed to delete job: {}",
                 e
-            ))),
+            ), None)),
         }
     }
 
@@ -273,10 +274,10 @@ impl Agent {
                 "Successfully killed running job '{}'",
                 job_id
             ))]),
-            Err(e) => Err(ToolError::ExecutionError(format!(
+            Err(e) => Err(ErrorData::new(ErrorCode::INTERNAL_ERROR, format!(
                 "Failed to kill job: {}",
                 e
-            ))),
+            ), None)),
         }
     }
 
@@ -303,10 +304,10 @@ impl Agent {
                 "Job '{}' is not currently running",
                 job_id
             ))]),
-            Err(e) => Err(ToolError::ExecutionError(format!(
+            Err(e) => Err(ErrorData::new(ErrorCode::INTERNAL_ERROR, format!(
                 "Failed to inspect job: {}",
                 e
-            ))),
+            ), None)),
         }
     }
 
@@ -353,10 +354,10 @@ impl Agent {
                     ))])
                 }
             }
-            Err(e) => Err(ToolError::ExecutionError(format!(
+            Err(e) => Err(ErrorData::new(ErrorCode::INTERNAL_ERROR, format!(
                 "Failed to list sessions: {}",
                 e
-            ))),
+            ), None)),
         }
     }
 
@@ -378,29 +379,29 @@ impl Agent {
         ) {
             Ok(path) => path,
             Err(e) => {
-                return Err(ToolError::ExecutionError(format!(
+                return Err(ErrorData::new(ErrorCode::INTERNAL_ERROR, format!(
                     "Invalid session ID '{}': {}",
                     session_id, e
-                )));
+                ), None));
             }
         };
 
         // Check if session file exists
         if !session_path.exists() {
-            return Err(ToolError::ExecutionError(format!(
+            return Err(ErrorData::new(ErrorCode::INTERNAL_ERROR, format!(
                 "Session '{}' not found",
                 session_id
-            )));
+            ), None));
         }
 
         // Read session metadata
         let metadata = match crate::session::storage::read_metadata(&session_path) {
             Ok(metadata) => metadata,
             Err(e) => {
-                return Err(ToolError::ExecutionError(format!(
+                return Err(ErrorData::new(ErrorCode::INTERNAL_ERROR, format!(
                     "Failed to read session metadata: {}",
                     e
-                )));
+                ), None));
             }
         };
 
@@ -408,10 +409,10 @@ impl Agent {
         let messages = match crate::session::storage::read_messages(&session_path) {
             Ok(messages) => messages,
             Err(e) => {
-                return Err(ToolError::ExecutionError(format!(
+                return Err(ErrorData::new(ErrorCode::INTERNAL_ERROR, format!(
                     "Failed to read session messages: {}",
                     e
-                )));
+                ), None));
             }
         };
 
@@ -419,20 +420,20 @@ impl Agent {
         let metadata_json = match serde_json::to_string_pretty(&metadata) {
             Ok(json) => json,
             Err(e) => {
-                return Err(ToolError::ExecutionError(format!(
+                return Err(ErrorData::new(ErrorCode::INTERNAL_ERROR, format!(
                     "Failed to serialize metadata: {}",
                     e
-                )));
+                ), None));
             }
         };
 
         let messages_json = match serde_json::to_string_pretty(&messages) {
             Ok(json) => json,
             Err(e) => {
-                return Err(ToolError::ExecutionError(format!(
+                return Err(ErrorData::new(ErrorCode::INTERNAL_ERROR, format!(
                     "Failed to serialize messages: {}",
                     e
-                )));
+                ), None));
             }
         };
 

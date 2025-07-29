@@ -9,6 +9,7 @@ use mcp_core::ToolError;
 use rmcp::model::{Content, Tool, ToolAnnotations};
 use rmcp::object;
 use serde_json::{json, Value};
+use rmcp::model::{ErrorData, ErrorCode};
 
 pub const DYNAMIC_TASK_TOOL_NAME_PREFIX: &str = "dynamic_task__create_task";
 
@@ -129,10 +130,10 @@ pub async fn create_dynamic_task(params: Value, tasks_manager: &TasksManager) ->
     let tasks_json = match serde_json::to_string(&task_execution_payload) {
         Ok(json) => json,
         Err(e) => {
-            return ToolCallResult::from(Err(ToolError::ExecutionError(format!(
+            return ToolCallResult::from(Err(ErrorData::new(ErrorCode::INTERNAL_ERROR, format!(
                 "Failed to serialize task list: {}",
                 e
-            ))))
+            ), None)))
         }
     };
     tasks_manager.save_tasks(tasks.clone()).await;

@@ -10,6 +10,7 @@ use rmcp::model::{AnnotateAble, RawContent, Role, Tool};
 
 use serde_json::{json, Map, Value};
 use std::ops::Deref;
+use rmcp::model::{ErrorData, ErrorCode};
 
 /// Convert internal Message format to Google's API message specification
 pub fn format_messages(messages: &[Message]) -> Vec<Value> {
@@ -254,10 +255,10 @@ pub fn response_to_message(response: Value) -> Result<Message> {
                 .unwrap_or_default()
                 .to_string();
             if !is_valid_function_name(&name) {
-                let error = mcp_core::ToolError::NotFound(format!(
+                let error = mcp_core::ErrorData::new(ErrorCode::INVALID_REQUEST, format!(
                     "The provided function name '{}' had invalid characters, it must match this regex [a-zA-Z0-9_-]+",
                     name
-                ));
+                ), None);
                 content.push(MessageContent::tool_request(id, Err(error)));
             } else {
                 let parameters = function_call.get("args");
@@ -747,7 +748,7 @@ mod tests {
         assert_eq!(message.role, Role::Assistant);
         assert_eq!(message.content.len(), 1);
         if let Err(error) = &message.content[0].as_tool_request().unwrap().tool_call {
-            assert!(matches!(error, mcp_core::ToolError::NotFound(_)));
+            assert!(matches!(error, mcp_core::ErrorData::new(ErrorCode::INVALID_REQUEST, _, None)));
         } else {
             panic!("Expected tool request error");
         }

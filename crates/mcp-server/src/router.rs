@@ -22,6 +22,7 @@ use tokio::sync::mpsc;
 use tower_service::Service;
 
 use crate::{BoxError, RouterError};
+use rmcp::model::{ErrorCode, ErrorData};
 
 /// Builder for configuring and constructing capabilities
 pub struct CapabilitiesBuilder {
@@ -92,7 +93,7 @@ pub trait Router: Send + Sync + 'static {
         tool_name: &str,
         arguments: Value,
         notifier: mpsc::Sender<JsonRpcMessage>,
-    ) -> Pin<Box<dyn Future<Output = Result<Vec<Content>, ToolError>> + Send + 'static>>;
+    ) -> Pin<Box<dyn Future<Output = Result<Vec<Content>, ErrorData>> + Send + 'static>>;
     fn list_resources(&self) -> Vec<Resource>;
     fn read_resource(
         &self,

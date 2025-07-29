@@ -1,6 +1,6 @@
 use anyhow::Result;
 use mcp_core::handler::{PromptError, ResourceError};
-use mcp_core::{handler::ToolError, protocol::ServerCapabilities};
+use mcp_core::{handler::, protocol::ServerCapabilities};
 use mcp_server::router::{CapabilitiesBuilder, RouterService};
 use mcp_server::{ByteTransport, Router, Server};
 use rmcp::model::{
@@ -16,6 +16,7 @@ use tokio::{
 };
 use tracing_appender::rolling::{RollingFileAppender, Rotation};
 use tracing_subscriber::{self, EnvFilter};
+use rmcp::model::{ErrorData, ErrorCode};
 
 // A simple counter service that demonstrates the Router trait
 #[derive(Clone)]
@@ -30,19 +31,19 @@ impl CounterRouter {
         }
     }
 
-    async fn increment(&self) -> Result<i32, ToolError> {
+    async fn increment(&self) -> Result<i32, ErrorData> {
         let mut counter = self.counter.lock().await;
         *counter += 1;
         Ok(*counter)
     }
 
-    async fn decrement(&self) -> Result<i32, ToolError> {
+    async fn decrement(&self) -> Result<i32, ErrorData> {
         let mut counter = self.counter.lock().await;
         *counter -= 1;
         Ok(*counter)
     }
 
-    async fn get_value(&self) -> Result<i32, ToolError> {
+    async fn get_value(&self) -> Result<i32, ErrorData> {
         let counter = self.counter.lock().await;
         Ok(*counter)
     }
@@ -127,7 +128,7 @@ impl Router for CounterRouter {
         tool_name: &str,
         _arguments: Value,
         _notifier: mpsc::Sender<JsonRpcMessage>,
-    ) -> Pin<Box<dyn Future<Output = Result<Vec<Content>, ToolError>> + Send + 'static>> {
+    ) -> Pin<Box<dyn Future<Output = Result<Vec<Content>, ErrorData>> + Send + 'static>> {
         let this = self.clone();
         let tool_name = tool_name.to_string();
 
@@ -145,7 +146,7 @@ impl Router for CounterRouter {
                     let value = this.get_value().await?;
                     Ok(vec![Content::text(value.to_string())])
                 }
-                _ => Err(ToolError::NotFound(format!("Tool {} not found", tool_name))),
+                _ => Err(ErrorData::new(ErrorCode::INVALID_REQUEST, format!("Tool {} not found", tool_name), None)),
             }
         })
     }

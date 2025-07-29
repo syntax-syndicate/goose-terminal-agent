@@ -40,6 +40,7 @@ use google_drive3::{
 use google_labels::DriveLabelsHub;
 use google_sheets4::{self, Sheets};
 use http_body_util::BodyExt;
+use rmcp::model::{ErrorCode, ErrorData};
 
 // Constants for credential storage
 pub const KEYCHAIN_SERVICE: &str = "mcp_google_drive";
@@ -987,7 +988,7 @@ impl GoogleDriveRouter {
     }
 
     // Implement search tool functionality
-    async fn search(&self, params: Value) -> Result<Vec<Content>, ToolError> {
+    async fn search(&self, params: Value) -> Result<Vec<Content>, ErrorData> {
         // To minimize tool growth, we search/list for a number of different
         // objects in Gdrive with sub-funcs.
         let drive_type = params.get("driveType").and_then(|q| q.as_str()).ok_or(
@@ -1003,7 +1004,7 @@ impl GoogleDriveRouter {
         }
     }
 
-    async fn search_files(&self, params: Value) -> Result<Vec<Content>, ToolError> {
+    async fn search_files(&self, params: Value) -> Result<Vec<Content>, ErrorData> {
         let name = params.get("name").and_then(|q| q.as_str());
         let mime_type = params.get("mimeType").and_then(|q| q.as_str());
         let drive_id = params.get("driveId").and_then(|q| q.as_str());
@@ -1017,10 +1018,14 @@ impl GoogleDriveRouter {
                 if ["user", "drive", "allDrives"].contains(&s) {
                     Ok(s)
                 } else {
-                    Err(ToolError::InvalidParameters(format!(
-                        "corpora must be either 'user', 'drive', or 'allDrives', got {}",
-                        s
-                    )))
+                    Err(ErrorData::new(
+                        ErrorCode::INVALID_PARAMS,
+                        format!(
+                            "corpora must be either 'user', 'drive', or 'allDrives', got {}",
+                            s
+                        ),
+                        None,
+                    ))
                 }
             })
             .unwrap_or(Ok("user"))?;
@@ -1031,15 +1036,22 @@ impl GoogleDriveRouter {
             .map(|s| {
                 s.as_i64()
                     .and_then(|n| i32::try_from(n).ok())
-                    .ok_or_else(|| ToolError::InvalidParameters(format!("Invalid pageSize: {}", s)))
+                    .ok_or_else(|| {
+                        ErrorData::new(
+                            ErrorCode::INVALID_PARAMS,
+                            format!("Invalid pageSize: {}", s),
+                            None,
+                        )
+                    })
                     .and_then(|n| {
                         if (0..=100).contains(&n) {
                             Ok(n)
                         } else {
-                            Err(ToolError::InvalidParameters(format!(
-                                "pageSize must be between 0 and 100, got {}",
-                                n
-                            )))
+                            Err(ErrorData::new(
+                                ErrorCode::INVALID_PARAMS,
+                                format!("pageSize must be between 0 and 100, got {}", n),
+                                None,
+                            ))
                         }
                     })
             })
@@ -1109,10 +1121,11 @@ impl GoogleDriveRouter {
             let label_results = match label_builder.doit().await {
                 Ok(r) => r.1.labels.unwrap_or_default(),
                 Err(e) => {
-                    return Err(ToolError::ExecutionError(format!(
-                        "Failed to execute google drive label list '{}'.",
-                        e
-                    )))
+                    return Err(ErrorData::new(
+                        ErrorCode::INTERNAL_ERROR,
+                        format!("Failed to execute google drive label list '{}'.", e),
+                        None,
+                    ))
                 }
             };
             let label_ids = label_results
@@ -1158,7 +1171,7 @@ impl GoogleDriveRouter {
         }
     }
 
-    async fn fetch_file_metadata(&self, uri: &str) -> Result<File, ToolError> {
+    async fn fetch_file_metadata(&self, uri: &str) -> Result<File, ErrorData> {
         self.drive
             .files()
             .get(uri)
@@ -1169,10 +1182,11 @@ impl GoogleDriveRouter {
             .doit()
             .await
             .map_err(|e| {
-                ToolError::ExecutionError(format!(
-                    "Failed to execute Google Drive get query, {}.",
-                    e
-                ))
+                ErrorData::new(
+                    ErrorCode::INTERNAL_ERROR,
+                    format!("Failed to execute Google Drive get query, {}.", e),
+                    None,
+                )
             })
             .map(|r| r.1)
     }
@@ -1250,7 +1264,7 @@ impl GoogleDriveRouter {
         uri: &str,
         mime_type: &str,
         include_images: bool,
-    ) -> Result<Vec<Content>, ToolError> {
+    ) -> Result<Vec<Content>, ErrorData> {
         let export_mime_type = match mime_type {
             "application/vnd.google-apps.document" => "text/markdown",
             "application/vnd.google-apps.spreadsheet" => "text/csv",
@@ -1269,10 +1283,11 @@ impl GoogleDriveRouter {
             .await;
 
         match result {
-            Err(e) => Err(ToolError::ExecutionError(format!(
-                "Failed to execute google drive export for {}, {}.",
-                uri, e
-            ))),
+            Err(e) => Err(ErrorData::new(
+                ErrorCode::INTERNAL_ERROR,
+                format!("Failed to execute google drive export for {}, {}.", uri, e),
+                None,
+            )),
             Ok(r) => {
                 if let Ok(body) = r.into_body().collect().await {
                     if let Ok(response) = String::from_utf8(body.to_bytes().to_vec()) {
@@ -1293,16 +1308,18 @@ impl GoogleDriveRouter {
                                 .collect::<Vec<Content>>())
                         }
                     } else {
-                        Err(ToolError::ExecutionError(format!(
-                            "Failed to export google drive to string, {}.",
-                            uri,
-                        )))
+                        Err(ErrorData::new(
+                            ErrorCode::INTERNAL_ERROR,
+                            format!("Failed to export google drive to string, {}.", uri,),
+                            None,
+                        ))
                     }
                 } else {
-                    Err(ToolError::ExecutionError(format!(
-                        "Failed to export google drive document, {}.",
-                        uri,
-                    )))
+                    Err(ErrorData::new(
+                        ErrorCode::INTERNAL_ERROR,
+                        format!("Failed to export google drive document, {}.", uri,),
+                        None,
+                    ))
                 }
             }
         }
@@ -1314,7 +1331,7 @@ impl GoogleDriveRouter {
         uri: &str,
         mime_type: &str,
         include_images: bool,
-    ) -> Result<Vec<Content>, ToolError> {
+    ) -> Result<Vec<Content>, ErrorData> {
         let result = self
             .drive
             .files()
@@ -1326,10 +1343,11 @@ impl GoogleDriveRouter {
             .await;
 
         match result {
-            Err(e) => Err(ToolError::ExecutionError(format!(
-                "Failed to execute google drive export for {}, {}.",
-                uri, e
-            ))),
+            Err(e) => Err(ErrorData::new(
+                ErrorCode::INTERNAL_ERROR,
+                format!("Failed to execute google drive export for {}, {}.", uri, e),
+                None,
+            )),
             Ok(r) => {
                 if mime_type.starts_with("text/") || mime_type == "application/json" {
                     if let Ok(body) = r.0.into_body().collect().await {
@@ -1351,29 +1369,32 @@ impl GoogleDriveRouter {
                                     .collect::<Vec<Content>>())
                             }
                         } else {
-                            Err(ToolError::ExecutionError(format!(
-                                "Failed to convert google drive to string, {}.",
-                                uri,
-                            )))
+                            Err(ErrorData::new(
+                                ErrorCode::INTERNAL_ERROR,
+                                format!("Failed to convert google drive to string, {}.", uri,),
+                                None,
+                            ))
                         }
                     } else {
-                        Err(ToolError::ExecutionError(format!(
-                            "Failed to get google drive document, {}.",
-                            uri,
-                        )))
+                        Err(ErrorData::new(
+                            ErrorCode::INTERNAL_ERROR,
+                            format!("Failed to get google drive document, {}.", uri,),
+                            None,
+                        ))
                     }
                 } else {
                     //TODO: handle base64 image case, see typscript mcp-gdrive
-                    Err(ToolError::ExecutionError(format!(
-                        "Suported mimeType {}, for {}",
-                        mime_type, uri,
-                    )))
+                    Err(ErrorData::new(
+                        ErrorCode::INTERNAL_ERROR,
+                        format!("Suported mimeType {}, for {}", mime_type, uri,),
+                        None,
+                    ))
                 }
             }
         }
     }
 
-    async fn read(&self, params: Value) -> Result<Vec<Content>, ToolError> {
+    async fn read(&self, params: Value) -> Result<Vec<Content>, ErrorData> {
         let (maybe_uri, maybe_url) = (
             params.get("uri").and_then(|q| q.as_str()),
             params.get("url").and_then(|q| q.as_str()),
@@ -1385,10 +1406,14 @@ impl GoogleDriveRouter {
 
                 // Validation: check for / path separators as invalid uris
                 if drive_uri.contains('/') {
-                    return Err(ToolError::InvalidParameters(format!(
-                        "The uri '{}' contains extra '/'. Only the base URI is allowed.",
-                        uri
-                    )));
+                    return Err(ErrorData::new(
+                        ErrorCode::INVALID_PARAMS,
+                        format!(
+                            "The uri '{}' contains extra '/'. Only the base URI is allowed.",
+                            uri
+                        ),
+                        None,
+                    ));
                 }
 
                 drive_uri
@@ -1397,10 +1422,11 @@ impl GoogleDriveRouter {
                 if let Some(drive_uri) = extract_google_drive_id(url) {
                     drive_uri.to_string()
                 } else {
-                    return Err(ToolError::InvalidParameters(format!(
-                        "Failed to extract valid google drive URI from {}",
-                        url
-                    )));
+                    return Err(ErrorData::new(
+                        ErrorCode::INVALID_PARAMS,
+                        format!("Failed to extract valid google drive URI from {}", url),
+                        None,
+                    ));
                 }
             }
             (Some(_), Some(_)) => {
@@ -1422,10 +1448,11 @@ impl GoogleDriveRouter {
 
         let metadata = self.fetch_file_metadata(&drive_uri).await?;
         let mime_type = metadata.mime_type.ok_or_else(|| {
-            ToolError::ExecutionError(format!(
-                "Missing mime type in file metadata for {}.",
-                drive_uri
-            ))
+            ErrorData::new(
+                ErrorCode::INTERNAL_ERROR,
+                format!("Missing mime type in file metadata for {}.", drive_uri),
+                None,
+            )
         })?;
 
         // Handle Google Docs export
@@ -1439,7 +1466,7 @@ impl GoogleDriveRouter {
     }
 
     // Implement sheets_tool functionality
-    async fn sheets_tool(&self, params: Value) -> Result<Vec<Content>, ToolError> {
+    async fn sheets_tool(&self, params: Value) -> Result<Vec<Content>, ErrorData> {
         let spreadsheet_id = params.get("spreadsheetId").and_then(|q| q.as_str()).ok_or(
             ToolError::InvalidParameters("The spreadsheetId is required".to_string()),
         )?;
@@ -1461,10 +1488,10 @@ impl GoogleDriveRouter {
                     .await;
 
                 match result {
-                    Err(e) => Err(ToolError::ExecutionError(format!(
+                    Err(e) => Err(ErrorData::new(ErrorCode::INTERNAL_ERROR, format!(
                         "Failed to execute Google Sheets get query, {}.",
                         e
-                    ))),
+                    ), None)),
                     Ok(r) => {
                         let spreadsheet = r.1;
                         let sheets = spreadsheet.sheets.unwrap_or_default();
@@ -1508,10 +1535,10 @@ impl GoogleDriveRouter {
                     .await;
 
                 match result {
-                    Err(e) => Err(ToolError::ExecutionError(format!(
+                    Err(e) => Err(ErrorData::new(ErrorCode::INTERNAL_ERROR, format!(
                         "Failed to execute Google Sheets get_columns query, {}.",
                         e
-                    ))),
+                    ), None)),
                     Ok(r) => {
                         let value_range = r.1;
                         // Extract just the headers (first row)
@@ -1550,10 +1577,10 @@ impl GoogleDriveRouter {
                     .await;
 
                 match result {
-                    Err(e) => Err(ToolError::ExecutionError(format!(
+                    Err(e) => Err(ErrorData::new(ErrorCode::INTERNAL_ERROR, format!(
                         "Failed to execute Google Sheets values_get query, {}.",
                         e
-                    ))),
+                    ), None)),
                     Ok(r) => {
                         let value_range = r.1;
                         // Convert the values to a CSV string
@@ -1629,10 +1656,10 @@ impl GoogleDriveRouter {
                     .await;
 
                 match result {
-                    Err(e) => Err(ToolError::ExecutionError(format!(
+                    Err(e) => Err(ErrorData::new(ErrorCode::INTERNAL_ERROR, format!(
                         "Failed to execute Google Sheets values_update query, {}.",
                         e
-                    ))),
+                    ), None)),
                     Ok(r) => {
                         let update_response = r.1;
                         let updated_cells = update_response.updated_cells.unwrap_or(0);
@@ -1689,10 +1716,10 @@ impl GoogleDriveRouter {
                     .await;
 
                 match result {
-                    Err(e) => Err(ToolError::ExecutionError(format!(
+                    Err(e) => Err(ErrorData::new(ErrorCode::INTERNAL_ERROR, format!(
                         "Failed to execute Google Sheets update_cell operation, {}.",
                         e
-                    ))),
+                    ), None)),
                     Ok(r) => {
                         let update_response = r.1;
                         let updated_range = update_response.updated_range.unwrap_or_default();
@@ -1750,10 +1777,10 @@ impl GoogleDriveRouter {
                     .await;
 
                 match result {
-                    Err(e) => Err(ToolError::ExecutionError(format!(
+                    Err(e) => Err(ErrorData::new(ErrorCode::INTERNAL_ERROR, format!(
                         "Failed to execute Google Sheets add_sheet operation, {}.",
                         e
-                    ))),
+                    ), None)),
                     Ok(r) => {
                         let response = r.1;
                         let replies = response.replies.unwrap_or_default();
@@ -1804,10 +1831,10 @@ impl GoogleDriveRouter {
                     .await;
 
                 match result {
-                    Err(e) => Err(ToolError::ExecutionError(format!(
+                    Err(e) => Err(ErrorData::new(ErrorCode::INTERNAL_ERROR, format!(
                         "Failed to execute Google Sheets clear_values operation, {}.",
                         e
-                    ))),
+                    ), None)),
                     Ok(r) => {
                         let response = r.1;
                         let cleared_range = response.cleared_range.unwrap_or_default();
@@ -1819,10 +1846,10 @@ impl GoogleDriveRouter {
                     }
                 }
             },
-            _ => Err(ToolError::InvalidParameters(format!(
+            _ => Err(ErrorData::new(ErrorCode::INVALID_PARAMS, format!(
                 "Invalid operation: {}. Supported operations are: list_sheets, get_columns, get_values, update_values, update_cell, add_sheet, clear_values",
                 operation
-            ))),
+            ), None)),
         }
     }
 
@@ -1905,7 +1932,7 @@ impl GoogleDriveRouter {
         parent: Option<&str>,
         support_all_drives: bool,
         target_id: Option<&str>,
-    ) -> Result<Vec<Content>, ToolError> {
+    ) -> Result<Vec<Content>, ErrorData> {
         let mut req = File {
             mime_type: Some(target_mime_type.to_string()),
             ..Default::default()
@@ -1951,10 +1978,11 @@ impl GoogleDriveRouter {
         };
 
         match result {
-            Err(e) => Err(ToolError::ExecutionError(format!(
-                "Failed to upload google drive file {:?}, {}.",
-                operation, e
-            ))),
+            Err(e) => Err(ErrorData::new(
+                ErrorCode::INTERNAL_ERROR,
+                format!("Failed to upload google drive file {:?}, {}.", operation, e),
+                None,
+            )),
             Ok(r) => Ok(vec![Content::text(format!(
                 "{} ({}) (uri: {})",
                 r.1.name.unwrap_or_default(),
@@ -1964,7 +1992,7 @@ impl GoogleDriveRouter {
         }
     }
 
-    async fn create_file(&self, params: Value) -> Result<Vec<Content>, ToolError> {
+    async fn create_file(&self, params: Value) -> Result<Vec<Content>, ErrorData> {
         // Extract common parameters
         let filename =
             params
@@ -2099,7 +2127,7 @@ impl GoogleDriveRouter {
         .await
     }
 
-    async fn move_file(&self, params: Value) -> Result<Vec<Content>, ToolError> {
+    async fn move_file(&self, params: Value) -> Result<Vec<Content>, ErrorData> {
         let file_id =
             params
                 .get("fileId")
@@ -2130,10 +2158,11 @@ impl GoogleDriveRouter {
             .await;
 
         match result {
-            Err(e) => Err(ToolError::ExecutionError(format!(
-                "Failed to move google drive file {}, {}.",
-                file_id, e
-            ))),
+            Err(e) => Err(ErrorData::new(
+                ErrorCode::INTERNAL_ERROR,
+                format!("Failed to move google drive file {}, {}.", file_id, e),
+                None,
+            )),
             Ok(r) => Ok(vec![Content::text(format!(
                 "{} ({}) (uri: {})",
                 r.1.name.unwrap_or_default(),
@@ -2143,7 +2172,7 @@ impl GoogleDriveRouter {
         }
     }
 
-    async fn update_file(&self, params: Value) -> Result<Vec<Content>, ToolError> {
+    async fn update_file(&self, params: Value) -> Result<Vec<Content>, ErrorData> {
         let file_id =
             params
                 .get("fileId")
@@ -2181,7 +2210,7 @@ impl GoogleDriveRouter {
         &self,
         file_id: &str,
         label_ops: &Vec<Value>,
-    ) -> Result<Vec<Content>, ToolError> {
+    ) -> Result<Vec<Content>, ErrorData> {
         let mut req = ModifyLabelsRequest::default();
         let mut label_mods = vec![];
 
@@ -2227,15 +2256,16 @@ impl GoogleDriveRouter {
                         }
 
                         if let Some(date_value) = op.get("dateValue").and_then(|o| o.as_array()) {
-                            let parsed_dates: Result<Vec<NaiveDate>, ToolError> = date_value
+                            let parsed_dates: Result<Vec<NaiveDate>, ErrorData> = date_value
                                 .iter()
                                 .filter_map(|d| d.as_str())
                                 .map(|d| {
                                     NaiveDate::parse_from_str(d, "%Y-%m-%d").map_err(|e| {
-                                        ToolError::InvalidParameters(format!(
-                                            "Error parsing field date: {}",
-                                            e
-                                        ))
+                                        ErrorData::new(
+                                            ErrorCode::INVALID_PARAMS,
+                                            format!("Error parsing field date: {}", e),
+                                            None,
+                                        )
                                     })
                                 })
                                 .collect();
@@ -2299,10 +2329,14 @@ impl GoogleDriveRouter {
 
         let result = self.drive.files().modify_labels(req, file_id).doit().await;
         match result {
-            Err(e) => Err(ToolError::ExecutionError(format!(
-                "Failed to update label for google drive file {}, {}.",
-                file_id, e
-            ))),
+            Err(e) => Err(ErrorData::new(
+                ErrorCode::INTERNAL_ERROR,
+                format!(
+                    "Failed to update label for google drive file {}, {}.",
+                    file_id, e
+                ),
+                None,
+            )),
             Ok(r) => Ok(vec![Content::text(format!(
                 "file URI: {}, labels modified: {:?}",
                 file_id,
@@ -2318,7 +2352,7 @@ impl GoogleDriveRouter {
         body: Option<&str>,
         path: Option<&str>,
         allow_shared_drives: bool,
-    ) -> Result<Vec<Content>, ToolError> {
+    ) -> Result<Vec<Content>, ErrorData> {
         // Determine source and target MIME types based on file_type
         let (source_mime_type, target_mime_type, reader): (String, String, Box<dyn ReadSeek>) =
             match mime_type {
@@ -2401,7 +2435,7 @@ impl GoogleDriveRouter {
         .await
     }
 
-    async fn get_comments(&self, params: Value) -> Result<Vec<Content>, ToolError> {
+    async fn get_comments(&self, params: Value) -> Result<Vec<Content>, ErrorData> {
         let file_id =
             params
                 .get("fileId")
@@ -2428,10 +2462,11 @@ impl GoogleDriveRouter {
             let result = comment_list.doit().await;
             match result {
                 Err(e) => {
-                    return Err(ToolError::ExecutionError(format!(
-                        "Failed to execute google drive comment list, {}.",
-                        e
-                    )))
+                    return Err(ErrorData::new(
+                        ErrorCode::INTERNAL_ERROR,
+                        format!("Failed to execute google drive comment list, {}.", e),
+                        None,
+                    ))
                 }
                 Ok(r) => {
                     let mut content =
@@ -2466,7 +2501,7 @@ impl GoogleDriveRouter {
         Ok(vec![Content::text(results.join("\n"))])
     }
 
-    async fn manage_comment(&self, params: Value) -> Result<Vec<Content>, ToolError> {
+    async fn manage_comment(&self, params: Value) -> Result<Vec<Content>, ErrorData> {
         let file_id =
             params
                 .get("fileId")
@@ -2502,10 +2537,14 @@ impl GoogleDriveRouter {
                     .doit()
                     .await;
                 match result {
-                    Err(e) => Err(ToolError::ExecutionError(format!(
-                        "Failed to add comment for google drive file {}, {}.",
-                        file_id, e
-                    ))),
+                    Err(e) => Err(ErrorData::new(
+                        ErrorCode::INTERNAL_ERROR,
+                        format!(
+                            "Failed to add comment for google drive file {}, {}.",
+                            file_id, e
+                        ),
+                        None,
+                    )),
                     Ok(r) => Ok(vec![Content::text(format!(
                         "Author: {:?} Content: {} Created: {} uri: {} quoted_content: {:?}",
                         r.1.author.unwrap_or_default(),
@@ -2546,10 +2585,14 @@ impl GoogleDriveRouter {
                     .doit()
                     .await;
                 match result {
-                    Err(e) => Err(ToolError::ExecutionError(format!(
-                        "Failed to manage reply to comment {} for google drive file {}, {}.",
-                        comment_id, file_id, e
-                    ))),
+                    Err(e) => Err(ErrorData::new(
+                        ErrorCode::INTERNAL_ERROR,
+                        format!(
+                            "Failed to manage reply to comment {} for google drive file {}, {}.",
+                            comment_id, file_id, e
+                        ),
+                        None,
+                    )),
                     Ok(r) => Ok(vec![Content::text(format!(
                         "Action: {} Author: {:?} Content: {} Created: {} uri: {}",
                         r.1.action.unwrap_or_default(),
@@ -2560,14 +2603,18 @@ impl GoogleDriveRouter {
                     ))]),
                 }
             }
-            _ => Err(ToolError::InvalidParameters(format!(
-                "Invalid operation: {}. Supported operations are: create, reply",
-                operation
-            ))),
+            _ => Err(ErrorData::new(
+                ErrorCode::INVALID_PARAMS,
+                format!(
+                    "Invalid operation: {}. Supported operations are: create, reply",
+                    operation
+                ),
+                None,
+            )),
         }
     }
 
-    async fn docs_tool(&self, params: Value) -> Result<Vec<Content>, ToolError> {
+    async fn docs_tool(&self, params: Value) -> Result<Vec<Content>, ErrorData> {
         let document_id = params.get("documentId").and_then(|q| q.as_str()).ok_or(
             ToolError::InvalidParameters("The documentId is required".to_string()),
         )?;
@@ -2589,10 +2636,10 @@ impl GoogleDriveRouter {
                     .await;
 
                 match result {
-                    Err(e) => Err(ToolError::ExecutionError(format!(
+                    Err(e) => Err(ErrorData::new(ErrorCode::INTERNAL_ERROR, format!(
                         "Failed to execute Google Docs get query, {}.",
                         e
-                    ))),
+                    ), None)),
                     Ok(r) => {
                         let document = r.1;
                         let title = document.title.unwrap_or_default();
@@ -2662,10 +2709,10 @@ impl GoogleDriveRouter {
                     .await;
 
                 match result {
-                    Err(e) => Err(ToolError::ExecutionError(format!(
+                    Err(e) => Err(ErrorData::new(ErrorCode::INTERNAL_ERROR, format!(
                         "Failed to execute Google Docs insert_text operation, {}.",
                         e
-                    ))),
+                    ), None)),
                     Ok(_) => {
                         Ok(vec![Content::text(format!(
                             "Successfully inserted text at position {}.",
@@ -2691,10 +2738,10 @@ impl GoogleDriveRouter {
 
                 let end_index = match get_result {
                     Err(e) => {
-                        return Err(ToolError::ExecutionError(format!(
+                        return Err(ErrorData::new(ErrorCode::INTERNAL_ERROR, format!(
                             "Failed to get document to determine end position, {}.",
                             e
-                        )));
+                        ), None));
                     },
                     Ok(r) => {
                         let document = r.1;
@@ -2740,10 +2787,10 @@ impl GoogleDriveRouter {
                     .await;
 
                 match result {
-                    Err(e) => Err(ToolError::ExecutionError(format!(
+                    Err(e) => Err(ErrorData::new(ErrorCode::INTERNAL_ERROR, format!(
                         "Failed to execute Google Docs append_text operation, {}.",
                         e
-                    ))),
+                    ), None)),
                     Ok(_) => {
                         Ok(vec![Content::text("Successfully appended text to the document.").with_priority(0.1)])
                     }
@@ -2787,10 +2834,10 @@ impl GoogleDriveRouter {
                     .await;
 
                 match result {
-                    Err(e) => Err(ToolError::ExecutionError(format!(
+                    Err(e) => Err(ErrorData::new(ErrorCode::INTERNAL_ERROR, format!(
                         "Failed to execute Google Docs replace_text operation, {}.",
                         e
-                    ))),
+                    ), None)),
                     Ok(r) => {
                         let response = r.1;
                         let replacements = response
@@ -2828,10 +2875,10 @@ impl GoogleDriveRouter {
 
                 let end_index = match get_result {
                     Err(e) => {
-                        return Err(ToolError::ExecutionError(format!(
+                        return Err(ErrorData::new(ErrorCode::INTERNAL_ERROR, format!(
                             "Failed to get document to determine end position, {}.",
                             e
-                        )));
+                        ), None));
                     },
                     Ok(r) => {
                         let document = r.1;
@@ -2877,10 +2924,10 @@ impl GoogleDriveRouter {
                     .await;
 
                 match result {
-                    Err(e) => Err(ToolError::ExecutionError(format!(
+                    Err(e) => Err(ErrorData::new(ErrorCode::INTERNAL_ERROR, format!(
                         "Failed to execute Google Docs create_paragraph operation, {}.",
                         e
-                    ))),
+                    ), None)),
                     Ok(_) => {
                         Ok(vec![Content::text("Successfully created a new paragraph.").with_priority(0.1)])
                     }
@@ -2924,10 +2971,10 @@ impl GoogleDriveRouter {
                     .await;
 
                 match result {
-                    Err(e) => Err(ToolError::ExecutionError(format!(
+                    Err(e) => Err(ErrorData::new(ErrorCode::INTERNAL_ERROR, format!(
                         "Failed to execute Google Docs delete_content operation, {}.",
                         e
-                    ))),
+                    ), None)),
                     Ok(_) => {
                         Ok(vec![Content::text(format!(
                             "Successfully deleted content from position {} to {}.",
@@ -2936,14 +2983,14 @@ impl GoogleDriveRouter {
                     }
                 }
             },
-            _ => Err(ToolError::InvalidParameters(format!(
+            _ => Err(ErrorData::new(ErrorCode::INVALID_PARAMS, format!(
                 "Invalid operation: {}. Supported operations are: get_document, insert_text, append_text, replace_text, create_paragraph, delete_content",
                 operation
-            ))),
+            ), None)),
         }
     }
 
-    async fn list_drives(&self, params: Value) -> Result<Vec<Content>, ToolError> {
+    async fn list_drives(&self, params: Value) -> Result<Vec<Content>, ErrorData> {
         let query = params.get("name_contains").and_then(|q| q.as_str());
 
         let mut results: Vec<String> = Vec::new();
@@ -2966,10 +3013,11 @@ impl GoogleDriveRouter {
 
             match result {
                 Err(e) => {
-                    return Err(ToolError::ExecutionError(format!(
-                        "Failed to execute google drive list, {}.",
-                        e
-                    )))
+                    return Err(ErrorData::new(
+                        ErrorCode::INTERNAL_ERROR,
+                        format!("Failed to execute google drive list, {}.", e),
+                        None,
+                    ))
                 }
                 Ok(r) => {
                     let mut content =
@@ -3011,7 +3059,7 @@ impl GoogleDriveRouter {
             p.id.unwrap_or_default())
     }
 
-    async fn get_permissions(&self, params: Value) -> Result<Vec<Content>, ToolError> {
+    async fn get_permissions(&self, params: Value) -> Result<Vec<Content>, ErrorData> {
         let file_id =
             params
                 .get("fileId")
@@ -3039,10 +3087,11 @@ impl GoogleDriveRouter {
 
             match result {
                 Err(e) => {
-                    return Err(ToolError::ExecutionError(format!(
-                        "Failed to execute google drive list, {}.",
-                        e
-                    )))
+                    return Err(ErrorData::new(
+                        ErrorCode::INTERNAL_ERROR,
+                        format!("Failed to execute google drive list, {}.", e),
+                        None,
+                    ))
                 }
                 Ok(r) => {
                     let mut content =
@@ -3062,7 +3111,7 @@ impl GoogleDriveRouter {
         Ok(vec![Content::text(results.join("\n"))])
     }
 
-    async fn sharing(&self, params: Value) -> Result<Vec<Content>, ToolError> {
+    async fn sharing(&self, params: Value) -> Result<Vec<Content>, ErrorData> {
         let file_id =
             params
                 .get("fileId")
@@ -3118,10 +3167,14 @@ impl GoogleDriveRouter {
                     ("domain", Some(d)) => req.domain = Some(d.to_string()),
                     ("anyone", None) => {}
                     (_, _) => {
-                        return Err(ToolError::InvalidParameters(format!(
-                            "The '{}' operation for type '{}' requires the 'target' parameter.",
-                            operation, permission_type
-                        )))
+                        return Err(ErrorData::new(
+                            ErrorCode::INVALID_PARAMS,
+                            format!(
+                                "The '{}' operation for type '{}' requires the 'target' parameter.",
+                                operation, permission_type
+                            ),
+                            None,
+                        ))
                     }
                 }
 
@@ -3138,10 +3191,14 @@ impl GoogleDriveRouter {
 
                 let result = builder.doit().await;
                 match result {
-                    Err(e) => Err(ToolError::ExecutionError(format!(
-                        "Failed to manage sharing for google drive file {}, {}.",
-                        file_id, e
-                    ))),
+                    Err(e) => Err(ErrorData::new(
+                        ErrorCode::INTERNAL_ERROR,
+                        format!(
+                            "Failed to manage sharing for google drive file {}, {}.",
+                            file_id, e
+                        ),
+                        None,
+                    )),
                     Ok(r) => Ok(vec![Content::text(self.output_permission(r.1))]),
                 }
             }
@@ -3175,10 +3232,14 @@ impl GoogleDriveRouter {
                     .doit()
                     .await;
                 match result {
-                    Err(e) => Err(ToolError::ExecutionError(format!(
-                        "Failed to manage sharing for google drive file {}, {}.",
-                        file_id, e
-                    ))),
+                    Err(e) => Err(ErrorData::new(
+                        ErrorCode::INTERNAL_ERROR,
+                        format!(
+                            "Failed to manage sharing for google drive file {}, {}.",
+                            file_id, e
+                        ),
+                        None,
+                    )),
                     Ok(r) => Ok(vec![Content::text(self.output_permission(r.1))]),
                 }
             }
@@ -3197,10 +3258,14 @@ impl GoogleDriveRouter {
                     .doit()
                     .await;
                 match result {
-                    Err(e) => Err(ToolError::ExecutionError(format!(
-                        "Failed to manage sharing for google drive file {}, {}.",
-                        file_id, e
-                    ))),
+                    Err(e) => Err(ErrorData::new(
+                        ErrorCode::INTERNAL_ERROR,
+                        format!(
+                            "Failed to manage sharing for google drive file {}, {}.",
+                            file_id, e
+                        ),
+                        None,
+                    )),
                     Ok(_) => Ok(vec![Content::text(format!(
                         "Deleted permission: {} from file: {}",
                         file_id, permission_id
@@ -3217,7 +3282,7 @@ impl GoogleDriveRouter {
         }
     }
 
-    async fn list_labels(&self, _params: Value) -> Result<Vec<Content>, ToolError> {
+    async fn list_labels(&self, _params: Value) -> Result<Vec<Content>, ErrorData> {
         let builder = self
             .drive_labels
             .labels()
@@ -3226,10 +3291,11 @@ impl GoogleDriveRouter {
 
         let result = builder.doit().await;
         match result {
-            Err(e) => Err(ToolError::ExecutionError(format!(
-                "Failed to list labels for Google Drive {}",
-                e
-            ))),
+            Err(e) => Err(ErrorData::new(
+                ErrorCode::INTERNAL_ERROR,
+                format!("Failed to list labels for Google Drive {}", e),
+                None,
+            )),
             Ok(r) => {
                 let content =
                     r.1.labels
@@ -3280,7 +3346,7 @@ impl Router for GoogleDriveRouter {
         tool_name: &str,
         arguments: Value,
         _notifier: mpsc::Sender<JsonRpcMessage>,
-    ) -> Pin<Box<dyn Future<Output = Result<Vec<Content>, ToolError>> + Send + 'static>> {
+    ) -> Pin<Box<dyn Future<Output = Result<Vec<Content>, ErrorData>> + Send + 'static>> {
         let this = self.clone();
         let tool_name = tool_name.to_string();
         Box::pin(async move {
@@ -3297,7 +3363,11 @@ impl Router for GoogleDriveRouter {
                 "list_drives" => this.list_drives(arguments).await,
                 "get_permissions" => this.get_permissions(arguments).await,
                 "sharing" => this.sharing(arguments).await,
-                _ => Err(ToolError::NotFound(format!("Tool {} not found", tool_name))),
+                _ => Err(ErrorData::new(
+                    ErrorCode::INVALID_REQUEST,
+                    format!("Tool {} not found", tool_name),
+                    None,
+                )),
             }
         })
     }

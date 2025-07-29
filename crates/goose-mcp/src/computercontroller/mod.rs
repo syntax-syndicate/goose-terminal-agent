@@ -28,6 +28,7 @@ mod xlsx_tool;
 
 mod platform;
 use platform::{create_system_automation, SystemAutomation};
+use rmcp::model::{ErrorCode, ErrorData};
 
 /// An extension designed for non-developers to help them with common tasks like
 /// web scraping, data processing, and automation.
@@ -568,15 +569,20 @@ impl ComputerControllerRouter {
         content: &[u8],
         prefix: &str,
         extension: &str,
-    ) -> Result<PathBuf, ToolError> {
+    ) -> Result<PathBuf, ErrorData> {
         let cache_path = self.get_cache_path(prefix, extension);
-        fs::write(&cache_path, content)
-            .map_err(|e| ToolError::ExecutionError(format!("Failed to write to cache: {}", e)))?;
+        fs::write(&cache_path, content).map_err(|e| {
+            ErrorData::new(
+                ErrorCode::INTERNAL_ERROR,
+                format!("Failed to write to cache: {}", e),
+                None,
+            )
+        })?;
         Ok(cache_path)
     }
 
     // Helper function to register a file as a resource
-    fn register_as_resource(&self, cache_path: &PathBuf, mime_type: &str) -> Result<(), ToolError> {
+    fn register_as_resource(&self, cache_path: &PathBuf, mime_type: &str) -> Result<(), ErrorData> {
         let uri = Url::from_file_path(cache_path)
             .map_err(|_| ToolError::ExecutionError("Invalid cache path".into()))?
             .to_string();
@@ -594,7 +600,7 @@ impl ComputerControllerRouter {
         Ok(())
     }
 
-    async fn web_scrape(&self, params: Value) -> Result<Vec<Content>, ToolError> {
+    async fn web_scrape(&self, params: Value) -> Result<Vec<Content>, ErrorData> {
         let url = params
             .get("url")
             .and_then(|v| v.as_str())
@@ -606,53 +612,74 @@ impl ComputerControllerRouter {
             .unwrap_or("text");
 
         // Fetch the content
-        let response = self
-            .http_client
-            .get(url)
-            .send()
-            .await
-            .map_err(|e| ToolError::ExecutionError(format!("Failed to fetch URL: {}", e)))?;
+        let response = self.http_client.get(url).send().await.map_err(|e| {
+            ErrorData::new(
+                ErrorCode::INTERNAL_ERROR,
+                format!("Failed to fetch URL: {}", e),
+                None,
+            )
+        })?;
 
         let status = response.status();
         if !status.is_success() {
-            return Err(ToolError::ExecutionError(format!(
-                "HTTP request failed with status: {}",
-                status
-            )));
+            return Err(ErrorData::new(
+                ErrorCode::INTERNAL_ERROR,
+                format!("HTTP request failed with status: {}", status),
+                None,
+            ));
         }
 
         // Process based on save_as parameter
-        let (content, extension) =
-            match save_as {
-                "text" => {
-                    let text = response.text().await.map_err(|e| {
-                        ToolError::ExecutionError(format!("Failed to get text: {}", e))
-                    })?;
-                    (text.into_bytes(), "txt")
-                }
-                "json" => {
-                    let text = response.text().await.map_err(|e| {
-                        ToolError::ExecutionError(format!("Failed to get text: {}", e))
-                    })?;
-                    // Verify it's valid JSON
-                    serde_json::from_str::<Value>(&text).map_err(|e| {
-                        ToolError::ExecutionError(format!("Invalid JSON response: {}", e))
-                    })?;
-                    (text.into_bytes(), "json")
-                }
-                "binary" => {
-                    let bytes = response.bytes().await.map_err(|e| {
-                        ToolError::ExecutionError(format!("Failed to get bytes: {}", e))
-                    })?;
-                    (bytes.to_vec(), "bin")
-                }
-                _ => {
-                    return Err(ToolError::InvalidParameters(format!(
+        let (content, extension) = match save_as {
+            "text" => {
+                let text = response.text().await.map_err(|e| {
+                    ErrorData::new(
+                        ErrorCode::INTERNAL_ERROR,
+                        format!("Failed to get text: {}", e),
+                        None,
+                    )
+                })?;
+                (text.into_bytes(), "txt")
+            }
+            "json" => {
+                let text = response.text().await.map_err(|e| {
+                    ErrorData::new(
+                        ErrorCode::INTERNAL_ERROR,
+                        format!("Failed to get text: {}", e),
+                        None,
+                    )
+                })?;
+                // Verify it's valid JSON
+                serde_json::from_str::<Value>(&text).map_err(|e| {
+                    ErrorData::new(
+                        ErrorCode::INTERNAL_ERROR,
+                        format!("Invalid JSON response: {}", e),
+                        None,
+                    )
+                })?;
+                (text.into_bytes(), "json")
+            }
+            "binary" => {
+                let bytes = response.bytes().await.map_err(|e| {
+                    ErrorData::new(
+                        ErrorCode::INTERNAL_ERROR,
+                        format!("Failed to get bytes: {}", e),
+                        None,
+                    )
+                })?;
+                (bytes.to_vec(), "bin")
+            }
+            _ => {
+                return Err(ErrorData::new(
+                    ErrorCode::INVALID_PARAMS,
+                    format!(
                     "Invalid 'save_as' parameter: {}. Valid options are: 'text', 'json', 'binary'",
                     save_as
-                )));
-                }
-            };
+                ),
+                    None,
+                ));
+            }
+        };
 
         // Save to cache
         let cache_path = self.save_to_cache(&content, "web", extension).await?;
@@ -667,7 +694,7 @@ impl ComputerControllerRouter {
     }
 
     // Implement quick_script tool functionality
-    async fn quick_script(&self, params: Value) -> Result<Vec<Content>, ToolError> {
+    async fn quick_script(&self, params: Value) -> Result<Vec<Content>, ErrorData> {
         let language = params
             .get("language")
             .and_then(|v| v.as_str())
@@ -685,7 +712,11 @@ impl ComputerControllerRouter {
 
         // Create a temporary directory for the script
         let script_dir = tempfile::tempdir().map_err(|e| {
-            ToolError::ExecutionError(format!("Failed to create temporary directory: {}", e))
+            ErrorData::new(
+                ErrorCode::INTERNAL_ERROR,
+                format!("Failed to create temporary directory: {}", e),
+                None,
+            )
         })?;
 
         let (shell, shell_arg) = self.system_automation.get_shell_command();
@@ -697,7 +728,11 @@ impl ComputerControllerRouter {
                     if cfg!(windows) { "bat" } else { "sh" }
                 ));
                 fs::write(&script_path, script).map_err(|e| {
-                    ToolError::ExecutionError(format!("Failed to write script: {}", e))
+                    ErrorData::new(
+                        ErrorCode::INTERNAL_ERROR,
+                        format!("Failed to write script: {}", e),
+                        None,
+                    )
                 })?;
 
                 // Set execute permissions on Unix systems
@@ -705,15 +740,20 @@ impl ComputerControllerRouter {
                 {
                     let mut perms = fs::metadata(&script_path)
                         .map_err(|e| {
-                            ToolError::ExecutionError(format!("Failed to get file metadata: {}", e))
+                            ErrorData::new(
+                                ErrorCode::INTERNAL_ERROR,
+                                format!("Failed to get file metadata: {}", e),
+                                None,
+                            )
                         })?
                         .permissions();
                     perms.set_mode(0o755); // rwxr-xr-x
                     fs::set_permissions(&script_path, perms).map_err(|e| {
-                        ToolError::ExecutionError(format!(
-                            "Failed to set execute permissions: {}",
-                            e
-                        ))
+                        ErrorData::new(
+                            ErrorCode::INTERNAL_ERROR,
+                            format!("Failed to set execute permissions: {}", e),
+                            None,
+                        )
                     })?;
                 }
 
@@ -722,7 +762,11 @@ impl ComputerControllerRouter {
             "ruby" => {
                 let script_path = script_dir.path().join("script.rb");
                 fs::write(&script_path, script).map_err(|e| {
-                    ToolError::ExecutionError(format!("Failed to write script: {}", e))
+                    ErrorData::new(
+                        ErrorCode::INTERNAL_ERROR,
+                        format!("Failed to write script: {}", e),
+                        None,
+                    )
                 })?;
 
                 format!("ruby {}", script_path.display())
@@ -730,7 +774,11 @@ impl ComputerControllerRouter {
             "powershell" => {
                 let script_path = script_dir.path().join("script.ps1");
                 fs::write(&script_path, script).map_err(|e| {
-                    ToolError::ExecutionError(format!("Failed to write script: {}", e))
+                    ErrorData::new(
+                        ErrorCode::INTERNAL_ERROR,
+                        format!("Failed to write script: {}", e),
+                        None,
+                    )
                 })?;
 
                 script_path.display().to_string()
@@ -754,7 +802,11 @@ impl ComputerControllerRouter {
                     .output()
                     .await
                     .map_err(|e| {
-                        ToolError::ExecutionError(format!("Failed to run script: {}", e))
+                        ErrorData::new(
+                            ErrorCode::INTERNAL_ERROR,
+                            format!("Failed to run script: {}", e),
+                            None,
+                        )
                     })?
             }
             _ => Command::new(shell)
@@ -762,7 +814,13 @@ impl ComputerControllerRouter {
                 .arg(&command)
                 .output()
                 .await
-                .map_err(|e| ToolError::ExecutionError(format!("Failed to run script: {}", e)))?,
+                .map_err(|e| {
+                    ErrorData::new(
+                        ErrorCode::INTERNAL_ERROR,
+                        format!("Failed to run script: {}", e),
+                        None,
+                    )
+                })?,
         };
 
         let output_str = String::from_utf8_lossy(&output.stdout).into_owned();
@@ -792,7 +850,7 @@ impl ComputerControllerRouter {
     }
 
     // Implement computer control functionality
-    async fn computer_control(&self, params: Value) -> Result<Vec<Content>, ToolError> {
+    async fn computer_control(&self, params: Value) -> Result<Vec<Content>, ErrorData> {
         let script = params
             .get("script")
             .and_then(|v| v.as_str())
@@ -807,7 +865,13 @@ impl ComputerControllerRouter {
         let output = self
             .system_automation
             .execute_system_script(script)
-            .map_err(|e| ToolError::ExecutionError(format!("Failed to execute script: {}", e)))?;
+            .map_err(|e| {
+                ErrorData::new(
+                    ErrorCode::INTERNAL_ERROR,
+                    format!("Failed to execute script: {}", e),
+                    None,
+                )
+            })?;
 
         let mut result = format!("Script completed successfully.\n\nOutput:\n{}", output);
 
@@ -825,7 +889,7 @@ impl ComputerControllerRouter {
         Ok(vec![Content::text(result)])
     }
 
-    async fn xlsx_tool(&self, params: Value) -> Result<Vec<Content>, ToolError> {
+    async fn xlsx_tool(&self, params: Value) -> Result<Vec<Content>, ErrorData> {
         let path = params
             .get("path")
             .and_then(|v| v.as_str())
@@ -978,15 +1042,16 @@ impl ComputerControllerRouter {
                     .map_err(|e| ToolError::ExecutionError(e.to_string()))?;
                 Ok(vec![Content::text(format!("{:#?}", cell_value))])
             }
-            _ => Err(ToolError::InvalidParameters(format!(
-                "Invalid operation: {}",
-                operation
-            ))),
+            _ => Err(ErrorData::new(
+                ErrorCode::INVALID_PARAMS,
+                format!("Invalid operation: {}", operation),
+                None,
+            )),
         }
     }
 
     // Implement cache tool functionality
-    async fn docx_tool(&self, params: Value) -> Result<Vec<Content>, ToolError> {
+    async fn docx_tool(&self, params: Value) -> Result<Vec<Content>, ErrorData> {
         let path = params
             .get("path")
             .and_then(|v| v.as_str())
@@ -1006,7 +1071,7 @@ impl ComputerControllerRouter {
         .await
     }
 
-    async fn pdf_tool(&self, params: Value) -> Result<Vec<Content>, ToolError> {
+    async fn pdf_tool(&self, params: Value) -> Result<Vec<Content>, ErrorData> {
         let path = params
             .get("path")
             .and_then(|v| v.as_str())
@@ -1020,7 +1085,7 @@ impl ComputerControllerRouter {
         crate::computercontroller::pdf_tool::pdf_tool(path, operation, &self.cache_dir).await
     }
 
-    async fn cache(&self, params: Value) -> Result<Vec<Content>, ToolError> {
+    async fn cache(&self, params: Value) -> Result<Vec<Content>, ErrorData> {
         let command = params
             .get("command")
             .and_then(|v| v.as_str())
@@ -1030,10 +1095,10 @@ impl ComputerControllerRouter {
             "list" => {
                 let mut files = Vec::new();
                 for entry in fs::read_dir(&self.cache_dir).map_err(|e| {
-                    ToolError::ExecutionError(format!("Failed to read cache directory: {}", e))
+                    ErrorData::new(ErrorCode::INTERNAL_ERROR, format!("Failed to read cache directory: {}", e), None)
                 })? {
                     let entry = entry.map_err(|e| {
-                        ToolError::ExecutionError(format!("Failed to read directory entry: {}", e))
+                        ErrorData::new(ErrorCode::INTERNAL_ERROR, format!("Failed to read directory entry: {}", e), None)
                     })?;
                     files.push(format!("{}", entry.path().display()));
                 }
@@ -1049,7 +1114,7 @@ impl ComputerControllerRouter {
                 })?;
 
                 let content = fs::read_to_string(path).map_err(|e| {
-                    ToolError::ExecutionError(format!("Failed to read file: {}", e))
+                    ErrorData::new(ErrorCode::INTERNAL_ERROR, format!("Failed to read file: {}", e), None)
                 })?;
 
                 Ok(vec![Content::text(format!(
@@ -1063,7 +1128,7 @@ impl ComputerControllerRouter {
                 })?;
 
                 fs::remove_file(path).map_err(|e| {
-                    ToolError::ExecutionError(format!("Failed to delete file: {}", e))
+                    ErrorData::new(ErrorCode::INTERNAL_ERROR, format!("Failed to delete file: {}", e), None)
                 })?;
 
                 // Remove from active resources if present
@@ -1078,10 +1143,10 @@ impl ComputerControllerRouter {
             }
             "clear" => {
                 fs::remove_dir_all(&self.cache_dir).map_err(|e| {
-                    ToolError::ExecutionError(format!("Failed to clear cache directory: {}", e))
+                    ErrorData::new(ErrorCode::INTERNAL_ERROR, format!("Failed to clear cache directory: {}", e), None)
                 })?;
                 fs::create_dir_all(&self.cache_dir).map_err(|e| {
-                    ToolError::ExecutionError(format!("Failed to recreate cache directory: {}", e))
+                    ErrorData::new(ErrorCode::INTERNAL_ERROR, format!("Failed to recreate cache directory: {}", e), None)
                 })?;
 
                 // Clear active resources
@@ -1089,10 +1154,10 @@ impl ComputerControllerRouter {
 
                 Ok(vec![Content::text("Cache cleared successfully.")])
             }
-            _ => Err(ToolError::InvalidParameters(format!(
+            _ => Err(ErrorData::new(ErrorCode::INVALID_PARAMS, format!(
                 "Invalid 'command' parameter: {}. Valid options are: 'list', 'view', 'delete', 'clear'",
                 command
-            )))
+            ), None))
         }
     }
 }
@@ -1122,7 +1187,7 @@ impl Router for ComputerControllerRouter {
         tool_name: &str,
         arguments: Value,
         _notifier: mpsc::Sender<JsonRpcMessage>,
-    ) -> Pin<Box<dyn Future<Output = Result<Vec<Content>, ToolError>> + Send + 'static>> {
+    ) -> Pin<Box<dyn Future<Output = Result<Vec<Content>, ErrorData>> + Send + 'static>> {
         let this = self.clone();
         let tool_name = tool_name.to_string();
         Box::pin(async move {
@@ -1134,7 +1199,11 @@ impl Router for ComputerControllerRouter {
                 "pdf_tool" => this.pdf_tool(arguments).await,
                 "docx_tool" => this.docx_tool(arguments).await,
                 "xlsx_tool" => this.xlsx_tool(arguments).await,
-                _ => Err(ToolError::NotFound(format!("Tool {} not found", tool_name))),
+                _ => Err(ErrorData::new(
+                    ErrorCode::INVALID_REQUEST,
+                    format!("Tool {} not found", tool_name),
+                    None,
+                )),
             }
         })
     }

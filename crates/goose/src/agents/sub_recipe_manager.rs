@@ -5,6 +5,7 @@ use serde_json::Value;
 use std::collections::HashMap;
 
 use crate::{
+use rmcp::model::{ErrorData, ErrorCode};
     agents::{
         recipe_tools::sub_recipe_tools::{
             create_sub_recipe_task, create_sub_recipe_task_tool, SUB_RECIPE_TASK_TOOL_NAME_PREFIX,
@@ -72,25 +73,25 @@ impl SubRecipeManager {
         tool_name: &str,
         params: Value,
         tasks_manager: &TasksManager,
-    ) -> Result<Vec<Content>, ToolError> {
+    ) -> Result<Vec<Content>, ErrorData> {
         let sub_recipe = self.sub_recipes.get(tool_name).ok_or_else(|| {
             let sub_recipe_name = tool_name
                 .strip_prefix(SUB_RECIPE_TASK_TOOL_NAME_PREFIX)
                 .and_then(|s| s.strip_prefix("_"))
                 .ok_or_else(|| {
-                    ToolError::InvalidParameters(format!(
+                    ErrorData::new(ErrorCode::INVALID_PARAMS, format!(
                         "Invalid sub-recipe tool name format: {}",
                         tool_name
-                    ))
+                    ), None)
                 })
                 .unwrap();
 
-            ToolError::InvalidParameters(format!("Sub-recipe '{}' not found", sub_recipe_name))
+            ErrorData::new(ErrorCode::INVALID_PARAMS, format!("Sub-recipe '{}' not found", sub_recipe_name), None)
         })?;
         let output = create_sub_recipe_task(sub_recipe, params, tasks_manager)
             .await
             .map_err(|e| {
-                ToolError::ExecutionError(format!("Sub-recipe task createion failed: {}", e))
+                ErrorData::new(ErrorCode::INTERNAL_ERROR, format!("Sub-recipe task createion failed: {}", e), None)
             })?;
         Ok(vec![Content::text(output)])
     }
